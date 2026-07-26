@@ -15,7 +15,7 @@ authors = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/kibsu/kibsu"
+Homepage = "https://github.com/M-Bajalan/kibsu"
 
 [tool.setuptools.packages.find]
 where = ["."]
