@@ -1,0 +1,314 @@
+{
+  "repo": "iannuttall/claude-agents",
+  "sha": "f7df2c3e7395d163ad52d0793bac8fa7ce0d776a",
+  "measured_by": "skill_audit",
+  "result": {
+    "version": "0.3.0",
+    "root": "<clone of iannuttall/claude-agents at f7df2c3e7395>",
+    "mode": "instruction-dir/*.md",
+    "all": {
+      "lines": 727,
+      "instructions": 96,
+      "checkable": 2,
+      "claimable": 94,
+      "runnable_fences": 0,
+      "checkboxes": 0,
+      "units": 7,
+      "pct": 2.0833333333333335,
+      "zero": 5
+    },
+    "procedure_only": {
+      "lines": 419,
+      "instructions": 53,
+      "checkable": 1,
+      "claimable": 52,
+      "runnable_fences": 0,
+      "checkboxes": 0,
+      "units": 4,
+      "pct": 1.8867924528301887,
+      "zero": 3
+    },
+    "by_genre": {
+      "procedure": {
+        "lines": 419,
+        "instructions": 53,
+        "checkable": 1,
+        "claimable": 52,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "units": 4,
+        "pct": 1.8867924528301887,
+        "zero": 3
+      },
+      "persona": {
+        "lines": 308,
+        "instructions": 43,
+        "checkable": 1,
+        "claimable": 42,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "units": 3,
+        "pct": 2.3255813953488373,
+        "zero": 2
+      }
+    },
+    "artifacts": [
+      {
+        "skill": "agents/content-writer.md",
+        "artifact": ".content/{slug}.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": false,
+        "out_of_scope_reason": "path prefix '.content/' does not exist in this repo",
+        "phantom": false
+      },
+      {
+        "skill": "agents/frontend-designer.md",
+        "artifact": "frontend-design-spec.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": true
+      },
+      {
+        "skill": "agents/security-auditor.md",
+        "artifact": "security-report.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": true
+      }
+    ],
+    "history_shallow": false,
+    "has_git": true,
+    "skills": [
+      {
+        "lines": 46,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 10,
+        "checkable": 0,
+        "claimable": 10,
+        "inline_cmds": 0,
+        "steps": 6,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 1,
+        "doctrine_hits": 1,
+        "epistemic": 0,
+        "action": 10,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 6.52,
+          "procedure": 6.52,
+          "reference": 0.0,
+          "doctrine": 3.48
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "agents/code-refactorer.md"
+      },
+      {
+        "lines": 51,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 20,
+        "checkable": 0,
+        "claimable": 20,
+        "inline_cmds": 0,
+        "steps": 2,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 1,
+        "doctrine_hits": 0,
+        "epistemic": 1,
+        "action": 19,
+        "mandated": [
+          {
+            "tok": ".content/{slug}.md",
+            "line": "- Save as Markdown in specified folder (default: `.content/{slug}.md`)"
+          }
+        ],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 5.88,
+          "procedure": 1.96,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "persona",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "persona",
+        "skill": "agents/content-writer.md"
+      },
+      {
+        "lines": 190,
+        "fences": 4,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 19,
+        "checkable": 1,
+        "claimable": 18,
+        "inline_cmds": 0,
+        "steps": 8,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 1,
+        "doctrine_hits": 0,
+        "epistemic": 2,
+        "action": 17,
+        "mandated": [
+          {
+            "tok": "frontend-design-spec.md",
+            "line": "Generate `frontend-design-spec.md` in the user-specified location (ask for confirmation on location, suggest `/docs/design/` if not specified):"
+          }
+        ],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 1.58,
+          "procedure": 2.11,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "agents/frontend-designer.md"
+      },
+      {
+        "lines": 61,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 15,
+        "checkable": 0,
+        "claimable": 15,
+        "inline_cmds": 0,
+        "steps": 8,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 1,
+        "doctrine_hits": 1,
+        "epistemic": 0,
+        "action": 15,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 4.92,
+          "procedure": 6.56,
+          "reference": 0.0,
+          "doctrine": 2.62
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "agents/prd-writer.md"
+      },
+      {
+        "lines": 122,
+        "fences": 1,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 9,
+        "checkable": 0,
+        "claimable": 9,
+        "inline_cmds": 0,
+        "steps": 21,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 2,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 9,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 4.92,
+          "procedure": 8.61,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "agents/project-task-planner.md"
+      },
+      {
+        "lines": 188,
+        "fences": 1,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 5,
+        "checkable": 1,
+        "claimable": 4,
+        "inline_cmds": 0,
+        "steps": 2,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 1,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 5,
+        "mandated": [
+          {
+            "tok": "security-report.md",
+            "line": "2. Generate a comprehensive security report named `security-report.md` in the location specified by the user. If no location is provided, suggest an appropriate location first (such as the project roo"
+          }
+        ],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 1.6,
+          "procedure": 0.53,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "persona",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "persona",
+        "skill": "agents/security-auditor.md"
+      },
+      {
+        "lines": 69,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 18,
+        "checkable": 0,
+        "claimable": 18,
+        "inline_cmds": 0,
+        "steps": 5,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 2,
+        "doctrine_hits": 3,
+        "epistemic": 1,
+        "action": 17,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 8.7,
+          "procedure": 3.62,
+          "reference": 0.0,
+          "doctrine": 6.96
+        },
+        "genre": "persona",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "persona",
+        "skill": "agents/vibe-coding-coach.md"
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# NOTE: this repo has no remote yet (single local commit, `git remote -v` is empty), so this
+# workflow has never actually executed on a GitHub-hosted runner. The matrix below is written
+# and statically validated locally (parsed with Python's own yaml-adjacent tooling / structure
+# check), not proven green by a real run - that only happens once a remote + a push/PR exist.
+#
+# '3.8' is the floor declared in pyproject.toml (`requires-python = ">=3.8"`). It was previously
+# untested on any interpreter - this machine runs 3.13 and CI only ever pinned 3.12. A static
+# ast-based scan (throwaway script, not part of this repo) parsed every .py file under kibsu/
+# and tests/ and found zero syntax/stdlib constructs that post-date 3.8, so the matrix now
+# enforces the floor an interpreter actually checks it, instead of leaving it as an untested
+# claim in pyproject.toml.
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.12']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run test suite
+        run: python -m unittest discover -s tests
+

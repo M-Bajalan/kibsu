@@ -1,0 +1,41 @@
+# Normalize line endings for text files; leave binary files alone. See PROVENANCE.md / plan
+# 6.2 - this exists so a contributor's local core.autocrlf setting cannot silently rewrite the
+# repository's line endings out from under them.
+* text=auto
+
+# Common binary types: never subject to text/eol conversion, regardless of extension heuristics.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.7z binary
+*.whl binary
+*.pyc binary
+*.pyo binary
+*.so binary
+*.dll binary
+*.dylib binary
+*.exe binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.mp3 binary
+*.mp4 binary
+*.mov binary
+*.class binary
+*.jar binary
+
+# Shell scripts must keep LF endings (a CRLF shebang line breaks `#!/bin/sh` on Linux/macOS).
+*.sh text eol=lf
+
+# Windows batch/cmd scripts are conventionally CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf

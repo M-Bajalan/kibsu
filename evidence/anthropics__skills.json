@@ -1,0 +1,952 @@
+{
+  "repo": "anthropics/skills",
+  "sha": "b29e7cf65e5cb78a5ac33d582270551bc74a14eb",
+  "measured_by": "skill_audit",
+  "result": {
+    "version": "0.3.0",
+    "root": "<clone of anthropics/skills at b29e7cf65e5c>",
+    "mode": "SKILL.md",
+    "all": {
+      "lines": 3510,
+      "instructions": 310,
+      "checkable": 49,
+      "claimable": 261,
+      "runnable_fences": 53,
+      "checkboxes": 0,
+      "units": 18,
+      "pct": 15.806451612903226,
+      "zero": 6
+    },
+    "procedure_only": {
+      "lines": 2513,
+      "instructions": 212,
+      "checkable": 20,
+      "claimable": 192,
+      "runnable_fences": 44,
+      "checkboxes": 0,
+      "units": 12,
+      "pct": 9.433962264150944,
+      "zero": 6
+    },
+    "by_genre": {
+      "procedure": {
+        "lines": 2513,
+        "instructions": 212,
+        "checkable": 20,
+        "claimable": 192,
+        "runnable_fences": 44,
+        "checkboxes": 0,
+        "units": 12,
+        "pct": 9.433962264150944,
+        "zero": 6
+      },
+      "doctrine": {
+        "lines": 148,
+        "instructions": 15,
+        "checkable": 4,
+        "claimable": 11,
+        "runnable_fences": 1,
+        "checkboxes": 0,
+        "units": 2,
+        "pct": 26.666666666666668,
+        "zero": 0
+      },
+      "reference": {
+        "lines": 775,
+        "instructions": 83,
+        "checkable": 25,
+        "claimable": 58,
+        "runnable_fences": 8,
+        "checkboxes": 0,
+        "units": 2,
+        "pct": 30.120481927710845,
+        "zero": 0
+      },
+      "mixed": {
+        "lines": 74,
+        "instructions": 0,
+        "checkable": 0,
+        "claimable": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "units": 2,
+        "pct": 0.0,
+        "zero": 0
+      }
+    },
+    "artifacts": [
+      {
+        "skill": "skills/claude-api",
+        "artifact": "agent-openai.py",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": true
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "*-generic.py",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": true
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/live-sources.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/models.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/model-migration.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "{lang}/claude-api/README.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": false,
+        "out_of_scope_reason": "path prefix '{lang}/claude-api/' does not exist in this repo",
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/platform-availability.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/prompt-caching.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/managed-agents-onboarding.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/managed-agents-overview.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/managed-agents-*.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "{lang}/managed-agents/README.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": false,
+        "out_of_scope_reason": "path prefix '{lang}/managed-agents/' does not exist in this repo",
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "curl/managed-agents.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/anthropic-cli.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "csharp/claude-api/README.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/managed-agents-client-patterns.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "shared/managed-agents-tools.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/doc-coauthoring",
+        "artifact": "decision-doc.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": true
+      },
+      {
+        "skill": "skills/doc-coauthoring",
+        "artifact": "technical-spec.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": true
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "eval-viewer/generate_review.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "evals/evals.json",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": false,
+        "out_of_scope_reason": "path prefix 'evals/' does not exist in this repo",
+        "phantom": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "eval_metadata.json",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": true
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "agents/grader.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "grading.json",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": true
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "generate_review.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "phantom": false
+      }
+    ],
+    "history_shallow": false,
+    "has_git": true,
+    "skills": [
+      {
+        "lines": 401,
+        "fences": 5,
+        "runnable_fences": 3,
+        "checkboxes": 0,
+        "instructions": 30,
+        "checkable": 0,
+        "claimable": 30,
+        "inline_cmds": 0,
+        "steps": 17,
+        "seq": 1,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 1,
+        "epistemic": 0,
+        "action": 30,
+        "mandated": [],
+        "scaffolding": true,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 4.61,
+          "reference": 0.0,
+          "doctrine": 0.4
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/algorithmic-art"
+      },
+      {
+        "lines": 70,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 0,
+        "checkable": 0,
+        "claimable": 0,
+        "inline_cmds": 0,
+        "steps": 0,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 0,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 0.0,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "mixed",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "mixed",
+        "skill": "skills/brand-guidelines"
+      },
+      {
+        "lines": 126,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 14,
+        "checkable": 0,
+        "claimable": 14,
+        "inline_cmds": 0,
+        "steps": 2,
+        "seq": 1,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 1,
+        "epistemic": 0,
+        "action": 14,
+        "mandated": [],
+        "scaffolding": true,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 1.59,
+          "reference": 0.0,
+          "doctrine": 1.27
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/canvas-design"
+      },
+      {
+        "lines": 540,
+        "fences": 3,
+        "runnable_fences": 3,
+        "checkboxes": 0,
+        "instructions": 55,
+        "checkable": 21,
+        "claimable": 34,
+        "inline_cmds": 20,
+        "steps": 7,
+        "seq": 2,
+        "tables": 88,
+        "persona_hits": 0,
+        "doctrine_hits": 13,
+        "epistemic": 0,
+        "action": 55,
+        "mandated": [
+          {
+            "tok": "agent-openai.py",
+            "line": "Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers \u2014 `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names li"
+          },
+          {
+            "tok": "*-generic.py",
+            "line": "Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers \u2014 `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names li"
+          },
+          {
+            "tok": "shared/live-sources.md",
+            "line": "**Never guess SDK usage.** Function names, class names, namespaces, method signatures, and import paths must come from explicit documentation \u2014 either the `{lang}/` files in this skill or the official"
+          },
+          {
+            "tok": "shared/models.md",
+            "line": "**ALWAYS use `claude-opus-5` unless the user explicitly names a different model.** This is non-negotiable. Do not use `claude-sonnet-5`, `claude-sonnet-4-6`, or any other model unless the user literal"
+          },
+          {
+            "tok": "shared/model-migration.md",
+            "line": "- **`refusal` stop reason \u2014 handle it, and opt into fallbacks by default** \u2014 safety classifiers may decline a request (HTTP 200, `stop_reason: \"refusal\"`, with a `stop_details` category); always check"
+          },
+          {
+            "tok": "{lang}/claude-api/README.md",
+            "line": "- **`refusal` stop reason \u2014 handle it, and opt into fallbacks by default** \u2014 safety classifiers may decline a request (HTTP 200, `stop_reason: \"refusal\"`, with a `stop_details` category); always check"
+          },
+          {
+            "tok": "shared/platform-availability.md",
+            "line": "**Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and Claude Mythos 5; not Claude Sonnet 5; no beta header.** Append `{\"role\": \"system\", \"content\": \"\u2026\"}` to the `messages` array (not the top-level `sy"
+          },
+          {
+            "tok": "shared/prompt-caching.md",
+            "line": "**Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and Claude Mythos 5; not Claude Sonnet 5; no beta header.** Append `{\"role\": \"system\", \"content\": \"\u2026\"}` to the `messages` array (not the top-level `sy"
+          },
+          {
+            "tok": "shared/managed-agents-onboarding.md",
+            "line": "| `managed-agents-onboard` | Walk the user through setting up a Managed Agent from scratch. **Read `shared/managed-agents-onboarding.md` immediately** and follow its interview script: **describe \u2192 con"
+          },
+          {
+            "tok": "shared/managed-agents-overview.md",
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+          },
+          {
+            "tok": "shared/managed-agents-*.md",
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+          },
+          {
+            "tok": "{lang}/managed-agents/README.md",
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+          },
+          {
+            "tok": "curl/managed-agents.md",
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+          },
+          {
+            "tok": "shared/anthropic-cli.md",
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+          },
+          {
+            "tok": "csharp/claude-api/README.md",
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+          },
+          {
+            "tok": "shared/managed-agents-client-patterns.md",
+            "line": "**When the user asks \"how do I write the client code for X\":** reach for `shared/managed-agents-client-patterns.md` \u2014 covers lossless stream reconnect, `processed_at` queued/processed gate, interrupt,"
+          },
+          {
+            "tok": "shared/managed-agents-tools.md",
+            "line": "**When the user asks \"how do I write the client code for X\":** reach for `shared/managed-agents-client-patterns.md` \u2014 covers lossless stream reconnect, `processed_at` queued/processed gate, interrupt,"
+          }
+        ],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 2.69,
+          "reference": 11.41,
+          "doctrine": 3.85
+        },
+        "genre": "reference",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "reference",
+        "skill": "skills/claude-api"
+      },
+      {
+        "lines": 373,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 49,
+        "checkable": 1,
+        "claimable": 48,
+        "inline_cmds": 0,
+        "steps": 19,
+        "seq": 1,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 2,
+        "epistemic": 13,
+        "action": 36,
+        "mandated": [
+          {
+            "tok": "decision-doc.md",
+            "line": "Create a markdown file in the working directory. Name it appropriately (e.g., `decision-doc.md`, `technical-spec.md`)."
+          },
+          {
+            "tok": "technical-spec.md",
+            "line": "Create a markdown file in the working directory. Name it appropriately (e.g., `decision-doc.md`, `technical-spec.md`)."
+          }
+        ],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 2.82,
+          "reference": 0.0,
+          "doctrine": 0.86
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/doc-coauthoring"
+      },
+      {
+        "lines": 88,
+        "fences": 3,
+        "runnable_fences": 3,
+        "checkboxes": 0,
+        "instructions": 10,
+        "checkable": 3,
+        "claimable": 7,
+        "inline_cmds": 5,
+        "steps": 0,
+        "seq": 0,
+        "tables": 5,
+        "persona_hits": 0,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 10,
+        "mandated": [],
+        "scaffolding": true,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 10.23,
+          "reference": 3.98,
+          "doctrine": 0.0
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/docx"
+      },
+      {
+        "lines": 52,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 6,
+        "checkable": 2,
+        "claimable": 4,
+        "inline_cmds": 0,
+        "steps": 0,
+        "seq": 1,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 5,
+        "epistemic": 0,
+        "action": 6,
+        "mandated": [],
+        "scaffolding": true,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 1.92,
+          "reference": 0.0,
+          "doctrine": 15.38
+        },
+        "genre": "doctrine",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "doctrine",
+        "skill": "skills/frontend-design"
+      },
+      {
+        "lines": 29,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 0,
+        "checkable": 0,
+        "claimable": 0,
+        "inline_cmds": 0,
+        "steps": 3,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 0,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 5.17,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/internal-comms"
+      },
+      {
+        "lines": 233,
+        "fences": 1,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 21,
+        "checkable": 3,
+        "claimable": 18,
+        "inline_cmds": 3,
+        "steps": 4,
+        "seq": 1,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 21,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 1.29,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/mcp-builder"
+      },
+      {
+        "lines": 311,
+        "fences": 18,
+        "runnable_fences": 18,
+        "checkboxes": 0,
+        "instructions": 7,
+        "checkable": 1,
+        "claimable": 6,
+        "inline_cmds": 0,
+        "steps": 0,
+        "seq": 1,
+        "tables": 10,
+        "persona_hits": 0,
+        "doctrine_hits": 1,
+        "epistemic": 0,
+        "action": 7,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 17.68,
+          "reference": 2.25,
+          "doctrine": 0.51
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/pdf"
+      },
+      {
+        "lines": 235,
+        "fences": 5,
+        "runnable_fences": 5,
+        "checkboxes": 0,
+        "instructions": 28,
+        "checkable": 4,
+        "claimable": 24,
+        "inline_cmds": 9,
+        "steps": 0,
+        "seq": 0,
+        "tables": 30,
+        "persona_hits": 0,
+        "doctrine_hits": 2,
+        "epistemic": 0,
+        "action": 28,
+        "mandated": [],
+        "scaffolding": true,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 6.38,
+          "reference": 8.94,
+          "doctrine": 1.36
+        },
+        "genre": "reference",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "reference",
+        "skill": "skills/pptx"
+      },
+      {
+        "lines": 483,
+        "fences": 15,
+        "runnable_fences": 5,
+        "checkboxes": 0,
+        "instructions": 48,
+        "checkable": 12,
+        "claimable": 36,
+        "inline_cmds": 0,
+        "steps": 26,
+        "seq": 2,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 13,
+        "epistemic": 1,
+        "action": 47,
+        "mandated": [
+          {
+            "tok": "eval-viewer/generate_review.py",
+            "line": "- Use the `eval-viewer/generate_review.py` script to show the user the results for them to look at, and also let them look at the quantitative metrics"
+          },
+          {
+            "tok": "evals/evals.json",
+            "line": "Save test cases to `evals/evals.json`. Don't write assertions yet \u2014 just the prompts. You'll draft assertions in the next step while the runs are in progress."
+          },
+          {
+            "tok": "eval_metadata.json",
+            "line": "Write an `eval_metadata.json` for each test case (assertions can be empty for now). Give each eval a descriptive name based on what it's testing \u2014 not just \"eval-0\". Use this name for the directory to"
+          },
+          {
+            "tok": "agents/grader.md",
+            "line": "1. **Grade each run** \u2014 spawn a grader subagent (or grade inline) that reads `agents/grader.md` and evaluates each assertion against the outputs. Save results to `grading.json` in each run directory. "
+          },
+          {
+            "tok": "grading.json",
+            "line": "1. **Grade each run** \u2014 spawn a grader subagent (or grade inline) that reads `agents/grader.md` and evaluates each assertion against the outputs. Save results to `grading.json` in each run directory. "
+          },
+          {
+            "tok": "generate_review.py",
+            "line": "- For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after runn"
+          }
+        ],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 6.21,
+          "reference": 0.0,
+          "doctrine": 4.31
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/skill-creator"
+      },
+      {
+        "lines": 251,
+        "fences": 9,
+        "runnable_fences": 9,
+        "checkboxes": 0,
+        "instructions": 22,
+        "checkable": 0,
+        "claimable": 22,
+        "inline_cmds": 0,
+        "steps": 5,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 5,
+        "epistemic": 0,
+        "action": 22,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 11.75,
+          "reference": 0.0,
+          "doctrine": 3.19
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/slack-gif-creator"
+      },
+      {
+        "lines": 56,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 4,
+        "checkable": 0,
+        "claimable": 4,
+        "inline_cmds": 0,
+        "steps": 18,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 4,
+        "mandated": [],
+        "scaffolding": true,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 16.07,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/theme-factory"
+      },
+      {
+        "lines": 70,
+        "fences": 2,
+        "runnable_fences": 2,
+        "checkboxes": 0,
+        "instructions": 3,
+        "checkable": 0,
+        "claimable": 3,
+        "inline_cmds": 1,
+        "steps": 5,
+        "seq": 1,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 3,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 13.57,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/web-artifacts-builder"
+      },
+      {
+        "lines": 92,
+        "fences": 5,
+        "runnable_fences": 4,
+        "checkboxes": 0,
+        "instructions": 4,
+        "checkable": 0,
+        "claimable": 4,
+        "inline_cmds": 0,
+        "steps": 3,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 1,
+        "epistemic": 0,
+        "action": 4,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 14.67,
+          "reference": 0.0,
+          "doctrine": 1.74
+        },
+        "genre": "procedure",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "procedure",
+        "skill": "skills/webapp-testing"
+      },
+      {
+        "lines": 96,
+        "fences": 1,
+        "runnable_fences": 1,
+        "checkboxes": 0,
+        "instructions": 9,
+        "checkable": 2,
+        "claimable": 7,
+        "inline_cmds": 2,
+        "steps": 0,
+        "seq": 1,
+        "tables": 6,
+        "persona_hits": 0,
+        "doctrine_hits": 3,
+        "epistemic": 0,
+        "action": 9,
+        "mandated": [],
+        "scaffolding": false,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 4.17,
+          "reference": 4.38,
+          "doctrine": 5.0
+        },
+        "genre": "doctrine",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "doctrine",
+        "skill": "skills/xlsx"
+      },
+      {
+        "lines": 4,
+        "fences": 0,
+        "runnable_fences": 0,
+        "checkboxes": 0,
+        "instructions": 0,
+        "checkable": 0,
+        "claimable": 0,
+        "inline_cmds": 0,
+        "steps": 0,
+        "seq": 0,
+        "tables": 0,
+        "persona_hits": 0,
+        "doctrine_hits": 0,
+        "epistemic": 0,
+        "action": 0,
+        "mandated": [],
+        "scaffolding": true,
+        "genre_scores": {
+          "persona": 0.0,
+          "procedure": 0.0,
+          "reference": 0.0,
+          "doctrine": 0.0
+        },
+        "genre": "mixed",
+        "genre_source": "detected",
+        "genre_conflict": false,
+        "genre_detected": "mixed",
+        "skill": "template"
+      }
+    ]
+  }
+}
