@@ -6,7 +6,10 @@ the author's own pocket, on the author's own initiative.
 It was not commissioned, requested, assigned, or required by any employer. It is
 not a work product of any employment, and it does not relate to the business of
 any employer the author has worked for. It was written by one person, working
-alone, to make that person's own work easier.
+alone, to make that person's own work easier. The only collaborators were AI
+coding assistants, drafting under that person's direction, gating, and review —
+the commit trailers record which ones, honestly, because a project about
+verifiable claims should not have an unverifiable author line.
 
 ## What this repository does not contain
 
