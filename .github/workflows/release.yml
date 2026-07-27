@@ -35,11 +35,12 @@ jobs:
         run: |
           python -m pip install build
           python -m build
-      # >>> MUST MATCH roundtrip.yml's candidate leg <<<
+      # >>> MUST MATCH roundtrip.yml <<<
       # This action and the download-artifact below are the only pair in this repository
       # that no pull request can exercise - release.yml fires only on a `v*` tag. They are
       # tested by .github/workflows/roundtrip.yml, which pins the SAME two SHAs and proves
-      # a real sdist + wheel survive the cross-job round trip byte-identical. Change these
+      # a real sdist + wheel survive the cross-job round trip byte-identical, with the
+      # assertion itself unit-tested in tests/test_assert_dist_roundtrip.py. Change these
       # two lines and change them there, or the publish path goes untested again.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -53,7 +54,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      # >>> MUST MATCH roundtrip.yml's candidate leg <<< (see the note on upload above)
+      # >>> MUST MATCH roundtrip.yml <<< (see the note on upload above)
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist

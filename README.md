@@ -223,8 +223,21 @@ One line rather than a heredoc, because a heredoc is a bash construct and this l
 to work in PowerShell too — a "verify it yourself" section that only verifies on Unix
 is half a claim.
 
-**It is small enough to actually read.** 3,679 lines across 14 files in `kibsu/`,
-plus 1,511 lines of tests running 53 cases. That is an evening, not a quarter.
+**It is small enough to actually read.** 4,241 lines across 14 files in `kibsu/`, plus
+2,077 lines of tests running 72 cases. That is an evening, not a quarter. Count it yourself
+rather than believing this paragraph:
+
+```bash
+python -c "import pathlib,sys; f=sorted(pathlib.Path(sys.argv[1]).glob('*.py')); print(len(f),'files',sum(len(p.read_text(encoding='utf-8').splitlines()) for p in f),'lines')" kibsu
+python -m unittest discover -s tests   # prints the case count
+```
+
+> An earlier revision published **3,679** here. That figure was not invented — it was
+> measured, and then re-measured by a second reviewer who got the same answer. Both used
+> PowerShell's `Measure-Object -Line`, which silently **skips empty lines**: 4,241 total
+> minus 562 blank lines is exactly 3,679. Two counts agreed because they were not
+> independent, which is the failure the second count existed to prevent. The commands above
+> are printed so the next reader does not have to trust an instrument they cannot see.
 
 ```bash
 git clone https://github.com/M-Bajalan/kibsu && cd kibsu

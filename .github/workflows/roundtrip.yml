@@ -7,32 +7,33 @@
 # and is first tested by an actual release. That is the one path in this repository with no
 # test and the highest cost of failure. This workflow is that test.
 #
-# WHAT IT ASSERTS - the real contract, not a proxy
-# Two genuine distributions, built by `python -m build` exactly as release.yml builds them,
-# survive the cross-job upload/download round trip BYTE-IDENTICAL, arrive as PLAIN FILES at
-# `dist/*`, and are still a valid gzip tarball and a valid zip archive respectively.
+# >>> MUST MATCH release.yml <<<
+# The upload-artifact and download-artifact pins below must equal the pins in
+# .github/workflows/release.yml, which carries the mirror of this note. Dependabot groups
+# every action bump into one pull request, so a future bump moves BOTH files together and
+# this workflow exercises the new versions ON that pull request, before it can be merged.
+# That is how release.yml's blind spot stays closed - structurally, not by anyone remembering.
+# It already worked once: PR #1 bumped upload v4.6.2 -> v7.0.1 and download v4.3.0 -> v8.0.1,
+# this workflow ran green on the PR branch, and the merge happened on evidence rather than on
+# a reading of release notes.
 #
-# THE WHEEL IS A ZIP, and that is not trivia. download-artifact v8's headline change is that
-# it "will no longer attempt to unzip all downloaded files". A fabricated text file named
-# `.whl` would sail through this test and prove nothing. Only a real wheel exercises the
-# change under review, which is why this builds real distributions instead of fixtures.
+# THE ASSERTION LIVES IN tools/assert_dist_roundtrip.py, NOT HERE
+# It was previously inline, in two heredoc copies - which made it the one checker in this
+# repository that `python -m unittest` could not reach. A check nobody can check is the exact
+# defect this project reports in other people's repositories. It is now a module with its own
+# tests in tests/test_assert_dist_roundtrip.py, and every failing branch is driven to fail
+# there on every test run (CONTRIBUTING.md, rule 4).
 #
-# TWO LEGS, AND WHY
-#   baseline  - the versions release.yml uses TODAY. If this leg fails, the CHECKER is
-#               broken, not the actions. TEMPORARY: delete it once PR #1 is resolved (see
-#               the note on its job below) - Dependabot groups all action bumps, so it will
-#               eventually drag this leg to the same versions as the candidate leg and the
-#               control silently becomes a duplicate. A control that rots is worse than none.
-#   candidate - MUST MATCH release.yml's artifact actions. See the MUST-MATCH block below.
+# THE BASELINE LEG IS GONE, AND WHY IT HAD TO BE
+# An earlier revision carried a second leg pinned to the pre-bump versions, as a control for
+# "is it the actions or the checker?". Dependabot bumped BOTH legs on its very first pull
+# request, leaving two byte-identical legs while one of them still called itself a baseline -
+# a control that had silently stopped controlling anything, which is worse than no control at
+# all. The durable answer is the negative control below: it cannot be eroded by a version bump
+# because it does not depend on a version.
 #
-# EVERY LEG CARRIES ITS OWN NEGATIVE CONTROL. After the real assertion passes, each leg
-# re-runs the SAME assertion against a deliberately wrapped `dist/` - the exact failure mode
-# this workflow exists to catch - and fails the job if the assertion PASSES. A checker that
-# has never failed proves nothing (CONTRIBUTING.md, rule 4). This one proves it can, on
-# every run, forever, and Dependabot cannot erode it.
-#
-# ON PIPES: the shell blocks below run with `set -euo pipefail`, so a pipe cannot silently
-# swallow a failure. Where an exit code is the thing being measured, it is captured bare.
+# ON PIPES: the shell blocks run with `set -euo pipefail`, so a pipe cannot silently swallow a
+# failure. Where an exit code is the thing being measured, it is captured bare.
 name: Artifact roundtrip
 
 on:
@@ -45,14 +46,8 @@ permissions:
   contents: read
 
 jobs:
-  # ===========================================================================
-  # BASELINE LEG - upload v4.6.2 / download v4.3.0
-  # These are the versions release.yml uses today. This leg exists to tell a real
-  # regression apart from a broken checker: if BOTH legs fail, suspect this file.
-  # TEMPORARY - remove once PR #1 is merged or closed.
-  # ===========================================================================
-  baseline-upload:
-    name: baseline · build + upload (v4.6.2)
+  build-and-upload:
+    name: build + upload
     runs-on: ubuntu-latest
     outputs:
       sha_sdist: ${{ steps.hash.outputs.sha_sdist }}
@@ -62,6 +57,9 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      # Real distributions, exactly as release.yml builds them. A fabricated file named .whl
+      # would not exercise download-artifact's unzip behaviour at all - the wheel IS a zip,
+      # and that is the property under test.
       - name: Build real distributions
         run: |
           set -euo pipefail
@@ -76,220 +74,49 @@ jobs:
           wheel=$(ls dist/*.whl)
           echo "sha_sdist=$(sha256sum "$sdist" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           echo "sha_wheel=$(sha256sum "$wheel" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      # >>> MUST MATCH release.yml <<<
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: roundtrip-baseline
+          name: roundtrip-dist
           path: dist/
 
-  baseline-download:
-    name: baseline · download + assert (v4.3.0)
-    needs: baseline-upload
+  download-and-assert:
+    name: download + assert
+    needs: build-and-upload
     runs-on: ubuntu-latest
     steps:
+      # Checkout FIRST - it cleans the workspace, and it is what brings
+      # tools/assert_dist_roundtrip.py onto the runner. Downloading before this would wipe
+      # the artifact.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      # >>> MUST MATCH release.yml <<<
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: roundtrip-baseline
+          name: roundtrip-dist
           path: dist/
-      - name: Write the assertion
-        run: |
-          set -euo pipefail
-          cat > /tmp/assert_dist.py <<'PY'
-          import hashlib, os, pathlib, sys, tarfile, zipfile
-          fail = []
-          d = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "dist")
-          if not d.is_dir():
-              print("FAIL: %s does not exist" % d); sys.exit(1)
-          entries = sorted(d.iterdir())
-          print("contents of %s: %s" % (d, [e.name for e in entries]))
-          if len(entries) != 2:
-              fail.append("expected exactly 2 entries, found %d" % len(entries))
-          for e in entries:
-              if not e.is_file():
-                  fail.append("%s is not a plain file" % e.name)
-              if e.name.endswith(".zip"):
-                  fail.append("%s is a .zip - the artifact arrived archived, not extracted" % e.name)
-          sdists = [e for e in entries if e.name.endswith(".tar.gz")]
-          wheels = [e for e in entries if e.name.endswith(".whl")]
-          if len(sdists) != 1: fail.append("expected exactly one *.tar.gz, found %d" % len(sdists))
-          if len(wheels) != 1: fail.append("expected exactly one *.whl, found %d" % len(wheels))
-          sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
-          if sdists:
-              s = sdists[0]
-              if s.stat().st_size == 0: fail.append("sdist is empty")
-              if not tarfile.is_tarfile(s): fail.append("sdist is not a valid tar archive after the round trip")
-              got, want = sha(s), os.environ["EXPECT_SDIST"]
-              if got != want: fail.append("sdist sha256 changed: %s -> %s" % (want, got))
-              else: print("sdist sha256 intact: %s" % got)
-          if wheels:
-              w = wheels[0]
-              if w.stat().st_size == 0: fail.append("wheel is empty")
-              # A wheel IS a zip. This is the property download-artifact v8's unzip change
-              # could plausibly break, and the reason fixtures would not do.
-              if not zipfile.is_zipfile(w): fail.append("wheel is not a valid zip after the round trip")
-              got, want = sha(w), os.environ["EXPECT_WHEEL"]
-              if got != want: fail.append("wheel sha256 changed: %s -> %s" % (want, got))
-              else: print("wheel sha256 intact: %s" % got)
-          if fail:
-              print("ASSERTION FAILED:")
-              for f in fail: print("  - %s" % f)
-              sys.exit(1)
-          print("PASS: two plain distributions, byte-identical, formats intact")
-          PY
       - name: Assert the publish contract
         env:
-          EXPECT_SDIST: ${{ needs.baseline-upload.outputs.sha_sdist }}
-          EXPECT_WHEEL: ${{ needs.baseline-upload.outputs.sha_wheel }}
+          EXPECT_SDIST: ${{ needs.build-and-upload.outputs.sha_sdist }}
+          EXPECT_WHEEL: ${{ needs.build-and-upload.outputs.sha_wheel }}
         run: |
           set -euo pipefail
-          python /tmp/assert_dist.py dist
+          python tools/assert_dist_roundtrip.py dist
       - name: Negative control · the assertion must be able to fail
         env:
-          EXPECT_SDIST: ${{ needs.baseline-upload.outputs.sha_sdist }}
-          EXPECT_WHEEL: ${{ needs.baseline-upload.outputs.sha_wheel }}
+          EXPECT_SDIST: ${{ needs.build-and-upload.outputs.sha_sdist }}
+          EXPECT_WHEEL: ${{ needs.build-and-upload.outputs.sha_wheel }}
         run: |
           set -euo pipefail
           # Rebuild the exact failure this workflow exists to catch: the two distributions
-          # arrive wrapped in a single archive instead of extracted side by side.
+          # arrive wrapped in a single archive instead of extracted side by side. This control
+          # depends on no version, so no dependency bump can quietly erode it.
           rm -rf /tmp/corrupt && mkdir -p /tmp/corrupt
           (cd dist && zip -q /tmp/corrupt/dist.zip ./*)
           set +e
-          python /tmp/assert_dist.py /tmp/corrupt
-          code=$?
-          set -e
-          echo "assertion exit code on deliberately wrapped input: $code"
-          if [ "$code" -eq 0 ]; then
-            echo "NEGATIVE CONTROL FAILED - the assertion passed on a wrapped artifact."
-            echo "The checker cannot fail, so its green result above means nothing."
-            exit 1
-          fi
-          echo "Negative control OK: the assertion caught it."
-
-  # ===========================================================================
-  # CANDIDATE LEG - upload v7.0.1 / download v8.0.1
-  #
-  # >>> MUST MATCH release.yml <<<
-  # These two SHAs are the ONLY artifact-action pins that may differ from the baseline leg,
-  # and they must equal the pins in .github/workflows/release.yml. release.yml carries the
-  # mirror of this comment. Dependabot groups every action bump into one pull request, so a
-  # future bump moves BOTH files together and this leg exercises the new versions on that PR,
-  # before it can be merged. That is how release.yml's blind spot stays closed - structurally,
-  # not by anyone remembering.
-  #
-  # TODAY THEY DO NOT MATCH, DELIBERATELY: release.yml is still at v4.6.2 / v4.3.0 and these
-  # are the versions PR #1 proposes. This leg is the evidence that decides that PR. On merge
-  # they converge and the invariant holds from then on.
-  #
-  # Everything else in this leg - checkout, setup-python, the build, the assertion - is
-  # IDENTICAL to the baseline leg on purpose. One variable, so a red result here is
-  # attributable to the artifact pair and nothing else.
-  # ===========================================================================
-  candidate-upload:
-    name: candidate · build + upload (v7.0.1)
-    runs-on: ubuntu-latest
-    outputs:
-      sha_sdist: ${{ steps.hash.outputs.sha_sdist }}
-      sha_wheel: ${{ steps.hash.outputs.sha_wheel }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-      - name: Build real distributions
-        run: |
-          set -euo pipefail
-          python -m pip install --quiet build
-          python -m build
-          ls -l dist/
-      - name: Record pre-upload hashes
-        id: hash
-        run: |
-          set -euo pipefail
-          sdist=$(ls dist/*.tar.gz)
-          wheel=$(ls dist/*.whl)
-          echo "sha_sdist=$(sha256sum "$sdist" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
-          echo "sha_wheel=$(sha256sum "$wheel" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: roundtrip-candidate
-          path: dist/
-
-  candidate-download:
-    name: candidate · download + assert (v8.0.1)
-    needs: candidate-upload
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: roundtrip-candidate
-          path: dist/
-      - name: Write the assertion
-        run: |
-          set -euo pipefail
-          cat > /tmp/assert_dist.py <<'PY'
-          import hashlib, os, pathlib, sys, tarfile, zipfile
-          fail = []
-          d = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "dist")
-          if not d.is_dir():
-              print("FAIL: %s does not exist" % d); sys.exit(1)
-          entries = sorted(d.iterdir())
-          print("contents of %s: %s" % (d, [e.name for e in entries]))
-          if len(entries) != 2:
-              fail.append("expected exactly 2 entries, found %d" % len(entries))
-          for e in entries:
-              if not e.is_file():
-                  fail.append("%s is not a plain file" % e.name)
-              if e.name.endswith(".zip"):
-                  fail.append("%s is a .zip - the artifact arrived archived, not extracted" % e.name)
-          sdists = [e for e in entries if e.name.endswith(".tar.gz")]
-          wheels = [e for e in entries if e.name.endswith(".whl")]
-          if len(sdists) != 1: fail.append("expected exactly one *.tar.gz, found %d" % len(sdists))
-          if len(wheels) != 1: fail.append("expected exactly one *.whl, found %d" % len(wheels))
-          sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
-          if sdists:
-              s = sdists[0]
-              if s.stat().st_size == 0: fail.append("sdist is empty")
-              if not tarfile.is_tarfile(s): fail.append("sdist is not a valid tar archive after the round trip")
-              got, want = sha(s), os.environ["EXPECT_SDIST"]
-              if got != want: fail.append("sdist sha256 changed: %s -> %s" % (want, got))
-              else: print("sdist sha256 intact: %s" % got)
-          if wheels:
-              w = wheels[0]
-              if w.stat().st_size == 0: fail.append("wheel is empty")
-              # A wheel IS a zip. This is the property download-artifact v8's unzip change
-              # could plausibly break, and the reason fixtures would not do.
-              if not zipfile.is_zipfile(w): fail.append("wheel is not a valid zip after the round trip")
-              got, want = sha(w), os.environ["EXPECT_WHEEL"]
-              if got != want: fail.append("wheel sha256 changed: %s -> %s" % (want, got))
-              else: print("wheel sha256 intact: %s" % got)
-          if fail:
-              print("ASSERTION FAILED:")
-              for f in fail: print("  - %s" % f)
-              sys.exit(1)
-          print("PASS: two plain distributions, byte-identical, formats intact")
-          PY
-      - name: Assert the publish contract
-        env:
-          EXPECT_SDIST: ${{ needs.candidate-upload.outputs.sha_sdist }}
-          EXPECT_WHEEL: ${{ needs.candidate-upload.outputs.sha_wheel }}
-        run: |
-          set -euo pipefail
-          python /tmp/assert_dist.py dist
-      - name: Negative control · the assertion must be able to fail
-        env:
-          EXPECT_SDIST: ${{ needs.candidate-upload.outputs.sha_sdist }}
-          EXPECT_WHEEL: ${{ needs.candidate-upload.outputs.sha_wheel }}
-        run: |
-          set -euo pipefail
-          rm -rf /tmp/corrupt && mkdir -p /tmp/corrupt
-          (cd dist && zip -q /tmp/corrupt/dist.zip ./*)
-          set +e
-          python /tmp/assert_dist.py /tmp/corrupt
+          python tools/assert_dist_roundtrip.py /tmp/corrupt
           code=$?
           set -e
           echo "assertion exit code on deliberately wrapped input: $code"
