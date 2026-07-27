@@ -1,0 +1,34 @@
+# Dependabot, watching exactly one ecosystem: github-actions.
+#
+# There is no `pip` entry and there never will be - `pyproject.toml` declares
+# `dependencies = []`, and that is a rule, not a current state. A pip updater here
+# would be a config block that can never fire.
+#
+# What DOES have upstream dependencies is CI. Every action in `workflows/` is pinned
+# to an immutable commit SHA, and a pin with nothing watching it rots: the analyser
+# quietly checks less, the runner image drifts out from under it. This file is the
+# mechanism that makes pinning safe rather than merely strict.
+#
+# Note for anyone reading the OpenSSF Scorecard: this repository scored 0 on
+# Dependency-Update-Tool while having zero runtime dependencies - the check named a
+# thing that does not exist here. Following it literally would have been theatre.
+# Following what it was *pointing at* turned out to be real, because CI actions are
+# dependencies too, and those we had genuinely left unwatched. The check was wrong
+# about the thing it named and right about a thing it did not. Both halves are
+# recorded in README's Honest Limits.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    # One PR for all of them. A solo maintainer reviewing five separate bumps a week
+    # stops reviewing them, and an unread PR is worse than no PR - it looks like
+    # oversight while providing none.
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+    open-pull-requests-limit: 3

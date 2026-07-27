@@ -309,6 +309,26 @@ Read these before quoting anything above.
   the write-side work that is next on the roadmap — a tool that cannot yet furnish the
   artifacts it asks other repositories for. Anyone using this against the project is making
   a fair point, and it is written here first so they do not have to.
+- **The Scorecard badge above says 4.8, and one of the points it deducts is for a genre
+  mismatch — which is this project's own argument, arriving inside its own badge.**
+  `Dependency-Update-Tool: 0`, because there is no Dependabot config for Python packages.
+  There are no Python packages. `dependencies = []` is the first hard rule in
+  [CONTRIBUTING.md](CONTRIBUTING.md), so the only possible score on a check for *keeping
+  dependencies updated* is zero, permanently, by design. Scoring a repository on a dimension
+  it deliberately does not have is exactly the mistake this tool made first and now reports
+  in others: **the metric is measuring the wrong genre.** Adding a config block that can
+  never fire, to move a number, would have been the Goodhart response.
+  What made it interesting is that the check was also **right about something it did not
+  say.** CI actions are dependencies too, and those were genuinely unwatched — so
+  `.github/dependabot.yml` now exists for the `github-actions` ecosystem only, and every
+  action in every workflow is pinned to an immutable commit SHA it keeps current. Wrong
+  about the thing it named, right about a thing it pointed at. That is a better outcome than
+  either obeying it or dismissing it, and it is the argument for reading a low score instead
+  of chasing it.
+  One more thing worth borrowing rather than criticising: two of Scorecard's checks return
+  **`-1`, meaning *could not be checked*** — not zero. It reaches for the same three-state
+  honesty this tool argues for with its `?` mark, on the same kind of question. A rating
+  system that distinguishes *bad* from *unknown* is doing something most do not.
 
 ---
 

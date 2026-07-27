@@ -9,12 +9,19 @@
 #             problem in release.yml would be a more serious defect than
 #             anything in the Python, because it is what publishes the package.
 #
-# Action references use major version tags (@v4) deliberately: GitHub's own
-# guidance for the CodeQL action is that a major tag keeps the bundled CodeQL
-# CLI current, and a stale analyser is a silent failure - it passes while
-# checking less. The Scorecard workflow next door pins by SHA instead, because
-# there the reproducibility of the rating matters more than the freshness of
-# the tool. The two choices disagree on purpose.
+# Every action is pinned to a full commit SHA, tag in a trailing comment.
+#
+# An earlier revision of this file used floating major tags (@v4) and argued for
+# them here: GitHub's guidance is that a major tag keeps the bundled CodeQL CLI
+# current, and a stale analyser is a silent failure - it passes while checking
+# less. That objection is real, and pinning alone would have made this comment
+# describe a hazard it then walked into.
+#
+# It is answered by mechanism rather than by argument: dependabot.yml watches the
+# github-actions ecosystem and opens a PR when any pinned SHA falls behind. So the
+# analyser stays current AND the supply chain is immutable, instead of trading one
+# for the other. A rule enforced by a bot beats a rule defended in a comment -
+# which is the entire thesis of this repository, applied to this repository.
 name: CodeQL
 
 on:
@@ -43,12 +50,12 @@ jobs:
         language: [python, actions]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
         with:
           languages: ${{ matrix.language }}
           # security-and-quality is the widest of the standard suites. This
@@ -61,6 +68,6 @@ jobs:
       # CONTRIBUTING.md - if a build were required here, that promise would be
       # broken somewhere else first.
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
         with:
           category: /language:${{ matrix.language }}
