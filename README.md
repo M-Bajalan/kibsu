@@ -1,5 +1,9 @@
 # Kibsu
 
+[![CI](https://github.com/M-Bajalan/kibsu/actions/workflows/ci.yml/badge.svg)](https://github.com/M-Bajalan/kibsu/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/M-Bajalan/kibsu/actions/workflows/codeql.yml/badge.svg)](https://github.com/M-Bajalan/kibsu/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/M-Bajalan/kibsu/badge)](https://scorecard.dev/viewer/?uri=github.com/M-Bajalan/kibsu)
+
 **What can your agents not do in this repository yet?**
 
 You have written instructions for coding agents — `AGENTS.md`, `CLAUDE.md`, a `skills/` directory,
@@ -15,8 +19,11 @@ It writes nothing. Run it, then run `git status`.
 No dependencies. Python 3.8+.
 
 ```bash
-python -m kibsu /path/to/any/repo
+python -m kibsu report /path/to/any/repo
 ```
+
+`report` is one of twelve subcommands — `python -m kibsu --help` lists them all. It is
+the one to start with, and the only one you need to read this page.
 
 Real output, against a public repository at commit `3dcbd5c`:
 
@@ -30,20 +37,35 @@ Real output, against a public repository at commit `3dcbd5c`:
                                 (above the 11.1% public median).
   x  Resume after a break       your instructions promise no artifacts at all - nothing
                                 survives the session, and nothing can be checked.
-  !  Follow your own rules      no index to check history against.
+  ?  Follow your own rules      COULD NOT CHECK - no index file to check history against
+                                (looked for docs\index.json, .kibsu/index.json, docs/index.json).
   --------------------------------------------------------------------------
-  2 of 5 ready.
+  2 of 5 ready.  1 could NOT be checked - that is not a pass.
   Nothing was written to this repo - run `git status` to confirm.
 ```
+
+> That block was re-run against `3dcbd5c` on 2026-07-27 before being pasted here. An
+> earlier revision of this README showed the fifth line as `!  Follow your own rules` with
+> a bare `2 of 5 ready.` summary — output from a build predating the `?` mark, which the
+> legend and the paragraph directly below it already described. A pasted sample a reader
+> could reproduce and get something *else* from is the same reproducibility defect as the
+> SHA-less survey table further down, and it is recorded rather than quietly corrected for
+> the same reason.
 
 Reproduce it:
 
 ```bash
 git clone https://github.com/obra/superpowers /tmp/superpowers && cd /tmp/superpowers && git checkout 3dcbd5c
-python -m kibsu /tmp/superpowers && git -C /tmp/superpowers status --porcelain
+python -m kibsu report /tmp/superpowers
+git -C /tmp/superpowers status --porcelain
 ```
 
-The second command prints nothing. That is the point.
+The last command prints nothing. That is the point.
+
+(`report` exits **3** here, not 0 — two questions came back not-ready and one could not
+be checked, which is the finding, not a failure to run. The commands are deliberately
+*not* chained on `&&` for that reason: `&&` would swallow the `git status` proof in
+exactly the case worth proving.)
 
 `+` ready · `x` not ready · `!` not applicable here · `?` **could not be checked**
 
@@ -83,8 +105,8 @@ Everything else is **CLAIMABLE**: the only evidence it happened is the agent say
 
 **The metric is deliberately biased toward CHECKABLE.** Every ambiguous instruction is counted as
 checkable — a bare path mention counts, a bare command word counts. Reported figures are therefore
-**ceilings**. The true numbers are lower. `--definitions` prints the whole ruleset so you can argue
-with it.
+**ceilings**. The true numbers are lower. `python -m kibsu audit <dir> --definitions` prints the
+whole ruleset so you can argue with it (exit 0).
 
 ### Genres, and why they matter
 
@@ -181,6 +203,85 @@ in the first place, and collections whose claims fail roughly 40% of the time.
 
 ---
 
+## Verify it yourself
+
+You are about to point a tool at your own repository. Here is everything you can check
+first, without taking anything here on trust.
+
+**Nothing to install, nothing to audit.** `pyproject.toml` declares
+`dependencies = []`, and the test suite imports nothing outside the standard library
+either. There is no transitive dependency tree to review, because there is no
+dependency tree.
+
+```bash
+python - <<'EOF'
+import pathlib, sys
+sys.exit(0 if "dependencies = []" in pathlib.Path("pyproject.toml").read_text() else 1)
+EOF
+echo $?    # 0
+```
+
+**It is small enough to actually read.** 3,679 lines across 14 files in `kibsu/`,
+plus 1,511 lines of tests running 53 cases. That is an evening, not a quarter.
+
+```bash
+git clone https://github.com/M-Bajalan/kibsu && cd kibsu
+python -m unittest discover -s tests    # exit 0
+python -m kibsu report .                # no install step, no config, no network
+```
+
+`report` exits **0** when every question came back ready and **3** when something is
+not ready or could not be checked. Both are successful runs — 3 is a finding, not a
+crash. (Pointed at this repository it returns 3, and the reason is stated in
+[Honest limits](#honest-limits).)
+
+**It does not write to your repository.** This is the design constraint everything
+else bends around, and it is two commands to falsify:
+
+```bash
+python -m kibsu report /path/to/your/repo
+git -C /path/to/your/repo status --porcelain
+```
+
+The second command prints nothing. If it ever prints something, that is a bug worth
+an issue. Note the `;`-style separation rather than `&&`: chaining on `&&` would skip
+the proof precisely when `report` returns 3, which is most of the time and is the
+case you most want proven.
+
+**The published package has verifiable provenance.** Releases go to PyPI through
+GitHub's Trusted Publishing (OIDC), which generates [PEP 740](https://peps.python.org/pep-0740/)
+attestations tying each artifact to the exact workflow run and commit that built it —
+visible on the [PyPI project page](https://pypi.org/project/kibsu/). No API token
+exists for this project, in CI settings or anywhere else; `release.yml` explains why.
+
+**Two outside scanners look at this code, and their findings are public.**
+[CodeQL](https://github.com/M-Bajalan/kibsu/security/code-scanning) scans the Python
+*and* the workflow files on every push and weekly; results appear in the Security tab
+whether they are flattering or not.
+[OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/M-Bajalan/kibsu)
+rates the release path — branch protection, token permissions, pinned dependencies —
+and publishes the number to a public dataset recomputed by someone else's
+infrastructure. That is what makes the badge worth having; a badge served from this
+repository would be decoration.
+
+**What those two do not tell you:** Scorecard measures *process*, not correctness. A
+good score means the release path is hard to tamper with. It says nothing about
+whether the numbers this tool reports are right — that is what the SHAs in
+[`evidence/`](evidence/) and the Honest Limits below are for. Confusing the two is
+precisely the error this project was built to name.
+
+**What you cannot verify from here:** the provenance scrub described in
+[PROVENANCE.md](PROVENANCE.md) is not in this repository and will not be — the
+denylist it scans for is itself the sensitive artifact. What you *can* check is the
+absence it claims: search this tree for anything resembling a company, a market, a
+customer or an internal system. Finding none is a falsifiable result, and it does not
+require the tool.
+
+Contribution rules — including the four that are non-negotiable — are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
 ## Honest limits
 
 Read these before quoting anything above.
@@ -197,6 +298,15 @@ Read these before quoting anything above.
   defensible one, and the only one worth acting on.
 - **N is small** for several repositories. Sample floors are enforced, not assumed.
 - **Genre auto-detection is weak.** Declare it.
+- **This repository scores 0 of 5 on its own report, and the number is honest.** Run
+  `python -m kibsu report .` here and you get `0 of 5 ready. 3 could NOT be checked` —
+  worse than every collection in the survey table. The reason is that kibsu is a tool, not
+  an instruction collection: there is no `AGENTS.md`, no `skills/`, and no index, so three
+  of the five questions have nothing to measure and say so rather than scoring zero. That
+  is the `?` mark doing its job on its own author. It is also the strongest argument for
+  the write-side work that is next on the roadmap — a tool that cannot yet furnish the
+  artifacts it asks other repositories for. Anyone using this against the project is making
+  a fair point, and it is written here first so they do not have to.
 
 ---
 

@@ -1,0 +1,66 @@
+# CodeQL code scanning. Findings land in this repository's Security tab, where
+# anyone can read them - which is the point. A project that reports on other
+# people's unverifiable claims should not ask to be taken on trust about its own.
+#
+# Two languages are scanned, not one:
+#   python  - the package itself (3,679 lines, no dependencies).
+#   actions - the workflow files in this directory. GitHub Actions workflow
+#             analysis is a first-class CodeQL language, and a supply-chain
+#             problem in release.yml would be a more serious defect than
+#             anything in the Python, because it is what publishes the package.
+#
+# Action references use major version tags (@v4) deliberately: GitHub's own
+# guidance for the CodeQL action is that a major tag keeps the bundled CodeQL
+# CLI current, and a stale analyser is a silent failure - it passes while
+# checking less. The Scorecard workflow next door pins by SHA instead, because
+# there the reproducibility of the rating matters more than the freshness of
+# the tool. The two choices disagree on purpose.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, so a newly-published query finds this code without a push.
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, actions]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          # security-and-quality is the widest of the standard suites. This
+          # repository is small enough to afford the extra findings, and a
+          # finding nobody asked for is the only kind worth adding a scanner for.
+          queries: security-and-quality
+
+      # No build step exists or is wanted. Python needs no compilation, and the
+      # absence of a build is itself part of the clone-and-run promise in
+      # CONTRIBUTING.md - if a build were required here, that promise would be
+      # broken somewhere else first.
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}

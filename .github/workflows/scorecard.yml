@@ -1,0 +1,71 @@
+# OpenSSF Scorecard. Rates this repository's security posture - branch
+# protection, token permissions, pinned dependencies, whether releases are
+# signed - and publishes the result, which is what makes the README badge
+# possible.
+#
+# `publish_results: true` sends the score to the public OpenSSF dataset. That
+# is deliberate and it is the whole trade: the badge is only meaningful because
+# the number behind it is public and recomputed weekly by someone else's
+# infrastructure rather than asserted here. A badge served from this repository
+# would be decoration.
+#
+# What the badge does NOT claim, stated here so the README does not have to be
+# read charitably: Scorecard measures process, not correctness. A high score
+# means the release path is hard to tamper with. It says nothing about whether
+# the code is right. Those are different questions and this repository is about
+# not confusing them.
+#
+# Every action here is pinned to a full commit SHA with the tag in a trailing
+# comment. Scorecard's own Pinned-Dependencies check wants exactly this, and a
+# workflow that reports on supply-chain hygiene while floating its own tags
+# would be the same species of defect this project exists to name.
+name: Scorecard
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly. Scorecard re-rates on its own cadence; this keeps the SARIF in
+    # the Security tab from going stale between pushes.
+    - cron: '30 1 * * 6'
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed to upload the SARIF to code scanning.
+      security-events: write
+      # Needed for the OIDC token that authenticates the publish step. No
+      # secret is stored for this, for the same reason release.yml stores no
+      # PyPI token.
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code-scanning
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          sarif_file: results.sarif

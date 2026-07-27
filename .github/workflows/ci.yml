@@ -9,10 +9,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# NOTE: this repo has no remote yet (single local commit, `git remote -v` is empty), so this
-# workflow has never actually executed on a GitHub-hosted runner. The matrix below is written
-# and statically validated locally (parsed with Python's own yaml-adjacent tooling / structure
-# check), not proven green by a real run - that only happens once a remote + a push/PR exist.
+# NOTE (superseded 2026-07-27): an earlier revision of this comment said the repo had no remote
+# and that this workflow had never run on a GitHub-hosted runner. That is no longer true - the
+# remote exists, the repository is public, v0.1.0 is tagged and published to PyPI, and this
+# workflow runs on every push. The stale note is recorded here rather than silently deleted,
+# because a comment asserting an unverifiable state was exactly the defect this project reports
+# in other people's repositories, and it survived four reviews in this one.
 #
 # '3.8' is the floor declared in pyproject.toml (`requires-python = ">=3.8"`). It was previously
 # untested on any interpreter - this machine runs 3.13 and CI only ever pinned 3.12. A static
