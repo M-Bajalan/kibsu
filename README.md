@@ -214,12 +214,14 @@ either. There is no transitive dependency tree to review, because there is no
 dependency tree.
 
 ```bash
-python - <<'EOF'
-import pathlib, sys
-sys.exit(0 if "dependencies = []" in pathlib.Path("pyproject.toml").read_text() else 1)
-EOF
-echo $?    # 0
+python -c "import pathlib,sys; sys.exit(0 if 'dependencies = []' in pathlib.Path('pyproject.toml').read_text() else 1)"
+echo $?                  # 0        (bash / zsh)
+echo $LASTEXITCODE       # 0        (PowerShell)
 ```
+
+One line rather than a heredoc, because a heredoc is a bash construct and this line has
+to work in PowerShell too — a "verify it yourself" section that only verifies on Unix
+is half a claim.
 
 **It is small enough to actually read.** 3,679 lines across 14 files in `kibsu/`,
 plus 1,511 lines of tests running 53 cases. That is an evening, not a quarter.

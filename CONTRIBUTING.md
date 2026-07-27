@@ -27,13 +27,16 @@ dependency added is a package the reader now has to trust instead of read.
 Verify:
 
 ```bash
-python - <<'EOF'
-import pathlib, sys
-t = pathlib.Path("pyproject.toml").read_text()
-sys.exit(0 if "dependencies = []" in t else 1)
-EOF
-echo $?    # must print 0
+python -c "import pathlib,sys; sys.exit(0 if 'dependencies = []' in pathlib.Path('pyproject.toml').read_text() else 1)"
+echo $?                  # must print 0   (bash / zsh)
+echo $LASTEXITCODE       # must print 0   (PowerShell)
 ```
+
+One line, not a heredoc, so it runs in PowerShell as well as bash — contributors are not
+all on Unix and a check that only runs on one platform is a check half the reviewers
+cannot repeat. This one has a working negative control too: point it at a
+`pyproject.toml` carrying a real dependency and it exits 1. Per rule 4, that is the half
+that matters.
 
 Standard library only, in the package and in the tests. There is no dev-dependency
 escape hatch either — `tests/` imports nothing outside the stdlib.

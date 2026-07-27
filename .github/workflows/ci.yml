@@ -9,6 +9,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege, stated rather than inherited: this workflow only reads the code.
+# Added 2026-07-27 alongside codeql.yml, which scans these workflow files - CodeQL's
+# actions pack flags a workflow carrying no permissions block at all, and shipping a
+# scanner that immediately reports its own repository would be a poor first impression
+# for a project whose argument is that unenforced rules do not get followed.
+permissions:
+  contents: read
+
 # NOTE (superseded 2026-07-27): an earlier revision of this comment said the repo had no remote
 # and that this workflow had never run on a GitHub-hosted runner. That is no longer true - the
 # remote exists, the repository is public, v0.1.0 is tagged and published to PyPI, and this

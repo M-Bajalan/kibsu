@@ -11,9 +11,17 @@ on:
   push:
     tags: ["v*"]
 
+# Least privilege at the top, widened only in the one job that needs it. The publish
+# job below adds `id-token: write` for the OIDC exchange and nothing else - it never
+# gets `contents: write`, so a compromised release run cannot rewrite this repository.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
