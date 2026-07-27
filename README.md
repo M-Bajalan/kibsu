@@ -73,6 +73,16 @@ A check that could not run gets its own line and its own mark, and the summary s
 Printing one line fewer would make "2 of 4" and "2 of 5" indistinguishable, and the check that
 cannot run is reliably the uncomfortable one.
 
+## See a repo that passes
+
+Want to know what a governed workspace looks like — or test kibsu against one built to be
+read? Clone **[kibsu-lab](https://github.com/M-Bajalan/kibsu-lab)**: a complete fictional
+company (Tuppi Trading Co.) with a seeded deterministic data generator, an armed commit gate,
+a skills team for agents, and three machine-checkable tasks — including one that ships
+half-finished on a branch, so you can watch an agent *resume* work it never started. Point
+any coding agent at its `AGENTS.md`; check its work with one command. The lab scores
+**4 of 5** on the report above — and its README shows the exact command trail that proves it.
+
 ---
 
 ## The five questions
