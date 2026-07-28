@@ -302,6 +302,10 @@ absence it claims: search this tree for anything resembling a company, a market,
 customer or an internal system. Finding none is a falsifiable result, and it does not
 require the tool.
 
+The improvement experiment on the team skills is **pre-registered** — baseline, falsifiable
+predictions, and the standing rule that a *rising* doctrine score is disqualifying:
+[PREREGISTRATION.md](PREREGISTRATION.md), committed before any skill was rewritten.
+
 Contribution rules — including the four that are non-negotiable — are in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
