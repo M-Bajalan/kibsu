@@ -63,7 +63,7 @@ jobs:
       - name: Build real distributions
         run: |
           set -euo pipefail
-          python -m pip install --quiet build
+          python -m pip install --quiet build==1.5.0
           python -m build
           ls -l dist/
       - name: Record pre-upload hashes

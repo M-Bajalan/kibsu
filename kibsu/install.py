@@ -165,7 +165,6 @@ def install(root, dry, force, index_rel, baseline_rel):
 
     here = os.path.dirname(os.path.abspath(__file__))
     checker = os.path.join(here, "check.py")
-    indexer = os.path.join(here, "index.py")
     if not os.path.isfile(checker):
         print("  REFUSED: check.py not found next to this script."); return 3
 

@@ -232,7 +232,6 @@ def main():
                                     for x in d]}, indent=2))
         return DRIFT if (a.check and d) else OK
 
-    order = {"ON YOU": 0, "MONITORED": 1, "ENFORCED": 2}
     print("\n  WHAT THIS AGENT ACTUALLY HAS TO REMEMBER")
     print("  %s" % root)
     print("  " + "-" * 74)
