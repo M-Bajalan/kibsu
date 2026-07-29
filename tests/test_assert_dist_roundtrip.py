@@ -221,8 +221,16 @@ class MustMatchInvariantTests(unittest.TestCase):
     def test_download_artifact_pins_match(self):
         release = self._pins("release.yml", "download-artifact")
         roundtrip = self._pins("roundtrip.yml", "download-artifact")
-        self.assertEqual(1, len(release), "release.yml should pin download-artifact exactly once")
+        # Two jobs legitimately download the dist artifact (publish and github-release).
+        # The invariant was never the count - it is that every download in the publish
+        # path runs the SAME pinned version the roundtrip checker actually tests.
+        self.assertGreaterEqual(
+            len(release), 1, "release.yml should pin download-artifact at least once")
         self.assertEqual(1, len(roundtrip), "roundtrip.yml should pin download-artifact exactly once")
+        self.assertEqual(
+            1, len(set(release)),
+            "release.yml pins download-artifact at more than one SHA - the roundtrip checker "
+            "cannot be testing all of them")
         self.assertEqual(
             release[0], roundtrip[0],
             "release.yml and roundtrip.yml pin different download-artifact SHAs - the roundtrip "
