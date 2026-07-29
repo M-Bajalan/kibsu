@@ -32,7 +32,7 @@ EXIT CODES   0 clean · 1 violations (BLOCK) · 2 warnings only · 3 cannot run
 import argparse, hashlib, io, json, os, subprocess, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from index import build, dumps, derive_taxonomy, parse_frontmatter   # single source of the rule
+from index import derive_taxonomy, parse_frontmatter   # single source of the rule
 # config.py is a normal package file, always present next to this one when check.py runs as
 # part of kibsu - but this file is also VENDORED on its own (see install.py's HOOK, which
 # copies check.py + index.py, and only those two, into a target repo's .kibsu/bin/). A vendored
@@ -384,7 +384,7 @@ def main():
     index_arg = a.index if a.index is not None else _index_default(root)
     idx_path = index_arg if os.path.isabs(index_arg) else os.path.join(root, index_arg)
 
-    say = (lambda *x: None) if a.quiet else (lambda *x: print(*x))
+    say = (lambda *x: None) if a.quiet else print
     say("ns_check v%s   %s" % (VERSION, root))
 
     if run(["git", "rev-parse", "--is-inside-work-tree"], root) is None:

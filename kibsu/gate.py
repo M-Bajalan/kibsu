@@ -629,8 +629,10 @@ def install(root, apply_):
     with io.open(hook_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(HOOK.format(v=VERSION, bin=BIN_REL.replace("\\", "/")))
     try:
-        os.chmod(hook_path, 0o755)
-    except Exception:
+        # 0o700, not 0o755: the installing user IS the committing user, so nobody else
+        # needs read or execute on the hook (CodeQL py/overly-permissive-file).
+        os.chmod(hook_path, 0o700)
+    except OSError:
         pass
     run(["git", "-C", root, "config", "core.hooksPath", HOOKS_REL.replace("\\", "/")])
     print("  INSTALLED. The gate now runs on every commit.\n")
