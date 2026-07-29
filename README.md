@@ -6,6 +6,7 @@
 [![PyPI](https://img.shields.io/pypi/v/kibsu)](https://pypi.org/project/kibsu/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](https://github.com/M-Bajalan/kibsu/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)](pyproject.toml)
 
 **What can your agents not do in this repository yet?**
 
