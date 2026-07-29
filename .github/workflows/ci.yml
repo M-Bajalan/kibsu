@@ -32,10 +32,22 @@ permissions:
 # claim in pyproject.toml.
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # These matrix check names ("test (<os>, <py>)") are wired into branch
+    # protection's required status checks. Rename the matrix and you must update
+    # the protection contexts in the same motion, or every merge waits forever
+    # on checks that no longer exist - this repo hit exactly that once.
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.8', '3.12']
+        exclude:
+          # macos-latest runners are arm64 and CPython 3.8 ships no arm64 build,
+          # so the 3.8 floor is enforced on ubuntu + windows; macos tests the
+          # current line. kibsu is path-handling-heavy - the windows leg is not
+          # decoration, it is where this codebase's bugs have actually lived.
+          - os: macos-latest
+            python-version: '3.8'
     steps:
       # Pinned to SHAs, kept current by dependabot.yml. See codeql.yml's header for
       # why the two are one decision and not two.

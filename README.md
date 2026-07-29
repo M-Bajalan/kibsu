@@ -7,6 +7,7 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](https://github.com/M-Bajalan/kibsu/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)](pyproject.toml)
+[![OS](https://img.shields.io/badge/OS-linux%20%7C%20macOS%20%7C%20windows-blue)](https://github.com/M-Bajalan/kibsu/actions/workflows/ci.yml)
 
 **What can your agents not do in this repository yet?**
 
