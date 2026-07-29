@@ -2,11 +2,17 @@
 
 ## Reporting a vulnerability
 
-Use GitHub's private vulnerability reporting: the **Report a vulnerability** button
-under this repository's **Security** tab. Reports go privately to the maintainer.
-Expect a first response within a week.
+Report privately here: **https://github.com/M-Bajalan/kibsu/security/advisories/new**
+(the **Report a vulnerability** button under this repository's **Security** tab).
+Reports go directly and privately to the maintainer.
 
 Please do not open public issues for suspected vulnerabilities.
+
+## Disclosure process
+
+- Acknowledgment within **7 days** of your report.
+- Coordinated disclosure: a fix is released **before** details go public.
+- Reporters are credited in the release notes unless they ask not to be.
 
 ## Scope
 
