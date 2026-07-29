@@ -64,3 +64,38 @@ jobs:
       # package to PyPI. A mutable ref on the publish step is a supply-chain hole in
       # the exact place a project about verifiable claims can least afford one.
       - uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
+
+  github-release:
+    # Attach the exact artifacts PyPI received to the GitHub release, plus a
+    # build-provenance attestation (an in-toto/SLSA bundle, signed via sigstore
+    # OIDC - no key exists to leak, same argument as Trusted Publishing above).
+    # Scorecard's Signed-Releases check reads release assets; a visitor can
+    # verify any downloaded wheel came from THIS workflow on THIS commit:
+    #   gh attestation verify kibsu-*.whl -R M-Bajalan/kibsu
+    # Runs AFTER publish so a failure here can never block PyPI, and it is
+    # re-runnable from the Actions tab. Like the upload/download pair above,
+    # no PR can exercise this job - it first fires at the next v* tag; that
+    # blind spot is accepted and documented here rather than hidden.
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # create the release + upload assets
+      id-token: write      # sigstore OIDC exchange for the attestation
+      attestations: write  # store the attestation in the repo's attestation log
+    steps:
+      # >>> MUST MATCH roundtrip.yml <<< (see the note on upload in build above)
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        id: attest
+        with:
+          subject-path: "dist/*"
+      - name: Attach artifacts and provenance to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp "${{ steps.attest.outputs.bundle-path }}" "dist/kibsu-${GITHUB_REF_NAME#v}.intoto.jsonl"
+          gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||             gh release create "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --verify-tag --generate-notes
+          gh release upload "$GITHUB_REF_NAME" dist/* -R "$GITHUB_REPOSITORY" --clobber
