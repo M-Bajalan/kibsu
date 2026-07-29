@@ -175,7 +175,7 @@ def roots_taxonomy(index):
 
 
 # ---- backtest ------------------------------------------------------------------------------
-def backtest(root, n, index_rel, mode="content"):
+def backtest(root, n, index_rel, mode="content", cfg=None):
     """mode decides WHICH commits are eligible, and it must match what the index records.
 
       content  - the index stores a per-doc hash (ns_index.json does), so ANY edit stales it.
@@ -199,6 +199,37 @@ def backtest(root, n, index_rel, mode="content"):
     red, not permanent breakage.
     """
     watch_dir = os.path.dirname(index_rel.replace("\\", "/")) or "."
+
+    # existence mode's index conventionally lives APART from the docs it tracks - kibsu's own
+    # DEFAULTS put it at .kibsu/index.json while docs_root is "docs" - so replaying "touched"
+    # against dirname(index_path) watches the wrong directory on every default-config repo
+    # (issue #2: 0 eligible commits, always). Scope existence mode to the same file set `index`
+    # itself is meant to cover instead: docs_root, skills_dir, and instruction_files. content
+    # mode is untouched - its index conventionally sits beside the docs it hashes (e.g.
+    # docs/catalog.json), where dirname(index_path) is already correct.
+    if mode == "existence":
+        cfg = cfg or {}
+        scope_dirs = [d for d in (cfg.get("docs_root", "docs"),
+                                   cfg.get("skills_dir", ".claude/skills")) if d]
+        scope_files = set(cfg.get("instruction_files",
+                                   ["AGENTS.md", "CLAUDE.md", ".cursorrules"]))
+        report_scope = " + ".join(d.replace("\\", "/").rstrip("/") or "." for d in scope_dirs) or "."
+    else:
+        scope_dirs = [watch_dir]
+        scope_files = set()
+        report_scope = watch_dir
+
+    def _in_scope(p):
+        if p in scope_files:
+            return True
+        for d in scope_dirs:
+            d = d.replace("\\", "/").rstrip("/")
+            if d in ("", "."):
+                return True
+            if p == d or p.startswith(d + "/"):
+                return True
+        return False
+
     # --name-status, never --diff-filter. A diff-filter also filters the FILE LISTING, which
     # hides the index file itself (it is always 'M'), making "index not updated" trivially true
     # for every commit. That produced a 100.0% result - the tell that it was a bug, not a finding.
@@ -225,15 +256,14 @@ def backtest(root, n, index_rel, mode="content"):
     for c in commits:
         paths = [p for _, p in c["files"]]
         watched = [p for st, p in c["files"]
-                   if p.endswith(".md") and st in trigger
-                   and (watch_dir == "." or p.startswith(watch_dir + "/"))]
+                   if p.endswith(".md") and st in trigger and _in_scope(p)]
         if not watched:
             continue
         eligible.append(c)
         if idx not in paths:                    # any status counts as "the index was updated"
             c["watched_n"] = len(watched)
             failed.append(c)
-    return {"scanned": len(commits), "watch_dir": watch_dir, "index": index_rel,
+    return {"scanned": len(commits), "watch_dir": report_scope, "index": index_rel,
             "mode": mode, "eligible": eligible, "failed": failed}
 
 
@@ -486,7 +516,8 @@ def main():
 
     bt = None
     if a.backtest:
-        bt = backtest(root, a.backtest, a.backtest_index or index_arg, a.backtest_mode)
+        bt_cfg = _kibsu_config.load(root) if _kibsu_config is not None else None
+        bt = backtest(root, a.backtest, a.backtest_index or index_arg, a.backtest_mode, bt_cfg)
         say("\n  --- backtest: last %d commits ---" % a.backtest)
         if not bt:
             say("    unavailable (no git history)")

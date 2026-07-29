@@ -139,6 +139,53 @@ class CheckTests(unittest.TestCase):
         self.assertIn("PASS with", stdout)
         assert_repo_untouched(repo)
 
+    # ---- existence-mode backtest scope (issue #2) ----------------------------------------
+    def test_existence_backtest_scopes_to_docs_root_not_index_dirname(self):
+        """Regression for issue #2. kibsu's own DEFAULTS put the index at `.kibsu/index.json`
+        and the docs at `docs/` - two different directories. Before the fix, the existence-mode
+        backtest scoped its "touched a watched .md" filter to dirname(index_path) (`.kibsu`),
+        a directory that never holds a tracked doc, so it always found 0 eligible commits and
+        never printed a verdict - the exact input that turns `kibsu report`'s HISTORY check
+        (question 5) into "COULD NOT CHECK - the history replay returned no verdict" on every
+        default-config repo. After the fix, the filter scopes to docs_root (+ skills_dir +
+        instruction_files) instead, so a commit that adds a doc under docs/ without touching
+        the index in the same commit is correctly counted as eligible, and failed."""
+        repo = make_repo(self.tmpdir, {"docs/doc.md": "version one\n"})
+
+        idx_exit, idx_out, idx_err = run_tool(
+            "index", repo, "-o", os.path.join(".kibsu", "index.json"))
+        self.assertEqual(idx_exit, 0, "stderr=%r" % idx_err)
+        _commit_all(repo, "build index for version one")
+
+        # An Add against the tracked-.md set (existence mode's trigger) that does NOT touch
+        # .kibsu/index.json in the same commit - the one condition backtest exists to catch.
+        with open(os.path.join(repo, "docs", "doc2.md"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("a second doc\n")
+        _commit_all(repo, "add docs/doc2.md without rebuilding the index")
+
+        idx_exit, idx_out, idx_err = run_tool(
+            "index", repo, "-o", os.path.join(".kibsu", "index.json"))
+        self.assertEqual(idx_exit, 0, "stderr=%r" % idx_err)
+        _commit_all(repo, "rebuild index to include doc2.md")
+
+        exit_code, stdout, stderr = run_tool(
+            "check", repo,
+            "--index", os.path.join(".kibsu", "index.json"),
+            "--backtest", "10",
+            "--backtest-index", os.path.join(".kibsu", "index.json"),
+            "--backtest-mode", "existence",
+        )
+
+        self.assertEqual(exit_code, 0, "expected OK (0); stderr=%r" % stderr)
+        # 4 commits scanned; 2 touch a .md under docs/ (the initial fixture commit that adds
+        # docs/doc.md, and the commit that adds docs/doc2.md) - neither also touches
+        # .kibsu/index.json in the SAME commit, so both are eligible and both failed.
+        self.assertIn(">> 2 commits would have exited 1 when they were made", stdout,
+                       "expected a real verdict (2 of the 4 commits scanned are eligible and "
+                       "failed), not the COULD-NOT-CHECK 'nothing to test' shape - stdout=%r"
+                       % stdout)
+        assert_repo_untouched(repo)
+
 
 if __name__ == "__main__":
     unittest.main()
