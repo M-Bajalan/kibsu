@@ -3,6 +3,9 @@
 [![CI](https://github.com/M-Bajalan/kibsu/actions/workflows/ci.yml/badge.svg)](https://github.com/M-Bajalan/kibsu/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/M-Bajalan/kibsu/actions/workflows/codeql.yml/badge.svg)](https://github.com/M-Bajalan/kibsu/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/M-Bajalan/kibsu/badge)](https://scorecard.dev/viewer/?uri=github.com/M-Bajalan/kibsu)
+[![PyPI](https://img.shields.io/pypi/v/kibsu)](https://pypi.org/project/kibsu/)
+[![Python versions](https://img.shields.io/pypi/pyversions/kibsu)](https://pypi.org/project/kibsu/)
+[![License: MIT](https://img.shields.io/pypi/l/kibsu)](LICENSE)
 
 **What can your agents not do in this repository yet?**
 
