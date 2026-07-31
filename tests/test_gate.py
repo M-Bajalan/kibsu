@@ -16,8 +16,11 @@ for that, exactly as install.py vendors check.py/index.py for the same reason.
 
 Every commit meant to exercise the installed hook is a real `git commit` subprocess with
 cwd = the throwaway repo (never run_tool, which always runs from PACKAGE_ROOT). Before each one,
-`assert_kibsu_not_importable(repo)` proves - in the test, not by assumption - that this is
-genuinely the clone-and-run case: a Python process started from the repo cannot import kibsu.
+`assert_vendored_copy_matches_source(repo, "gate.py", "config.py")` proves - in the test, not by
+assumption - that the path gate.py's own HOOK template hard-codes ("$root/.kibsu/bin/gate.py")
+really is this checkout's vendored snapshot, byte-for-byte. That is the property that actually
+matters: the hook execs that path directly, never `python -m kibsu`, so it never depends on
+whether `kibsu` happens to be importable anywhere on this machine.
 """
 import os
 import shutil
@@ -27,8 +30,8 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from support import (
-    assert_kibsu_not_importable,
     assert_repo_untouched,
+    assert_vendored_copy_matches_source,
     make_repo,
     run_git,
     run_tool,
@@ -119,7 +122,7 @@ class GateTests(unittest.TestCase):
     def test_new_violation_blocks_commit_and_names_it(self):
         repo = self._install_with_one_accepted_violation()
         commits_before = _commit_count(repo)
-        assert_kibsu_not_importable(repo)
+        assert_vendored_copy_matches_source(repo, "gate.py", "config.py")
 
         with open(os.path.join(repo, "widgets.txt"), "a", encoding="utf-8", newline="\n") as fh:
             fh.write("b\n")
@@ -140,7 +143,7 @@ class GateTests(unittest.TestCase):
             extra_files={"README.md": "# hi\n"},
         )
         commits_before = _commit_count(repo)
-        assert_kibsu_not_importable(repo)
+        assert_vendored_copy_matches_source(repo, "gate.py", "config.py")
 
         # a legitimate change that does not touch widgets.txt at all - the gate's output is
         # therefore identical to what was baselined.
@@ -161,7 +164,7 @@ class GateTests(unittest.TestCase):
             extra_files={".gitignore": "build/output.log\n"},
         )
         commits_before = _commit_count(repo)
-        assert_kibsu_not_importable(repo)
+        assert_vendored_copy_matches_source(repo, "gate.py", "config.py")
 
         # a "new" violation, per identity, but it names a path git itself ignores - gate.py's
         # `ignored()` must exclude it from blocking (see gate.py's PATHISH_RE / ignored()).
@@ -205,7 +208,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual(install_exit, 0, "stderr=%r" % install_err)
         _commit_all(repo, "install the gate hook")
         commits_before = _commit_count(repo)
-        assert_kibsu_not_importable(repo)
+        assert_vendored_copy_matches_source(repo, "gate.py", "config.py")
 
         # widgets.txt is UNCHANGED (still just "a", matching the baseline) - so if the surviving
         # gate is still genuinely evaluated (not merely skipped along with the flaky one), the
@@ -229,7 +232,10 @@ class GateTests(unittest.TestCase):
         repo = self._install_with_one_accepted_violation()
         os.remove(os.path.join(repo, ".kibsu", "bin", "gate.py"))
         commits_before = _commit_count(repo)
-        assert_kibsu_not_importable(repo)
+        # gate.py itself was just deliberately removed above - that IS this test's scenario, so
+        # only config.py's identity is provable here. What matters (that the hook's warning names
+        # the exact missing path and still allows the commit) is asserted directly, below.
+        assert_vendored_copy_matches_source(repo, "config.py")
 
         # a genuine NEW violation - if the fail-safe path did not fire, this would BLOCK.
         with open(os.path.join(repo, "widgets.txt"), "a", encoding="utf-8", newline="\n") as fh:
