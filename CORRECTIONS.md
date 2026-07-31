@@ -29,9 +29,10 @@ The five, each with the direction it biased the published numbers:
 2. **Fence tracking had no delimiter rule**
    ([#13](https://github.com/M-Bajalan/kibsu/issues/13)). Any ```-looking line toggled
    fence state, so fenced examples containing fences leaked display-only text into
-   instruction counts and could flip a unit's genre. Direction **mixed** — single repos
-   moved both ways (one by −239 instructions), five units changed genre — and the ranked
-   median did not move.
+   instruction counts and could flip a unit's genre. Direction: every ranked collection
+   that moved, moved **down** in instruction count (one by −239); the only upward mover
+   sits below the sample floor and was never in the published table. Five units changed
+   genre; the ranked median did not move.
 3. **`~~~` fences were not recognized at all.** CommonMark-valid tilde fences were scanned
    as prose. Zero occurrences in the surveyed corpus at the pinned SHAs — a real bug that
    happened to have nothing to bite; fixed by the same delimiter-tracking change as #13.
@@ -61,12 +62,16 @@ The five, each with the direction it biased the published numbers:
 
 Both phantom counts rose — the corrected scorer *finds more mandates* (line-level scope,
 templated paths, `.tsx`/`.jsx`) — and the rate still fell a point, because the denominator
-grew faster than the numerator. Four of the eight ranked collections are numerically
-identical under both scorers, and the origin workspace's pre-registered numbers reproduce
-digit-for-digit under both instruments (see
-[PREREGISTRATION.md](PREREGISTRATION.md)'s appended note). Full per-repo deltas: compare
-`evidence/` at tag `v0.1.1` against `v0.2.0` — every JSON carries its scorer version and
-pinned repo SHA.
+grew faster than the numerator. Three of the eight ranked collections are numerically
+identical under both scorers on every published column, and the origin workspace's
+pre-registered numbers reproduce digit-for-digit under both instruments (see
+[PREREGISTRATION.md](PREREGISTRATION.md)'s appended note). Two disclosures the aggregate
+line invites you to miss: **one collection dominates it** —
+`davila7/claude-code-templates` supplies 101 of the 134 mandates and 44 of the 56 phantoms
+— and "distinct" means distinct *within each collection, summed* (the same filename
+mandated by two collections counts twice; globally distinct strings would read 119). Full
+per-repo deltas: compare `evidence/` at tag `v0.1.1` against `v0.2.0` — every JSON carries
+its scorer version and pinned repo SHA.
 
 ---
 

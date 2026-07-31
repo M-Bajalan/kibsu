@@ -44,8 +44,8 @@ Real output, against a public repository at commit `3dcbd5c`:
   +  Know your conventions      consistent frontmatter (description, name) - enforceable.
   +  Prove they followed        19.8% of your procedural instructions are verifiable
                                 (above the 11.1% public median).
-  x  Resume after a break       your instructions promise no artifacts at all - nothing
-                                survives the session, and nothing can be checked.
+  x  Resume after a break       1 of 1 artifacts your instructions promise have never
+                                existed in any commit.
   ?  Follow your own rules      COULD NOT CHECK - no index file to check history against
                                 (looked for docs\index.json, .kibsu/index.json, docs/index.json).
   --------------------------------------------------------------------------
@@ -53,10 +53,14 @@ Real output, against a public repository at commit `3dcbd5c`:
   Nothing was written to this repo - run `git status` to confirm.
 ```
 
-> That block was re-run against `3dcbd5c` on 2026-07-27 before being pasted here. An
-> earlier revision of this README showed the fifth line as `!  Follow your own rules` with
-> a bare `2 of 5 ready.` summary — output from a build predating the `?` mark, which the
-> legend and the paragraph directly below it already described. A pasted sample a reader
+> That block was re-run against `3dcbd5c` with scorer 0.5.0 on 2026-07-31 before being
+> pasted here — its fourth line changed under the corrected scorer (was: "your instructions
+> promise no artifacts at all"; the fixed `{placeholder}` handling now finds the one
+> templated mandate this repo makes, and it is phantom). This is the second time this block
+> has had to be re-pasted: an earlier revision showed the fifth line as
+> `!  Follow your own rules` with a bare `2 of 5 ready.` summary — output from a build
+> predating the `?` mark, which the legend and the paragraph directly below it already
+> described. A pasted sample a reader
 > could reproduce and get something *else* from is the same reproducibility defect as the
 > SHA-less survey table further down, and it is recorded rather than quietly corrected for
 > the same reason.
@@ -165,10 +169,21 @@ On a shallow clone the result is `UNKNOWN`, never zero.
 Eight public instruction collections, measured at pinned commits. Raw per-repo JSON, each carrying
 the SHA it was measured at, is in [`evidence/`](evidence/).
 
-Regenerate the whole table yourself:
+Regenerate the whole table yourself — one honesty note first: `python -m kibsu survey`
+clones each collection at its **current HEAD**, so on any day after the pinned date it
+measures newer commits and will legitimately print different numbers (that is how the
+first correction in [CORRECTIONS.md](CORRECTIONS.md) was discovered). To reproduce *this
+table's* figures, check each clone out at the SHA recorded in its
+[`evidence/`](evidence/) JSON and point the survey at those clones:
 
 ```bash
-python -m kibsu survey
+python -m kibsu survey                    # today's HEADs - comparable method, newer data
+```
+
+```bash
+# this table exactly: clone each repo, check out the sha from evidence/<slug>.json,
+# then audit the pinned clones (SKILL_AUDIT_CLONES reuses them instead of re-cloning):
+SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 ```
 
 > **This section previously linked to an `evidence/` directory that had never existed in any
@@ -226,9 +241,12 @@ unit.
 
 ### The part that was not expected
 
-**Five of the eight mandate zero artifacts.** Not "promised and missing" — *never promised anything
+**Three of the eight mandate zero artifacts.** Not "promised and missing" — *never promised anything
 at all*. The field splits into two distinct failure modes: collections that make no verifiable claim
-in the first place, and collections whose claims fail roughly 40% of the time.
+in the first place, and collections whose claims fail roughly 40% of the time. (An earlier revision
+said *five* of the eight — true under the old scorer. The corrected scorer finds a mandate the old
+one missed in two more collections, one templated and one `.tsx`; both turned out phantom. Finding
+more promises moved two collections from the first failure mode into the second.)
 
 ---
 
