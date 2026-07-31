@@ -754,7 +754,7 @@ def main():
                               phantom_counterfactual=counterfactual), indent=2))
         return 0
 
-    print("\nskill-audit v%s   %s" % (VERSION, root))
+    print("\nkibsu audit (scorer %s)   %s" % (VERSION, root))
     print("  %d units (%s), %s lines\n" % (ALL["units"], mode, format(ALL["lines"], ",")))
     print("  %-11s %6s %8s %8s %8s %9s" % ("genre", "units", "instr", "check", "CHECK%", "0-check"))
     for g in ("procedure", "doctrine", "persona", "reference", "mixed"):

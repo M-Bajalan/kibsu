@@ -25,6 +25,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from support import make_repo, run_tool, assert_repo_untouched
+from kibsu.audit import VERSION as SCORER_VERSION
 
 
 class AuditTests(unittest.TestCase):
@@ -95,7 +96,28 @@ class AuditTests(unittest.TestCase):
         )
 
         self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
-        self.assertIn("skill-audit", stdout)
+        self.assertIn("kibsu audit", stdout)
+        assert_repo_untouched(repo)
+
+    def test_header_names_the_real_tool_and_scorer_version_not_a_fictional_one(self):
+        """The plain-text header used to read "skill-audit v%s" - a tool name that exists
+        nowhere else in this repo (kibsu/survey.py's own banner carried the identical species
+        of bug, fixed separately - see tests/test_survey.py's HeaderVersionTests). It must
+        derive from the real subcommand name and the real, already-existing VERSION constant
+        instead of a frozen fictional one. audit.py is otherwise byte-frozen this release - this
+        is the header string only, nothing else in the file changed."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": "# A Skill\n\nDo the thing.\n",
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"),
+        )
+
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertIn("kibsu", stdout)
+        self.assertIn(SCORER_VERSION, stdout)
+        self.assertNotIn("skill-audit", stdout)
         assert_repo_untouched(repo)
 
     def test_fenced_example_does_not_leak_into_instruction_counts(self):
