@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-skill-audit v0.5.0 - how much of an agent instruction set can actually be checked?
+kibsu audit v0.5.0 - how much of an agent instruction set can actually be checked?
 
 An instruction is CHECKABLE if a reviewer could tell from the repo alone whether it happened: it
 runs a command, produces or edits a named file, or is a tick-box. It is CLAIMABLE if the only

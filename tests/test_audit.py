@@ -120,6 +120,16 @@ class AuditTests(unittest.TestCase):
         self.assertNotIn("skill-audit", stdout)
         assert_repo_untouched(repo)
 
+    def test_module_docstring_names_the_real_tool_not_the_pre_rename_name(self):
+        """audit.py's own module docstring (its header line - never printed by the CLI, unlike
+        the plain-text header fixed above, but still what a reader sees running `pydoc
+        kibsu.audit` or opening the file) still opened with "skill-audit v%s" - the pre-rename
+        name. Only the name changes here - the version and the rest of the docstring's content
+        stay exactly as measurement-frozen audit.py already has them."""
+        from kibsu import audit as audit_module
+        self.assertNotIn("skill-audit", audit_module.__doc__)
+        self.assertIn("kibsu audit v%s" % SCORER_VERSION, audit_module.__doc__)
+
     def test_fenced_example_does_not_leak_into_instruction_counts(self):
         """Public issue #13's shape: a ```md fence whose EXAMPLE body itself contains a
         ```bash line, a checkbox, and an imperative artifact-mandating line, closed by a bare
