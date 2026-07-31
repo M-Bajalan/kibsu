@@ -160,8 +160,15 @@ def load_baseline(root, override=None, default_dir=".kibsu"):
 
 def excluded_by(rel, patterns):
     import fnmatch
+    # fnmatchcase, never fnmatch: fnmatch.fnmatch() runs os.path.normcase() on both operands,
+    # which lowercases on Windows and is a no-op on POSIX - so the SAME baseline.json would
+    # exclude a different file set depending on which OS ran the check (docs/archive/** would
+    # also swallow Docs/Archive/ and docs/ARCHIVE/, but only on Windows). rel comes from
+    # `git ls-files`, which is already the canonical, case-exact path git tracks on every OS -
+    # matching it case-sensitively is what keeps this check's exclusions identical across the
+    # project's own 3-OS CI matrix.
     for pat in patterns:
-        if fnmatch.fnmatch(rel, pat) or fnmatch.fnmatch(rel, pat.rstrip("/") + "/*"):
+        if fnmatch.fnmatchcase(rel, pat) or fnmatch.fnmatchcase(rel, pat.rstrip("/") + "/*"):
             return pat
     return None
 
