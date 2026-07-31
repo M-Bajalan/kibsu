@@ -518,7 +518,7 @@ TEMPLATED_RE = re.compile(r"[*?]|\{[^{}]*\}")
 
 
 def glob_re(tok):
-    """Build the matcher for a mandated-artifact token.
+    r"""Build the matcher for a mandated-artifact token.
 
     `*` -> "any run of non-slash characters" and `?` -> "any one character" have been true since
     v0.1.0 - undocumented until this version's --definitions update. `{...}` placeholder segments
