@@ -8,6 +8,8 @@ Failures are reported, never silently dropped.
 """
 import json, os, subprocess, sys
 
+from . import __version__
+
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = os.path.dirname(os.path.abspath(__file__))
 # NEVER clone into the repo this file lives in. When a tool like this one moved into a larger
@@ -63,6 +65,17 @@ def audit(path, artifacts=True):
         return json.loads(p.stdout), None
     except Exception as e:
         return None, str(e)[:88]
+
+
+def _version_banner():
+    """The banner's tool-name-and-version stamp, sourced from the real constants - not a
+    hand-frozen string. Mirrors __main__.py's _cmd_version()/_scorer_version(): the package
+    version says which CLI is printing this, audit.py's VERSION says which ruleset the numbers
+    below were measured with. This used to read "(skill-audit v0.2.1)" - a tool name and a
+    version that never existed anywhere in this repo, wired to nothing - long after --version
+    had already been printing the real pair (see CORRECTIONS.md)."""
+    from . import audit
+    return "kibsu %s (scorer %s)" % (__version__, audit.VERSION)
 
 
 # A procedure-only percentage computed from a handful of instructions is noise wearing a number.
@@ -147,7 +160,7 @@ def main():
     thin = [r for r in rows if not r["enough"]]
     W = 112
     print("\n" + "=" * W)
-    print("CHECKABLE-INSTRUCTION SURVEY - public agent instruction sets   (skill-audit v0.2.1)")
+    print("CHECKABLE-INSTRUCTION SURVEY - public agent instruction sets   %s" % _version_banner())
     print("min sample to rank: >=%d procedure units AND >=%d procedure instructions" % (MIN_UNITS, MIN_INSTR))
     print("=" * W)
     print("%-40s %6s %7s %7s | %6s %7s %7s | %6s %7s"

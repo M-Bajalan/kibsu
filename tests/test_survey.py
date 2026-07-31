@@ -78,6 +78,34 @@ def _result(all_units, all_instr, all_pct, proc_units, proc_instr, proc_pct,
     }
 
 
+class HeaderVersionTests(unittest.TestCase):
+    """The survey banner's tool-name-and-version stamp must be derived from the real package
+    and scorer constants, not a hand-frozen string. It used to read "(skill-audit v0.2.1)" -
+    a tool name and a version that never existed anywhere in this repo, wired to nothing (see
+    CORRECTIONS.md) - while __main__.py's --version had already been printing the real
+    "kibsu <pkg-version> (scorer <audit.VERSION>)" pair for the CLI itself."""
+
+    def test_version_banner_names_the_real_versions_not_the_fake_tool(self):
+        from kibsu import __version__ as pkg_version
+        from kibsu.audit import VERSION as scorer_version
+        banner = survey._version_banner()
+        self.assertIn(pkg_version, banner)
+        self.assertIn(scorer_version, banner)
+        self.assertNotIn("skill-audit", banner)
+
+    def test_printed_survey_title_line_carries_the_same_real_versions(self):
+        """Not just that the helper computes the right string in isolation - that it is
+        actually wired into the printed banner main() emits, the same way __main__.py's
+        _cmd_version() is wired to _scorer_version()."""
+        from kibsu import __version__ as pkg_version
+        from kibsu.audit import VERSION as scorer_version
+        out, _ = _SurveyRun(results={}).run()
+        title_line = next(ln for ln in out.splitlines() if ln.startswith("CHECKABLE-INSTRUCTION SURVEY"))
+        self.assertIn(pkg_version, title_line)
+        self.assertIn(scorer_version, title_line)
+        self.assertNotIn("skill-audit", title_line)
+
+
 class RowFromTests(unittest.TestCase):
     """`row_from()` is the pure, importable half of survey's aggregation - the function that
     turns one audit.py JSON result into the flat row `main()` later ranks and sums. Exercised
