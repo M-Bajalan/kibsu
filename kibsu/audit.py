@@ -53,7 +53,7 @@ CHECKBOX = re.compile(r"^\s*(?:[-*+]\s*)?(?:\[[ xX]\]|[□☐☑☒])")
 # A fence-looking line: a run of 3+ backticks OR 3+ tildes (CommonMark section 4.5), plus
 # whatever follows on the line (the candidate info string / closer test happens in analyse()).
 FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
-PATHY = re.compile(r"[`\"']?[\w./\\*-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv|lock)\b")
+PATHY = re.compile(r"[`\"']?[\w./\\*-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv|lock)\b", re.I)
 EXITY = re.compile(r"\b(exit code|exit 0|exit 1|non-zero|returns? 0|must pass|passes|green|fails? loud|"
                    r"assert|verify that|diff|git status|git log|numstat)\b", re.I)
 MODALS = re.compile(r"\b(MUST|SHOULD|ALWAYS|NEVER|REQUIRED|DO NOT|DON'T|MANDATORY|"
@@ -107,7 +107,7 @@ ARTIFACT_VERB = re.compile(
     r"\b(creat|writ|wrote|append|produc|generat|sav|emit|updat|record|log|output|add|regenerat|"
     r"stamp|bump|export)\w*\b", re.I)
 FILE_TOKEN = re.compile(
-    r"`([^`\s]*?[\w*\[\]{}-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|sql|toml|ini|cfg|txt|csv))`")
+    r"`([^`\s]*?[\w*\[\]{}-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|sql|toml|ini|cfg|txt|csv))`", re.I)
 
 # --- phantom-scope filters (fix for the false-positive class) --------------------------------
 # A mandated artifact only counts as a PHANTOM if the skill claims it is produced INSIDE the repo
