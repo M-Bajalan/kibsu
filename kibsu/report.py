@@ -209,7 +209,15 @@ def main():
     # 4 CONTINUITY -----------------------------------------------------------------------
     if sk:
         arts = [x for x in sk.get("artifacts", []) if x.get("in_scope")]
-        ph = [x for x in arts if x.get("phantom")]
+        # unverifiable_pattern mandates ({name}.md, *.md, ...) prove nothing either way - no
+        # hit or miss on a pattern like that was ever actually checked (see audit.py's own
+        # --definitions). `phantom` is structurally always False on one of these, so treating
+        # `ph` alone as the gate would let a skill whose ONLY mandated artifact is
+        # unverifiable-pattern read as a clean OK - a braced path flipping unproven evidence
+        # into a passing finding. Split them out so that case reads WARN, never OK.
+        unver = [x for x in arts if x.get("unverifiable_pattern")]
+        ver = [x for x in arts if not x.get("unverifiable_pattern")]
+        ph = [x for x in ver if x.get("phantom")]
         if not arts:
             findings.append((BAD, "Resume after a break",
                              "your instructions promise no artifacts at all - nothing survives "
@@ -220,7 +228,13 @@ def main():
         elif ph:
             findings.append((BAD, "Resume after a break",
                              "%d of %d artifacts your instructions promise have never existed "
-                             "in any commit." % (len(ph), len(arts))))
+                             "in any commit." % (len(ph), len(ver))))
+        elif unver:
+            findings.append((WARN, "Resume after a break",
+                             "%d of %d promised artifacts use pattern-only names (e.g. "
+                             "{name}.md) that cannot be verified either way%s."
+                             % (len(unver), len(arts),
+                                "" if not ver else " - the rest exist")))
         else:
             findings.append((OK, "Resume after a break",
                              "all %d promised artifacts exist." % len(arts))); score += 1

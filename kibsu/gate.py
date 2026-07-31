@@ -105,13 +105,35 @@ HOOK = """#!/bin/sh
 # same fail-safe posture gate.py's own --check documents for python/module trouble.
 root=$(git rev-parse --show-toplevel) || exit 0
 gate_tool="$root/{bin}/gate.py"
-command -v python >/dev/null 2>&1 && py=python || py=python3
+
+# Windows ships a "python"/"python3" App Execution Alias stub even on a machine with NO real
+# interpreter installed: `command -v` finds it happily, but running it only prints a Microsoft
+# Store nag to stderr and exits 49 - and this hook used to `exec` straight into that, making 49
+# the COMMIT's exit code and blocking every single commit. That is the exact opposite of the
+# FAIL-SAFE, NOT FAIL-SHUT posture documented above. So presence is no longer trusted: each
+# candidate is actually invoked and kept only if it behaves like a real interpreter. "py -3" is
+# two words, so candidates are tried as validated command strings via a small sh function rather
+# than an array - POSIX sh (which is what git runs this under, on all three OSes) has none.
+try_py() {{
+  command -v "$1" >/dev/null 2>&1 || return 1
+  "$@" -c "import sys" >/dev/null 2>&1
+}}
+py=
+if try_py python3; then py="python3"
+elif try_py python; then py="python"
+elif try_py py -3; then py="py -3"
+fi
+if [ -z "$py" ]; then
+  echo "kibsu gate: !! no working python found - commit ALLOWED, nothing was verified; this is not a pass." 1>&2
+  exit 0
+fi
+
 if [ ! -f "$gate_tool" ]; then
   echo "kibsu gate: !! gate.py missing from {bin} - commit ALLOWED, nothing was verified." 1>&2
   echo "kibsu gate: reinstall (gate --install --apply) or uninstall; this is not a pass." 1>&2
   exit 0
 fi
-exec "$py" "$gate_tool" --check --repo "$root"
+exec $py "$gate_tool" --check --repo "$root"
 """
 
 

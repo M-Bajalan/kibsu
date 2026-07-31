@@ -9,13 +9,14 @@ success (including --dry-run) and 3 on every REFUSED path; `status()` always ret
 
 THE PROPERTY THAT MATTERS MOST, per the task: every `git commit` that is meant to exercise the
 installed hook is run with cwd = the throwaway fixture repo, via a plain subprocess `git commit`
-(never through run_tool, which always runs `python -m kibsu ...` from PACKAGE_ROOT - a directory
-where `import kibsu` trivially succeeds and would prove nothing about the clone-and-run case this
-tool exists for). Before every such commit, `assert_kibsu_not_importable(repo)` proves - in the
-test itself, not by assumption - that a Python process started from that repo directory cannot
-import kibsu. The hook's generated shell script never invokes anything through the `kibsu`
-package either: it execs the VENDORED `.kibsu/bin/check.py` directly (see install.py's HOOK
-template), which is exactly why this works at all in a bare clone.
+(never through run_tool, which always runs `python -m kibsu ...` from PACKAGE_ROOT). The hook's
+generated shell script never invokes anything through the `kibsu` package: it execs the VENDORED
+`.kibsu/bin/check.py` directly, by hard-coded path (see install.py's HOOK template) - never
+`python -m kibsu`, so it never depends on kibsu being pip-installed or importable anywhere on this
+machine. Before every such commit, `assert_vendored_copy_matches_source(repo, "check.py", ...)`
+proves - in the test itself, not by assumption - that the files at that hard-coded path really are
+this checkout's vendored snapshot, byte-for-byte, which is exactly why this works at all in a bare
+clone and exactly what needs proving regardless of what else happens to be importable.
 
 Only kibsu/install.py's own vendoring/hooksPath/refusal logic is exercised here - the STALE
 detection itself (what check.py reports and why) is covered in test_check.py and reused as a
@@ -31,8 +32,8 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from support import (
-    assert_kibsu_not_importable,
     assert_repo_untouched,
+    assert_vendored_copy_matches_source,
     make_repo,
     run_git,
     run_tool,
@@ -98,12 +99,13 @@ class InstallTests(unittest.TestCase):
         _commit_all(repo, "install the pre-commit hook")
         commits_before = _commit_count(repo)
 
-        # THE precondition: a plain `python -c "import kibsu"` run from inside this throwaway
-        # repo must fail. If it ever silently started succeeding (e.g. a stray PYTHONPATH, or a
-        # future change that runs the hook from a different cwd), every assertion below about
-        # "this works even when kibsu isn't importable" would stop meaning anything without any
-        # test failing to say so - so it is asserted here, not assumed.
-        assert_kibsu_not_importable(repo)
+        # THE precondition: the files at .kibsu/bin/{check,index,install}.py - the hard-coded
+        # paths the installed hook execs - must really be this checkout's vendored snapshot. If
+        # that ever silently stopped being true (a stale copy from a prior install.py version, a
+        # hand-edited stand-in), every assertion below about "this works from a vendored copy,
+        # not an installed kibsu" would stop meaning anything without any test failing to say so
+        # - so it is asserted here, not assumed.
+        assert_vendored_copy_matches_source(repo, "check.py", "index.py", "install.py")
 
         # change doc.md and stage it WITHOUT rebuilding the index - the index is now stale
         # relative to what is staged, which is exactly what check.py's STALE rule blocks on.
@@ -131,7 +133,7 @@ class InstallTests(unittest.TestCase):
         _commit_all(repo, "install the pre-commit hook")
         commits_before = _commit_count(repo)
 
-        assert_kibsu_not_importable(repo)
+        assert_vendored_copy_matches_source(repo, "check.py", "index.py", "install.py")
 
         # change doc.md AND rebuild the index using the VENDORED copy, exactly as a fresh clone
         # (with no kibsu import available) would have to - this is the whole point of vendoring.

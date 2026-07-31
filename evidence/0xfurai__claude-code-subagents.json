@@ -3,7 +3,7 @@
   "sha": "9236d10702cdbba37eaa34515f1e1dbff8452506",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.3.0",
+    "version": "0.5.0",
     "root": "<clone of 0xfurai/claude-code-subagents at 9236d10702cd>",
     "mode": "instruction-dir/*.md",
     "all": {
@@ -95,7 +95,8 @@
         "epistemic": 1,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -125,7 +126,8 @@
         "epistemic": 1,
         "action": 16,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -155,7 +157,8 @@
         "epistemic": 1,
         "action": 7,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -185,7 +188,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -215,7 +219,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -245,7 +250,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -275,7 +281,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -305,7 +312,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -335,7 +343,8 @@
         "epistemic": 0,
         "action": 9,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -365,7 +374,8 @@
         "epistemic": 2,
         "action": 11,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 6.32,
           "procedure": 0.0,
@@ -395,7 +405,8 @@
         "epistemic": 0,
         "action": 17,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -425,7 +436,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 10.91,
           "procedure": 0.0,
@@ -455,7 +467,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -485,7 +498,8 @@
         "epistemic": 2,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -515,7 +529,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -545,7 +560,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -575,7 +591,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -605,7 +622,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -635,7 +653,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -665,7 +684,8 @@
         "epistemic": 1,
         "action": 18,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.76,
           "procedure": 0.0,
@@ -695,7 +715,8 @@
         "epistemic": 1,
         "action": 17,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -725,7 +746,8 @@
         "epistemic": 0,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -755,7 +777,8 @@
         "epistemic": 0,
         "action": 11,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -785,7 +808,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -815,7 +839,8 @@
         "epistemic": 0,
         "action": 12,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -845,7 +870,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -875,7 +901,8 @@
         "epistemic": 0,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -905,7 +932,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -935,7 +963,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -965,7 +994,8 @@
         "epistemic": 0,
         "action": 2,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -995,7 +1025,8 @@
         "epistemic": 0,
         "action": 11,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1025,7 +1056,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1055,7 +1087,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -1085,7 +1118,8 @@
         "epistemic": 1,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1115,7 +1149,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1145,7 +1180,8 @@
         "epistemic": 0,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1175,7 +1211,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 10.91,
           "procedure": 0.0,
@@ -1205,7 +1242,8 @@
         "epistemic": 0,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1235,7 +1273,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.76,
           "procedure": 0.0,
@@ -1265,7 +1304,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1295,7 +1335,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1325,7 +1366,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1355,7 +1397,8 @@
         "epistemic": 0,
         "action": 4,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1385,7 +1428,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -1415,7 +1459,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1445,7 +1490,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1475,7 +1521,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1505,7 +1552,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1535,7 +1583,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1565,7 +1614,8 @@
         "epistemic": 0,
         "action": 11,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1595,7 +1645,8 @@
         "epistemic": 1,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1625,7 +1676,8 @@
         "epistemic": 0,
         "action": 19,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1655,7 +1707,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1685,7 +1738,8 @@
         "epistemic": 0,
         "action": 15,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1715,7 +1769,8 @@
         "epistemic": 0,
         "action": 12,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1745,7 +1800,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1775,7 +1831,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -1805,7 +1862,8 @@
         "epistemic": 1,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1835,7 +1893,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1865,7 +1924,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1895,7 +1955,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1925,7 +1986,8 @@
         "epistemic": 1,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.76,
           "procedure": 0.0,
@@ -1955,7 +2017,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -1985,7 +2048,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2015,7 +2079,8 @@
         "epistemic": 0,
         "action": 11,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2045,7 +2110,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2075,7 +2141,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2105,7 +2172,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2135,7 +2203,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -2165,7 +2234,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2195,7 +2265,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2225,7 +2296,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2255,7 +2327,8 @@
         "epistemic": 0,
         "action": 15,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2285,7 +2358,8 @@
         "epistemic": 0,
         "action": 4,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2315,7 +2389,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2345,7 +2420,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2375,7 +2451,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -2405,7 +2482,8 @@
         "epistemic": 0,
         "action": 16,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2435,7 +2513,8 @@
         "epistemic": 0,
         "action": 12,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 10.91,
           "procedure": 0.0,
@@ -2465,7 +2544,8 @@
         "epistemic": 0,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2495,7 +2575,8 @@
         "epistemic": 1,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2525,7 +2606,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -2555,7 +2637,8 @@
         "epistemic": 0,
         "action": 11,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -2585,7 +2668,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2615,7 +2699,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2645,7 +2730,8 @@
         "epistemic": 0,
         "action": 9,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 10.91,
           "procedure": 0.0,
@@ -2675,7 +2761,8 @@
         "epistemic": 0,
         "action": 4,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2705,7 +2792,8 @@
         "epistemic": 0,
         "action": 9,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2735,7 +2823,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 10.91,
           "procedure": 0.0,
@@ -2765,7 +2854,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2795,7 +2885,8 @@
         "epistemic": 0,
         "action": 8,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -2825,7 +2916,8 @@
         "epistemic": 0,
         "action": 12,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2855,7 +2947,8 @@
         "epistemic": 0,
         "action": 14,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.54,
           "procedure": 0.0,
@@ -2885,7 +2978,8 @@
         "epistemic": 0,
         "action": 2,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 10.91,
           "procedure": 0.0,
@@ -2915,7 +3009,8 @@
         "epistemic": 0,
         "action": 14,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -2945,7 +3040,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -2975,7 +3071,8 @@
         "epistemic": 0,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -3005,7 +3102,8 @@
         "epistemic": 1,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -3035,7 +3133,8 @@
         "epistemic": 1,
         "action": 8,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -3065,7 +3164,8 @@
         "epistemic": 0,
         "action": 12,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -3095,7 +3195,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -3125,7 +3226,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3155,7 +3257,8 @@
         "epistemic": 1,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3185,7 +3288,8 @@
         "epistemic": 0,
         "action": 4,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -3215,7 +3319,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -3245,7 +3350,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.76,
           "procedure": 0.0,
@@ -3275,7 +3381,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3305,7 +3412,8 @@
         "epistemic": 0,
         "action": 17,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -3335,7 +3443,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 10.91,
           "procedure": 0.0,
@@ -3365,7 +3474,8 @@
         "epistemic": 1,
         "action": 12,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -3395,7 +3505,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3425,7 +3536,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3455,7 +3567,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -3485,7 +3598,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -3515,7 +3629,8 @@
         "epistemic": 0,
         "action": 15,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 37.74,
@@ -3545,7 +3660,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3575,7 +3691,8 @@
         "epistemic": 1,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3605,7 +3722,8 @@
         "epistemic": 1,
         "action": 13,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -3635,7 +3753,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -3665,7 +3784,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3695,7 +3815,8 @@
         "epistemic": 1,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3725,7 +3846,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3755,7 +3877,8 @@
         "epistemic": 0,
         "action": 14,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3785,7 +3908,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -3815,7 +3939,8 @@
         "epistemic": 0,
         "action": 4,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.0,
           "procedure": 0.0,
@@ -3845,7 +3970,8 @@
         "epistemic": 0,
         "action": 2,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.0,
           "procedure": 0.0,
@@ -3875,7 +4001,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.0,
           "procedure": 0.0,
@@ -3905,7 +4032,8 @@
         "epistemic": 0,
         "action": 14,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.24,
           "procedure": 0.0,
@@ -3935,7 +4063,8 @@
         "epistemic": 0,
         "action": 16,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.11,
           "procedure": 0.0,
@@ -3965,7 +4094,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.0,
           "procedure": 0.0,
@@ -3995,7 +4125,8 @@
         "epistemic": 0,
         "action": 14,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.0,
           "procedure": 0.0,
@@ -4025,7 +4156,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -4055,7 +4187,8 @@
         "epistemic": 1,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -4085,7 +4218,8 @@
         "epistemic": 0,
         "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 12.0,
           "procedure": 0.0,
@@ -4115,7 +4249,8 @@
         "epistemic": 1,
         "action": 9,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -4145,7 +4280,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -4175,7 +4311,8 @@
         "epistemic": 0,
         "action": 15,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 11.32,
           "procedure": 0.0,
@@ -4205,7 +4342,8 @@
         "epistemic": 0,
         "action": 13,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -4218,6 +4356,13 @@
         "genre_detected": "mixed",
         "skill": "agents/websocket-expert.md"
       }
-    ]
+    ],
+    "exclusion_ledger": {},
+    "phantom_counterfactual": {
+      "in_scope_pct": 0.0,
+      "in_scope_n": 0,
+      "all_pct": 0.0,
+      "all_n": 0
+    }
   }
 }

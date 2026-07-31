@@ -186,6 +186,18 @@ def main():
     a = ap.parse_args()
     root = os.path.abspath(a.repo)
 
+    # Validate the target BEFORE build()/write. Without this, a typo'd path
+    # (`python -m kibsu index <typo>`) is not caught anywhere downstream: git commands fail
+    # against the missing cwd (caught in run(), read as "not a git repo"), walk_md() over a
+    # missing path just yields zero files, and the os.makedirs(dirname(out), exist_ok=True)
+    # below - meant only to create .kibsu/ inside an EXISTING repo - ends up creating the
+    # typo'd path itself as a side effect. The result is a fabricated clean success: exit 0,
+    # .kibsu/index.json written into a brand-new directory that did not exist a moment ago.
+    # discover.py already guards the identical input this same way - mirrored here.
+    if not os.path.isdir(root):
+        print("CANNOT RUN: %s is not a directory" % root)
+        return 3
+
     idx = build(root)
     text = dumps(idx)
 

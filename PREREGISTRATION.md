@@ -124,3 +124,65 @@ and all three go in the write-up.
 - The people running this experiment are the people who wrote the skills being measured and
   the tool doing the measuring. That is not a conflict this document can remove. It is a
   conflict this document is trying to make expensive to act on.
+
+---
+
+## Appended note — 2026-07-31: the instrument changed, so everything was re-measured
+
+Per this file's own rule ("Corrections to errors of fact get an appended, dated note; the
+original text stays legible"), nothing above this line has been edited.
+
+**What happened.** After cycle 1 of the experiment ran (2026-07-28: a reclassification pass
+and one rewrite, results published in the cycle record with diffs), an audit of the scorer
+itself confirmed five measurement bugs in `audit.py` — see
+[CORRECTIONS.md](CORRECTIONS.md), 2026-07-31 entry. They are fixed in scorer 0.5.0. An
+instrument that changes mid-experiment invalidates before/after comparisons unless both
+sides are re-measured with the corrected instrument, so both baselines in section 1, and
+cycle 1's own endpoints, were re-measured at the same pinned states.
+
+**Re-measurement, origin workspace (1a) — identical under both instruments:**
+
+| pinned state | scorer 0.3.0 (published) | scorer 0.5.0 (re-measured) |
+|---|---|---|
+| baseline, procedure-only | 28.7% — 208/726, 36 units | 28.7% — 208/726, 36 units |
+| baseline, doctrine | 0.0% — 0/34, 3 units | 0.0% — 0/34, 3 units |
+| post-cycle-1, procedure-only | 31.4% — 251/800, 39 units | 31.4% — 251/800, 39 units |
+| post-cycle-1, doctrine | 0.0% — 0/34, 3 units | 0.0% — 0/34, 3 units |
+
+The five bugs' triggering shapes (nested fences, templated artifact mandates, scaffold
+vocabulary on mandate lines, uppercase extensions) evidently do not occur in these files'
+counted regions: the corrected scorer reproduces every published origin number
+digit-for-digit, including cycle 1's result. Cycle 1 stands as published. (The directional
+caveat of section 1a still applies — private repo, our word.)
+
+**Re-measurement, kibsu-lab (1b) and the public survey — also unmoved:**
+
+| | scorer 0.3.0 (published) | scorer 0.5.0 (re-measured) |
+|---|---|---|
+| 1b kibsu-lab @ `8bec5ee`, procedure-only | 46.7% (14/30, 3 units) | 46.7% (14/30, 3 units) |
+| 1b kibsu-lab @ `8bec5ee`, doctrine | 0.0% (0/7, 1 unit) | 0.0% (0/7, 1 unit) |
+| public median (procedure-only), 8 ranked collections | 11.1% | 11.1% |
+
+The survey's aggregate phantom line did move (43% to 42%, with both counts rising — see
+CORRECTIONS.md); the baselines this experiment is measured against did not. Future cycles
+compare against the scorer-0.5.0 column: same instrument on both sides, or the comparison
+is noise.
+
+**A ruling this file must make in advance.** Clause 3 of section 2 declares a rising
+doctrine score disqualifying evidence of gaming. That clause is about *documents being
+rewritten* to chase the metric. A doctrine score that moves because the *scorer was
+repaired* — for example, fence-tracking bugs that previously leaked example text into a
+doctrine unit's counts — is a different event: the guidance text is byte-identical; only
+the measurement changed. So the ruling: **doctrine movement attributable solely to an
+instrument correction, measured on unedited files, does not trip clause 3; doctrine
+movement after skill rewrites, measured with a stable instrument, still does.** This is the
+project interpreting its own disqualification rule in its own favour, which is exactly why
+the ruling is stated here, dated, in the same commit as the re-measurement — the reader who
+finds the distinction self-serving is invited to say so now, not after. (As it happens, no
+doctrine number moved at all this time; the ruling stands for future instrument changes
+regardless.)
+
+**A clause the original lacked, now standing:** any change to the scorer mid-experiment
+requires a re-baseline of both workspaces and a dated note here, before any "after" numbers
+are published. An instrument that changes silently between the before and the after is the
+oldest trick in the book, and this file would rather name the trick than be suspected of it.

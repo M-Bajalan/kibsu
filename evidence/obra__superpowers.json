@@ -3,19 +3,19 @@
   "sha": "3dcbd5c4b48e02263fbf4a3c01e3fe4f81d584d9",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.3.0",
+    "version": "0.5.0",
     "root": "<clone of obra/superpowers at 3dcbd5c4b48e>",
     "mode": "SKILL.md",
     "all": {
       "lines": 3157,
-      "instructions": 267,
-      "checkable": 48,
-      "claimable": 219,
+      "instructions": 265,
+      "checkable": 47,
+      "claimable": 218,
       "runnable_fences": 23,
       "checkboxes": 35,
       "units": 14,
-      "pct": 17.97752808988764,
-      "zero": 6
+      "pct": 17.735849056603772,
+      "zero": 7
     },
     "procedure_only": {
       "lines": 2517,
@@ -64,14 +64,14 @@
       },
       "mixed": {
         "lines": 166,
-        "instructions": 11,
-        "checkable": 1,
-        "claimable": 10,
+        "instructions": 9,
+        "checkable": 0,
+        "claimable": 9,
         "runnable_fences": 0,
         "checkboxes": 0,
         "units": 1,
-        "pct": 9.090909090909092,
-        "zero": 0
+        "pct": 0.0,
+        "zero": 1
       }
     },
     "artifacts": [
@@ -80,9 +80,14 @@
         "artifact": "docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md",
         "in_tree": false,
         "in_history": false,
-        "in_scope": false,
-        "out_of_scope_reason": "skill scaffolds the user's project",
-        "phantom": false
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true
       }
     ],
     "history_shallow": false,
@@ -110,7 +115,8 @@
             "line": "- Write the validated design (spec) to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`"
           }
         ],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 5.03,
@@ -140,7 +146,8 @@
         "epistemic": 0,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 3.33,
@@ -170,7 +177,8 @@
         "epistemic": 0,
         "action": 14,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 7.26,
@@ -200,7 +208,8 @@
         "epistemic": 0,
         "action": 11,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 11.56,
@@ -230,7 +239,8 @@
         "epistemic": 3,
         "action": 6,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -260,7 +270,8 @@
         "epistemic": 0,
         "action": 9,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 3.23,
@@ -290,7 +301,8 @@
         "epistemic": 0,
         "action": 44,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.6,
           "procedure": 1.5,
@@ -320,7 +332,8 @@
         "epistemic": 1,
         "action": 30,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 4.98,
@@ -350,7 +363,8 @@
         "epistemic": 1,
         "action": 35,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 9.12,
@@ -380,7 +394,8 @@
         "epistemic": 0,
         "action": 5,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 13.64,
@@ -410,7 +425,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.67,
@@ -440,7 +456,8 @@
         "epistemic": 0,
         "action": 3,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -455,12 +472,12 @@
       },
       {
         "lines": 166,
-        "fences": 5,
+        "fences": 2,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 11,
-        "checkable": 1,
-        "claimable": 10,
+        "instructions": 9,
+        "checkable": 0,
+        "claimable": 9,
         "inline_cmds": 0,
         "steps": 0,
         "seq": 0,
@@ -468,9 +485,10 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 1,
-        "action": 10,
+        "action": 8,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.0,
@@ -500,7 +518,8 @@
         "epistemic": 0,
         "action": 70,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 10.64,
@@ -513,6 +532,13 @@
         "genre_detected": "procedure",
         "skill": "skills/writing-skills"
       }
-    ]
+    ],
+    "exclusion_ledger": {},
+    "phantom_counterfactual": {
+      "in_scope_pct": 100.0,
+      "in_scope_n": 1,
+      "all_pct": 100.0,
+      "all_n": 1
+    }
   }
 }

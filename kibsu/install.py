@@ -70,13 +70,35 @@ HOOK = """#!/bin/sh
 # hook works in anyone's clone. Nothing here points at the machine that installed it.
 ROOT="$(git rev-parse --show-toplevel)"
 NS_TOOL="$ROOT/.kibsu/bin/check.py"
-command -v python >/dev/null 2>&1 && PY=python || PY=python3
+
+# Windows ships a "python"/"python3" App Execution Alias stub even on a machine with NO real
+# interpreter installed: `command -v` finds it happily, but running it only prints a Microsoft
+# Store nag to stderr and exits 49 - and rc=49 used to match neither of this hook's two handled
+# cases (1 or 3) below, falling through the whole if-chain to a silent, unannounced `exit 0`:
+# ALLOWED, nothing checked, nobody told. So presence is no longer trusted: each candidate is
+# actually invoked and kept only if it behaves like a real interpreter. "py -3" is two words, so
+# candidates are tried as validated command strings via a small sh function rather than an array
+# - POSIX sh (which is what git runs this under, on all three OSes) has none.
+try_py() {{
+  command -v "$1" >/dev/null 2>&1 || return 1
+  "$@" -c "import sys" >/dev/null 2>&1
+}}
+PY=
+if try_py python3; then PY="python3"
+elif try_py python; then PY="python"
+elif try_py py -3; then PY="py -3"
+fi
+if [ -z "$PY" ]; then
+  echo "  !! kibsu install: no working python found - commit ALLOWED, nothing was verified; this is not a pass."
+  exit 0
+fi
+
 if [ ! -f "$NS_TOOL" ]; then
   echo "  !! check.py missing from .kibsu/bin - commit ALLOWED, nothing verified."
   echo "     Reinstall or uninstall; do not treat this as a pass."
   exit 0
 fi
-"$PY" "$NS_TOOL" "$ROOT" --staged --index "{index}" {baseline}
+$PY "$NS_TOOL" "$ROOT" --staged --index "{index}" {baseline}
 rc=$?
 if [ $rc -eq 1 ]; then
   echo ""
@@ -89,6 +111,11 @@ if [ $rc -eq 3 ]; then
   echo ""
   echo "  !! ns_check COULD NOT RUN (exit 3). Commit ALLOWED, but nothing was verified."
   echo "     This is not a pass. Fix the checker or uninstall it."
+fi
+if [ $rc -ne 0 ] && [ $rc -ne 1 ] && [ $rc -ne 3 ]; then
+  echo ""
+  echo "  !! kibsu install: ns_check exited $rc (neither 0, 1, nor 3). Commit ALLOWED, but"
+  echo "     nothing was verified - this is not a pass. Fix the checker or uninstall it."
 fi
 exit 0
 """

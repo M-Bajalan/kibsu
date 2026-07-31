@@ -16,7 +16,9 @@ Please do not open public issues for suspected vulnerabilities.
 
 ## Scope
 
-kibsu is a read-only, stdlib-only analysis tool with no network access. The
+kibsu is a read-only, stdlib-only analysis tool with no network access — except
+`survey`, which clones the public repositories it measures (that is its whole job and
+its `--help` says so); every other command touches only the local tree. The
 highest-value reports are anything that makes it write outside its declared
 outputs, execute content from a scanned repository, or leak scanned content.
 

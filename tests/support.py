@@ -140,31 +140,54 @@ def run_git(cwd, *args):
     return result.returncode, result.stdout, result.stderr
 
 
-def assert_kibsu_not_importable(cwd):
-    """Assert that `import kibsu` FAILS in a fresh Python process run from `cwd`.
+def assert_vendored_copy_matches_source(repo, *tool_names, source_root=None):
+    """Assert that each of `tool_names` (e.g. "gate.py", "config.py") vendored under
+    `repo/.kibsu/bin/` is byte-identical to the module of the same name under `source_root`
+    (defaults to this checkout's own `kibsu/` package directory).
 
-    This is the precondition the `install`/`gate` hook tests exist to prove. Those tools vendor
-    themselves into `.kibsu/bin/` specifically so a hook can shell out to a bare `python` without
-    kibsu being pip-installed or importable - the "clone it and it just works" case the whole
-    product is built around. `run_tool()` always runs with cwd=PACKAGE_ROOT, where `import
-    kibsu` trivially succeeds; a hook test that never leaves PACKAGE_ROOT would exercise a
-    different, easier environment than a real clone and prove nothing about the real one - which
-    is exactly the class of bug an earlier audit found here. Asserting it directly, in the test
-    itself, means that property can never silently stop being true without a test failing.
+    This is what the `install`/`gate` hook tests actually need proved, and it replaces an earlier
+    helper - assert_kibsu_not_importable() - that asserted `import kibsu` fails in a subprocess
+    run from the fixture repo. That was only ever a PROXY, and a broken one: it is FALSE the
+    moment kibsu is pip-installed anywhere on the machine (the maintainer's own machine, any
+    dogfooding contributor's - not hypothetical, it is why this function exists now), at which
+    point every hook test that called it failed for a reason that had nothing to do with the hook
+    being wrong.
+
+    The real property was never about importability at all. gate.py's and install.py's HOOK
+    templates never run `python -m kibsu` - they exec a HARD-CODED path,
+    "$root/{bin}/gate.py" / "$root/{bin}/check.py", vendored into the repo at install time (see
+    gate.py's own HOOK comment and install.py's "PORTABLE AS OF v1.1.0" note). Python always runs
+    exactly the file it is given by path; there is no ambiguity about "which copy ran" once that
+    file's identity is pinned down. So the property worth asserting is that the file at that
+    hard-coded path really is this checkout's vendored snapshot - not a stale copy from a prior
+    install.py version, not a hand-edited stand-in, not simply absent - and that is checkable
+    directly, by content, regardless of what else happens to be importable on this machine.
+
+    Raises AssertionError, naming the file that failed, if a vendored copy is missing or its
+    bytes diverge from source_root's copy of the same name. A guard that cannot fail proves
+    nothing (see tests/test_support_helpers.py, which exercises exactly that: this function must
+    fail on a tampered or absent vendored copy, not just pass on a good one).
     """
-    result = subprocess.run(
-        [sys.executable, "-c", "import kibsu"],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    assert result.returncode != 0 and "ModuleNotFoundError" in result.stderr, (
-        "expected `import kibsu` to fail from %r (the clone-and-run precondition these hook "
-        "tests depend on), but got returncode=%d stderr=%r"
-        % (cwd, result.returncode, result.stderr)
-    )
+    source_root = source_root or os.path.join(PACKAGE_ROOT, "kibsu")
+    for name in tool_names:
+        vendored = os.path.join(repo, ".kibsu", "bin", name)
+        source = os.path.join(source_root, name)
+        assert os.path.isfile(vendored), (
+            "expected a vendored copy of %r at %r - these hook tests only prove anything about "
+            "the installed hook if it has a real vendored file at that path to exec"
+            % (name, vendored)
+        )
+        assert os.path.isfile(source), (
+            "no source module %r to compare the vendored copy against" % (source,)
+        )
+        with open(vendored, "rb") as fh:
+            vendored_bytes = fh.read()
+        with open(source, "rb") as fh:
+            source_bytes = fh.read()
+        assert vendored_bytes == source_bytes, (
+            "%r does not match %r byte-for-byte - the installed hook would exec a stale or "
+            "tampered copy, not the vendored snapshot this test assumes" % (vendored, source)
+        )
 
 
 def assert_repo_untouched(path):

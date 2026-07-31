@@ -15,7 +15,11 @@ You have written instructions for coding agents — `AGENTS.md`, `CLAUDE.md`, a 
 `.cursorrules`. Kibsu reads them alongside your git history and reports which of those instructions
 anyone could actually verify were followed, and which ones only work when a human remembers.
 
-It writes nothing. Run it, then run `git status`.
+The read-only commands write nothing — run one, then run `git status`. Four commands write
+on purpose and say so before they do: `index` (the index file), `install` and
+`gate --install` (vendored tools plus hook wiring, reversible), `check --receipt` (a
+receipt file). Everything else — `report`, `audit`, `discover`, `survey`, `guide`, `learn`,
+`tokens` — reads only.
 
 ---
 
@@ -40,8 +44,8 @@ Real output, against a public repository at commit `3dcbd5c`:
   +  Know your conventions      consistent frontmatter (description, name) - enforceable.
   +  Prove they followed        19.8% of your procedural instructions are verifiable
                                 (above the 11.1% public median).
-  x  Resume after a break       your instructions promise no artifacts at all - nothing
-                                survives the session, and nothing can be checked.
+  x  Resume after a break       1 of 1 artifacts your instructions promise have never
+                                existed in any commit.
   ?  Follow your own rules      COULD NOT CHECK - no index file to check history against
                                 (looked for docs\index.json, .kibsu/index.json, docs/index.json).
   --------------------------------------------------------------------------
@@ -49,10 +53,17 @@ Real output, against a public repository at commit `3dcbd5c`:
   Nothing was written to this repo - run `git status` to confirm.
 ```
 
-> That block was re-run against `3dcbd5c` on 2026-07-27 before being pasted here. An
-> earlier revision of this README showed the fifth line as `!  Follow your own rules` with
-> a bare `2 of 5 ready.` summary — output from a build predating the `?` mark, which the
-> legend and the paragraph directly below it already described. A pasted sample a reader
+> That block was re-run against `3dcbd5c` with scorer 0.5.0 on 2026-07-31 before being
+> pasted here — its fourth line changed under the corrected scorer (was: "your instructions
+> promise no artifacts at all"). The cause is the scaffold-scope fix, not the placeholder
+> one: the old scorer had *extracted* this repo's one mandated artifact and then excluded it
+> under the unit-level scaffold sweep ("skill scaffolds the user's project" — check
+> `evidence/obra__superpowers.json` on both sides); the line-level rule returns it to scope,
+> where it has never existed in any commit. This is the second time this block
+> has had to be re-pasted: an earlier revision showed the fifth line as
+> `!  Follow your own rules` with a bare `2 of 5 ready.` summary — output from a build
+> predating the `?` mark, which the legend and the paragraph directly below it already
+> described. A pasted sample a reader
 > could reproduce and get something *else* from is the same reproducibility defect as the
 > SHA-less survey table further down, and it is recorded rather than quietly corrected for
 > the same reason.
@@ -161,10 +172,23 @@ On a shallow clone the result is `UNKNOWN`, never zero.
 Eight public instruction collections, measured at pinned commits. Raw per-repo JSON, each carrying
 the SHA it was measured at, is in [`evidence/`](evidence/).
 
-Regenerate the whole table yourself:
+Regenerate the whole table yourself — one honesty note first: `python -m kibsu survey`
+clones each collection at its **current HEAD**, so on any day after the pinned date it
+measures newer commits and will legitimately print different numbers (that is how the
+first correction in [CORRECTIONS.md](CORRECTIONS.md) was discovered). To reproduce *this
+table's* figures, check each clone out at the SHA recorded in its
+[`evidence/`](evidence/) JSON and point the survey at those clones:
 
 ```bash
-python -m kibsu survey
+python -m kibsu survey                    # today's HEADs - comparable method, newer data
+```
+
+```bash
+# this table exactly: clone each repo, check out the sha from evidence/<slug>.json,
+# then audit the pinned clones (SKILL_AUDIT_CLONES reuses them instead of re-cloning).
+# Clone dirs MUST be named <owner>__<repo> (e.g. obra__superpowers) - any other name
+# silently falls through to a fresh HEAD clone, the exact drift this note warns about:
+SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 ```
 
 > **This section previously linked to an `evidence/` directory that had never existed in any
@@ -175,19 +199,29 @@ python -m kibsu survey
 
 | repo | sha | units | instr | all% | **proc%** | phantom |
 |---|---|---:|---:|---:|---:|---:|
-| davila7/claude-code-templates | `91d14a7` | 891 | 12,578 | 21.3% | **22.9%** | 34/74 (46%) |
-| obra/superpowers | `3dcbd5c` | 14 | 267 | 18.0% | **19.8%** | — |
-| wshobson/agents | `c4b82b0` | 180 | 807 | 10.8% | **12.8%** | 4/7 (57%) |
+| davila7/claude-code-templates | `91d14a7` | 891 | 12,339 | 21.9% | **23.3%** | 44/101 (44%) |
+| obra/superpowers | `3dcbd5c` | 14 | 265 | 17.7% | **19.8%** | 1/1 |
+| wshobson/agents | `c4b82b0` | 180 | 798 | 10.9% | **12.8%** | 4/7 (57%) |
 | contains-studio/agents | `a5a480c` | 37 | 564 | 12.4% | **12.7%** | — |
-| anthropics/skills | `b29e7cf` | 18 | 310 | 15.8% | **9.4%** | 6/22 (27%) |
-| sanjeed5/awesome-cursor-rules-mdc | `8fbf269` | 5 | 124 | 8.9% | **8.9%** | — |
+| anthropics/skills | `b29e7cf` | 18 | 310 | 15.8% | **9.4%** | 6/24 (25%) |
+| sanjeed5/awesome-cursor-rules-mdc | `8fbf269` | 5 | 124 | 8.9% | **8.9%** | 1/1 |
 | vijaythecoder/awesome-claude-agents | `2050f3c` | 33 | 186 | 7.5% | **6.2%** | — |
 | VoltAgent/awesome-claude-code-subagents | `947b44c` | 154 | 2,775 | 2.1% | **2.2%** | — |
 
-**median procedure-only: 11.1%** · min 2.2% · max 22.9%
-**in-scope mandated artifacts: 103 distinct, 44 never existed in any commit (43%)**
+**median procedure-only: 11.1%** · min 2.2% · max 23.3%
+**in-scope mandated artifacts: 134 distinct, 56 never existed in any commit (42%)**
+
+> **These figures were re-measured 2026-07-31 with a corrected scorer (0.5.0), at the same
+> pinned SHAs.** Five scorer bugs were found and fixed — one of them had been inflating the
+> phantom rate, i.e. running in this table's favor. The median did not move; the phantom
+> line did (was: 103 distinct, 44 phantom, 43%). Every correction, with its bias direction
+> and the commands to reproduce both sides, is indexed in [CORRECTIONS.md](CORRECTIONS.md).
 
 ### One number moved, and that is the point of the SHA column
+
+*(This section describes the first correction, 2026-07-29, kept as written. All corrections
+since — including the 2026-07-31 scorer fixes — are indexed in
+[CORRECTIONS.md](CORRECTIONS.md).)*
 
 An earlier revision of this table published **41 phantoms of 99 (41%)** and carried **no commit
 SHAs**. Re-measuring produced **44 of 103 (43%)**.
@@ -212,9 +246,15 @@ unit.
 
 ### The part that was not expected
 
-**Five of the eight mandate zero artifacts.** Not "promised and missing" — *never promised anything
+**Three of the eight mandate zero artifacts.** Not "promised and missing" — *never promised anything
 at all*. The field splits into two distinct failure modes: collections that make no verifiable claim
-in the first place, and collections whose claims fail roughly 40% of the time.
+in the first place, and collections whose claims fail — at rates from 25% to 100% per collection,
+42% in aggregate. (An earlier revision said *five* of the eight — true under the old scorer. Two
+collections moved off that list for two different reasons, both checkable in `evidence/`: obra's
+one mandate was never missed — the old scorer extracted it, then the unit-level scaffold sweep
+excluded it; the line-level rule returns it to scope. sanjeed5's was genuinely invisible until
+`.tsx` joined the extension list. Both turned out phantom — two collections moved from the first
+failure mode into the second.)
 
 ---
 
@@ -238,9 +278,9 @@ One line rather than a heredoc, because a heredoc is a bash construct and this l
 to work in PowerShell too — a "verify it yourself" section that only verifies on Unix
 is half a claim.
 
-**It is small enough to actually read.** 4,241 lines across 14 files in `kibsu/`, plus
-2,077 lines of tests running 72 cases. That is an evening, not a quarter. Count it yourself
-rather than believing this paragraph:
+**It is small enough to actually read.** 4,781 lines across 14 files in `kibsu/`, plus
+3,258 lines of tests running 120 cases. That is an evening, not a quarter. Count it
+yourself rather than believing this paragraph:
 
 ```bash
 python -c "import pathlib,sys; f=sorted(pathlib.Path(sys.argv[1]).glob('*.py')); print(len(f),'files',sum(len(p.read_text(encoding='utf-8').splitlines()) for p in f),'lines')" kibsu
@@ -265,8 +305,11 @@ not ready or could not be checked. Both are successful runs — 3 is a finding, 
 crash. (Pointed at this repository it returns 3, and the reason is stated in
 [Honest limits](#honest-limits).)
 
-**It does not write to your repository.** This is the design constraint everything
-else bends around, and it is two commands to falsify:
+**The diagnostic commands do not write to your repository.** This is the design constraint
+everything else bends around — scoped honestly: `index`, `install`/`gate --install`, and
+`check --receipt` write exactly the artifacts they exist to write, opt-in, named in their
+own `--help`; every diagnostic (`report`, `audit`, `discover`, `survey`, `guide`, `learn`)
+writes nothing, and that claim is two commands to falsify:
 
 ```bash
 python -m kibsu report /path/to/your/repo

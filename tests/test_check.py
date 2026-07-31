@@ -22,8 +22,10 @@ against a fixture built to produce exactly that value, nothing else:
                     with zero violations requires deliberately keeping every frontmatter'd doc
                     compliant while leaving exactly one doc bare.
 
-check.py never mutates a repo (no --receipt is passed in any test here), so every scenario also
-asserts `assert_repo_untouched` after the run.
+check.py never mutates a repo. One scenario below does pass --receipt, but points it at a path
+OUTSIDE the fixture repo (--receipt takes the exact path given, absolute or repo-relative, and
+an absolute path resolves outside the repo tree entirely) - every scenario, including that one,
+still asserts `assert_repo_untouched` after the run.
 """
 import os
 import shutil
@@ -185,6 +187,36 @@ class CheckTests(unittest.TestCase):
                        "failed), not the COULD-NOT-CHECK 'nothing to test' shape - stdout=%r"
                        % stdout)
         assert_repo_untouched(repo)
+
+    # ---- RECEIPT.md content (same species as the audit.py header fix) ---------------------
+    def test_receipt_points_at_the_real_audit_invocation_not_a_nonexistent_script(self):
+        """Section 3 (MANDATED ARTIFACTS) of the receipt - printed whenever check.py's own
+        `arts` argument is empty, which it always is, since check.py never computes artifacts
+        itself (see write_receipt()'s call site: the literal `[]` passed for `arts`) - used to
+        point readers at `skill_audit.py --artifacts`: a script that does not exist anywhere in
+        this package (the module was renamed to kibsu/audit.py, invoked as
+        `python -m kibsu audit <dir> --artifacts`). --receipt is given an absolute path in a
+        SEPARATE tempdir - not merely a subpath of the fixture repo's own tmpdir, which
+        `make_repo` uses directly as the repo root - so the repo itself stays untouched."""
+        repo = make_repo(self.tmpdir, {"doc.md": "version one\n"})
+        idx_exit, idx_out, idx_err = run_tool("index", repo, "-o", ".kibsu/index.json")
+        self.assertEqual(idx_exit, 0, "stderr=%r" % idx_err)
+        _commit_all(repo, "build index matching current content")
+
+        receipt_dir = tempfile.mkdtemp(prefix="kibsu_test_check_receipt_")
+        try:
+            receipt_path = os.path.join(receipt_dir, "RECEIPT.md")
+            exit_code, stdout, stderr = run_tool("check", repo, "--receipt", receipt_path)
+
+            self.assertEqual(exit_code, 0, "expected OK (0); stderr=%r" % stderr)
+            assert_repo_untouched(repo)
+
+            with open(receipt_path, encoding="utf-8") as fh:
+                text = fh.read()
+            self.assertIn("python -m kibsu audit", text)
+            self.assertNotIn("skill_audit.py", text)
+        finally:
+            shutil.rmtree(receipt_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

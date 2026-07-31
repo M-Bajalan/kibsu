@@ -79,6 +79,31 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(result["skipped"], 0)
         assert_repo_untouched(repo)
 
+    def test_continuity_warns_not_oks_on_an_unverifiable_pattern_only_mandate(self):
+        """A mandate whose expanded basename keeps no literal character beyond the extension
+        (`{name}.md`) proves nothing either way - audit.py's own `unverifiable_pattern` bucket
+        exists precisely because no hit or miss on a pattern like that means anything (see
+        kibsu/audit.py's --definitions). Before this fix, a skill whose ONLY mandated artifact
+        was unverifiable-pattern still read as a clean OK ("all N promised artifacts exist"),
+        because `phantom` is always False on an unverifiable mandate - a braced path flipping
+        what should be unproven evidence into a passing CONTINUITY finding. It must read WARN,
+        never OK, when nothing was actually verified either way."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/notes.md": (
+                "# Notes Skill\n\n"
+                "Create `{name}.md` for each entry.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("report", repo, "--json")
+
+        result = json.loads(stdout)
+        continuity = next(f for f in result["findings"] if f["title"] == "Resume after a break")
+        self.assertNotEqual(continuity["mark"], "+", "must never read OK on unverifiable-only "
+                                                      "evidence: %r" % continuity)
+        self.assertEqual(continuity["mark"], "!", continuity)
+        assert_repo_untouched(repo)
+
 
 if __name__ == "__main__":
     unittest.main()
