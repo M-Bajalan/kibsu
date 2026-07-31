@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 - 2026-08-01
+
+One character. `glob_re()`'s docstring quotes the `\*` / `\?` escape sequences it explains,
+inside a non-raw string - Python 3.12+ raises SyntaxWarning on every fresh compile, so
+pip-installing 0.2.0 printed a warning at the user. The docstring is raw now; it documents
+escaping and finally practices it. Found minutes after the 0.2.0 release by upgrading the
+local install - the first 0.2.0 user was its own maintainer.
+
 ## 0.2.0 - 2026-07-31
 
 Five scorer bugs fixed (audit.py, scorer 0.3.0 -> 0.5.0), the survey re-measured at the same
