@@ -35,6 +35,7 @@ would put `clone`/`audit` out of reach and force a real network call to substitu
 """
 import contextlib
 import io
+import json
 import os
 import re
 import sys
@@ -44,6 +45,7 @@ import unittest.mock as mock
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from kibsu import survey
+from support import PACKAGE_ROOT
 
 
 # ---------------------------------------------------------------------------------------
@@ -366,6 +368,31 @@ class RowFromTests(unittest.TestCase):
                                        "in-scope mandate hid the string's separate out-of-scope "
                                        "instance from `out` entirely")
 
+    def test_excluded_distinct_counts_the_specimen_case_where_out_undercounts(self):
+        """Round 4 DEFECT (verifier-specimen, verified against real evidence): `out` ("excluded
+        outright" - DISTINCT ARTIFACTS minus IN-SCOPE DISTINCT) does NOT count a string that
+        carries an exclusion record from one skill while ALSO being genuinely mandated,
+        in-scope, by another - davila7's real `.mcp.json` is in scope under two skills and
+        excluded under a third. `excluded_distinct` (reference records restricted to
+        out-of-scope rows, deduped to strings) DOES count it, because it has at least one
+        exclusion record regardless of what else is true of the string. The two numbers must
+        genuinely differ for this specimen shape, not merely be printed near each other."""
+        arts = [
+            _artifact("shared.json", in_scope=True, phantom=False),           # skill A: in scope
+            _artifact("shared.json", in_scope=False, out_of_scope_class="scaffold-scope",
+                      match_count=0),                                         # skill B: excluded
+            _artifact("only-excluded.md", in_scope=False,
+                      out_of_scope_class="prefix-missing", match_count=0),
+        ]
+        d = _result(5, 60, 10.0, 5, 60, 10.0, artifacts=arts)
+        r = survey.row_from("specimen/repo", d)
+
+        self.assertEqual(r["out"], 1, "only-excluded.md is excluded outright; shared.json is "
+                                       "mandated in-scope elsewhere, so `out` does not count it")
+        self.assertEqual(r["excluded_distinct"], 2, "shared.json AND only-excluded.md both "
+                                                      "carry at least one exclusion record")
+        self.assertEqual(r["exclusions"], {"scaffold-scope": 1, "prefix-missing": 1})
+
 
 def _median_line(output, label):
     """Parse one of main()'s `ranked public n=... <label> median ...% min ...% max ...%`
@@ -379,6 +406,31 @@ def _median_line(output, label):
     assert m, "no %r median line found in:\n%s" % (label, output)
     return {"n": int(m.group(1)), "median": float(m.group(2)),
             "min": float(m.group(3)), "max": float(m.group(4))}
+
+
+def _ledger_clause(output):
+    """Parse the exclusion-ledger line's reconciliation clause - "<per-class breakdown> - N
+    reason records across M distinct artifacts: X excluded outright (the bracket), Y also
+    mandated in-scope by another skill and counted there" - out of captured stdout. Also checks
+    that the per-class breakdown printed just before the clause sums to the stated record
+    total, since that is exactly the reader arithmetic the clause exists to survive. Returns
+    (outright, overlap, records, distinct) - X, Y, N, M, in that order, all ints."""
+    pat = re.compile(
+        r"exclusion ledger \(full counts, all ranked repos\): (.+?) - "
+        r"(\d+) reason records across (\d+) distinct artifacts: "
+        r"(\d+) excluded outright \(the bracket\), "
+        r"(\d+) also mandated in-scope by another skill and counted there"
+    )
+    m = pat.search(output)
+    assert m, "no reconciled ledger clause found in:\n%s" % output
+    per_class_text, records, distinct, outright, overlap = m.groups()
+    records, distinct, outright, overlap = (
+        int(records), int(distinct), int(outright), int(overlap))
+    per_class_sum = sum(int(v) for v in re.findall(r"=(\d+)", per_class_text))
+    assert per_class_sum == records, (
+        "per-class breakdown sums to %d but the clause states %d records:\n%s"
+        % (per_class_sum, records, output))
+    return outright, overlap, records, distinct
 
 
 class _SurveyRun(object):
@@ -534,9 +586,12 @@ class SurveyAggregationTests(unittest.TestCase):
         disagree with no explanation. The bracket (`to`, from `out`) is a DISTINCT-artifact
         count; the ledger is a REASON-RECORD count, and one artifact mandated by several skills
         with the same exclusion reason inflates the record count without moving the distinct
-        count. The ledger line must now state both numbers on the SAME line, sourced from the
-        exact `to` value already printed in the bracket and the exact `ledger` dict already
-        printed per-class - reconcilable from the printed output alone, by construction."""
+        count. The ledger line states three numbers: reason records, distinct artifacts across
+        those records, and how that distinct total splits between "excluded outright" (the
+        bracket) and "also mandated in-scope elsewhere" - see
+        test_exclusion_ledger_clause_reconciles_the_specimen_case below for the case where that
+        split is actually non-zero. Here, with no artifact both excluded AND in-scope elsewhere,
+        the split's second half is 0 and distinct == bracket, by construction either way."""
         slug = survey.REPOS[0]
         arts = [
             _artifact("dup.md", in_scope=False, out_of_scope_class="prefix-missing", match_count=0),
@@ -551,21 +606,50 @@ class SurveyAggregationTests(unittest.TestCase):
         bracket_n = int(bracket_m.group(1))
         self.assertEqual(bracket_n, 2, "dup.md deduped to one, plus single.md")
 
-        ledger_m = re.search(
-            r"exclusion ledger \(full counts, all ranked repos\): (.+?) - "
-            r"(\d+) reason records across (\d+) distinct artifacts",
-            out,
-        )
-        self.assertIsNotNone(ledger_m, "no reconciled ledger line found in:\n%s" % out)
-        per_class_text, records_n, distinct_n = ledger_m.groups()
-        records_n, distinct_n = int(records_n), int(distinct_n)
-
-        per_class_sum = sum(int(v) for v in re.findall(r"=(\d+)", per_class_text))
-        self.assertEqual(per_class_sum, records_n, "a reader summing the printed per-class "
-                          "counts must land on the stated record total")
+        outright_n, overlap_n, records_n, distinct_n = _ledger_clause(out)
         self.assertEqual(records_n, 3, "prefix-missing=2 + user-scope=1")
-        self.assertEqual(distinct_n, bracket_n, "the ledger's stated distinct total must equal "
-                          "the bracket's own count, not merely be printed near it")
+        self.assertEqual(distinct_n, 2, "dup.md deduped to one, plus single.md")
+        self.assertEqual(outright_n, bracket_n, "the clause's own bracket figure must equal "
+                          "the bracket line's actual value")
+        self.assertEqual(overlap_n, 0, "no artifact here is both excluded and in-scope "
+                          "elsewhere")
+        self.assertEqual(outright_n + overlap_n, distinct_n, "the clause's own three numbers "
+                          "must sum correctly, not just be printed near each other")
+
+    def test_exclusion_ledger_clause_reconciles_the_specimen_case(self):
+        """Round 4 DEFECT: the reconciliation clause previously said "N reason records across M
+        distinct artifacts" using `to` (excluded-outright) as M - wrong whenever a string
+        carries BOTH an exclusion record and a genuine in-scope mandate elsewhere (the
+        verifier's real specimen, verified against committed evidence: davila7's `.mcp.json`,
+        in scope under two skills and excluded under a third). Reproduced here at the
+        printed-line level: one artifact excluded by one skill while genuinely mandated,
+        in-scope, by another skill."""
+        slug = survey.REPOS[0]
+        arts = [
+            _artifact("shared.json", in_scope=True, phantom=False),
+            _artifact("shared.json", in_scope=False, out_of_scope_class="scaffold-scope",
+                      match_count=0),
+            _artifact("only-excluded.md", in_scope=False,
+                      out_of_scope_class="prefix-missing", match_count=0),
+        ]
+        results = {slug: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts)}
+        out, _ = _SurveyRun(results=results).run()
+
+        bracket_m = re.search(r"\[(\d+) excluded from the phantom check", out)
+        self.assertIsNotNone(bracket_m, "no bracket line found in:\n%s" % out)
+        bracket_n = int(bracket_m.group(1))
+        self.assertEqual(bracket_n, 1, "only-excluded.md is excluded outright; shared.json is "
+                          "mandated in-scope elsewhere, so the bracket does not count it")
+
+        outright_n, overlap_n, records_n, distinct_n = _ledger_clause(out)
+        self.assertEqual(records_n, 2, "scaffold-scope=1 + prefix-missing=1")
+        self.assertEqual(distinct_n, 2, "shared.json + only-excluded.md")
+        self.assertEqual(outright_n, bracket_n, "the clause's own bracket figure must equal "
+                          "the bracket line's actual value")
+        self.assertEqual(overlap_n, 1, "shared.json alone - excluded by one skill, in-scope "
+                          "via another")
+        self.assertEqual(outright_n + overlap_n, distinct_n, "the clause's own three numbers "
+                          "must sum correctly, not just be printed near each other")
 
     def test_phantom_counterfactual_line_prints_summed_in_scope_and_all_rates(self):
         """Council ruling #3 (IMP 3): the path-prefix scope filter stays IN EXCHANGE for this
@@ -737,6 +821,40 @@ class SurveyNetworkTests(unittest.TestCase):
     )
     def test_real_network_clone_and_audit_not_exercised_offline(self):
         pass  # pragma: no cover - intentionally never runs
+
+
+class RealEvidenceReconciliationTests(unittest.TestCase):
+    """Pin against the actual committed evidence/*.json - not a synthetic fixture. The Round 4
+    verifier's finding (26 distinct artifacts across exclusion records, 25 excluded outright,
+    1 overlap - davila7's `.mcp.json`) was computed against this exact data; if a re-measurement
+    or a scorer change ever moves these numbers, this test is the trip-wire that catches it,
+    rather than a stale docstring claim nobody re-checks."""
+
+    def test_ledger_reconciliation_on_committed_evidence(self):
+        evidence_dir = os.path.join(PACKAGE_ROOT, "evidence")
+        if not os.path.isdir(evidence_dir):
+            self.skipTest("no evidence/ directory in this checkout")
+        rows = []
+        for slug in survey.REPOS:
+            fn = os.path.join(evidence_dir, slug.replace("/", "__") + ".json")
+            if not os.path.isfile(fn):
+                continue
+            with open(fn, encoding="utf-8") as fh:
+                payload = json.load(fh)
+            d = payload["result"]
+            if d["all"]["instructions"] < 20:
+                continue
+            r = survey.row_from(slug, d)
+            if r["enough"]:
+                rows.append(r)
+        self.assertTrue(rows, "no ranked repos found in evidence/ - fixture assumption broken")
+
+        to = sum(r["out"] for r in rows)
+        te = sum(r["excluded_distinct"] for r in rows)
+        self.assertEqual(to, 25, "bracket (excluded outright) on committed evidence")
+        self.assertEqual(te, 26, "distinct artifacts across exclusion records")
+        self.assertEqual(te - to, 1, "davila7's .mcp.json - in scope under two skills, "
+                                      "excluded under a third")
 
 
 if __name__ == "__main__":

@@ -83,17 +83,52 @@ MIN_UNITS, MIN_INSTR = 5, 50
 
 
 def _artifact_population(arts, include_out_of_scope):
-    """Distinct artifact strings, unverifiable_pattern excluded - the ONE population rule the
-    in-scope headline (mand/phantom below) and the phantom counterfactual's 'all' side
-    (cf_all_n/cf_all_phantom below) must both be built from, toggling ONLY the scope filter.
+    """The population taxonomy every count-printing site in survey.py's main() must speak - named
+    ONCE, here, so "distinct" and "record" never again mean two different things a few lines
+    apart. Three appearances of exactly that ambiguity (a verifier catching it three separate
+    times, in three separate rounds) is what this taxonomy exists to retire:
 
-    An independent verifier BLOCKED the first version of this: it paired mand/phantom (a
-    DEDUPED SET, unverifiable_pattern excluded) against cf_all_n/cf_all_phantom computed as
-    len(arts) - the raw reference LIST, duplicates and unverifiable_pattern both included.
-    Three axes differed (dedup, unverifiable_pattern, scope) where the printed line claimed
-    only one (scope), understating the true "if all exclusions are counted" rate. Routing both
-    call sites through this single function is what makes "only scope differs" true rather than
-    asserted: include_out_of_scope=False reproduces mand/phantom exactly (pinned in
+      (1) REFERENCE RECORDS   one row per mandate LINE - duplicates are real: the same artifact
+                               string mandated by two skills is two records. This is `arts`
+                               itself, and what the exclusion ledger's per-class breakdown
+                               counts (audit.py's own build_exclusion_ledger() is record-based
+                               too - see its docstring).
+
+      (2) DISTINCT ARTIFACTS  reference records (1) deduped to distinct artifact STRINGS per
+                               repo, unverifiable_pattern excluded (a hit or miss on `{name}.md`
+                               proves nothing either way). Computed here with
+                               include_out_of_scope=True: every artifact this repo produced, in
+                               scope and out, that carries literal content to search for. This
+                               is `cf_all_n` in row_from() below.
+
+      (3) IN-SCOPE DISTINCT   population (2) restricted to strings with at least one IN-SCOPE
+                               mandate. Computed here with include_out_of_scope=False. This is
+                               `mand`/`phantom` in row_from() below - the headline rate this
+                               tool has always reported. IN-SCOPE DISTINCT is always a SUBSET of
+                               DISTINCT ARTIFACTS (any record that qualifies for (3) also
+                               qualifies for (2), since the scope check is the only difference
+                               between the two calls below), so "excluded outright" - the
+                               bracket's own `out` field in row_from() - is exactly population
+                               (2) minus population (3), a plain set difference.
+
+    A fourth quantity - EXCLUDED-RECORD DISTINCT, `excluded_distinct` in row_from() below - is
+    NOT one of these three, and main()'s exclusion-ledger reconciliation needs it: it is
+    reference records (1) restricted to OUT-of-scope rows, deduped to strings. It is not
+    reducible to (2), (3), or `out` alone, because a string can carry an exclusion record from
+    one skill AND a genuine in-scope mandate from another - verified against real evidence:
+    davila7's `.mcp.json` is in scope under two skills and excluded under a third. Such a
+    string sits in BOTH population (3) and this fourth set at once, and `out` (population 2
+    minus 3) does not see it, because it IS mandated, correctly, somewhere. See main()'s ledger
+    print for where this fourth quantity is needed and why populations (2)/(3) alone cannot
+    state it.
+
+    Historical note: an independent verifier BLOCKED the first version of this function's call
+    sites - mand/phantom (population 3, deduped) were paired against cf_all_n/cf_all_phantom
+    computed as len(arts) (population 1, raw records) - three axes differed (dedup,
+    unverifiable_pattern, scope) where the printed line claimed only one (scope), understating
+    the true "if all exclusions are counted" rate. Routing both call sites through this single
+    function is what makes "only scope differs" true rather than asserted:
+    include_out_of_scope=False reproduces mand/phantom exactly (pinned in
     ArtifactPopulationTests, tests/test_survey.py) because row_from() calls this exact function
     for that population too - not a parallel computation that happens to agree today.
 
@@ -126,12 +161,23 @@ def row_from(slug, d):
     # Every OUT-OF-SCOPE reason class this repo's audit produced, summed here so main() can add
     # them across every ranked repo into one disclosure-ledger total (audit.py's own
     # `exclusion_ledger` is the single-repo version of the same idea - see its
-    # build_exclusion_ledger()).
+    # build_exclusion_ledger()). REFERENCE RECORDS (population 1, see _artifact_population()'s
+    # taxonomy) - one row per excluded mandate LINE, duplicates real.
     exclusions = {}
     for x in arts:
         if not x["in_scope"]:
             cls = x.get("out_of_scope_class") or "unspecified"
             exclusions[cls] = exclusions.get(cls, 0) + 1
+    # EXCLUDED-RECORD DISTINCT (a fourth population, not one of the three canonical ones - see
+    # _artifact_population()'s taxonomy docstring for why): the SAME excluded reference records
+    # (1) as `exclusions` above, deduped to distinct strings instead of counted by class. Needed
+    # because `out` (population 2 minus 3, "excluded outright") misses a string that carries an
+    # exclusion record from one skill while ALSO being genuinely mandated, in-scope, by another
+    # - `not x.get("unverifiable_pattern")` is structurally a no-op here (an out-of-scope record
+    # is never unverifiable_pattern - audit.py's check_artifacts() sets `unverifiable` only when
+    # `in_scope` already is), kept for consistency with the other three populations regardless.
+    excluded_names = {x["artifact"] for x in arts
+                       if not x["in_scope"] and not x.get("unverifiable_pattern")}
     # PHANTOM COUNTERFACTUAL (council ruling #3): mirrors audit.py's own phantom_counterfactual()
     # (audit.py:667) at the per-repo level, so main() can sum these SAME numerator/denominator
     # quantities across every ranked repo instead of re-deriving the rate by a different formula.
@@ -143,17 +189,18 @@ def row_from(slug, d):
     all_names, all_zero = _artifact_population(arts, include_out_of_scope=True)
     cf_all_n = len(all_names)
     cf_all_phantom = len(all_zero) if usable_hist else None
-    # `out` (the aggregate bracket's distinct-excluded count) is now derived from the exact same
-    # all_names/in_scope_names sets mand and cf_all_n already use, not a separately re-derived
-    # distinct count - see _artifact_population()'s docstring. This also fixed a real
-    # divergence: the old formula (distinct-all minus distinct-in-scope, neither side excluding
-    # unverifiable_pattern) let an in-scope-but-unverifiable mandate's mere presence hide that
-    # same string's separate out-of-scope mandate from `out` entirely.
+    # `out` = DISTINCT ARTIFACTS (2) minus IN-SCOPE DISTINCT (3), "excluded outright" - derived
+    # from the exact same all_names/in_scope_names sets mand and cf_all_n already use, not a
+    # separately re-derived distinct count - see _artifact_population()'s taxonomy docstring.
+    # This also fixed a real divergence: the old formula (distinct-all minus distinct-in-scope,
+    # neither side excluding unverifiable_pattern) let an in-scope-but-unverifiable mandate's
+    # mere presence hide that same string's separate out-of-scope mandate from `out` entirely.
     return dict(slug=slug, units=A["units"], instr=A["instructions"], pct_all=A["pct"],
                 p_units=P["units"], p_instr=P["instructions"], pct_proc=P["pct"],
                 zero=A["zero"], mand=len(in_scope_names),
                 out=len(all_names) - len(in_scope_names),
                 unverifiable=unverifiable, exclusions=exclusions,
+                excluded_distinct=len(excluded_names),
                 phantom=(len(in_scope_zero) if usable_hist else None),
                 cf_all_n=cf_all_n, cf_all_phantom=cf_all_phantom,
                 enough=(P["units"] >= MIN_UNITS and P["instructions"] >= MIN_INSTR),
@@ -210,6 +257,9 @@ def main():
           % ("repo", "units", "instr", "all%", "proc-u", "p-instr", "PROC%", "in-scp", "phantom")
           + " | commit")
     print("-" * W)
+    # Per-repo "in-scp"/"phantom" columns: the SAME IN-SCOPE DISTINCT (population 3) numbers
+    # the aggregate headline below sums across every ranked repo - see
+    # _artifact_population()'s taxonomy.
     for r in ranked:
         ph = "n/a" if r["phantom"] is None else "%d (%.0f%%)" % (
             r["phantom"], 100.0 * r["phantom"] / max(1, r["mand"]))
@@ -231,6 +281,13 @@ def main():
         tp = sum(r["phantom"] for r in pub if r["phantom"] is not None)
         to = sum(r["out"] for r in pub)
         tu = sum(r.get("unverifiable", 0) for r in pub)
+        # HEADLINE: tm/tp are IN-SCOPE DISTINCT (population 3, _artifact_population()'s
+        # taxonomy) - the phantom rate this tool has always reported. BRACKET (`to`): DISTINCT
+        # ARTIFACTS (2) minus IN-SCOPE DISTINCT (3) - "excluded outright", artifacts with no
+        # in-scope mandate anywhere (see row_from()'s `out`). `tu` (unverifiable-pattern):
+        # in-scope distinct strings INCLUDING unverifiable_pattern ones, minus population 3 - a
+        # related but separate exclusion (row_from()'s `unverifiable`), not itself one of the
+        # three named populations.
         print("in-scope mandated artifacts: %d distinct, %d PHANTOM (%.0f%%)   "
               "[%d excluded from the phantom check (all classes), %d unverifiable-pattern]"
               % (tm, tp, (100.0 * tp / tm) if tm else 0, to, tu))
@@ -243,23 +300,34 @@ def main():
             for cls, n in r.get("exclusions", {}).items():
                 ledger[cls] = ledger.get(cls, 0) + n
         if ledger:
-            # A reader sums the per-class counts printed here and compares against the bracket's
-            # "[N excluded from the phantom check]" a few lines up - they must reconcile from the
-            # printed output alone. The bracket (`to`, from `out`) is a DISTINCT-artifact count;
-            # this ledger is a REASON-RECORD count (audit.py's own build_exclusion_ledger() is
-            # record-based too - see its docstring), and one artifact excluded by several skills
-            # for the same reason inflates the record count without moving the distinct count.
-            # Both numbers below are reused, not re-derived: `ledger_records` sums the exact dict
-            # just printed per-class, and `to` is the exact value the bracket line above already
-            # printed - so the two lines can never drift apart by construction.
+            # LEDGER (per-class breakdown): REFERENCE RECORDS (population 1) - one row per
+            # excluded mandate line, duplicates real, grouped by reason (audit.py's own
+            # build_exclusion_ledger() is record-based too - see its docstring). A reader sums
+            # these per-class counts and compares against the bracket's "[N excluded from the
+            # phantom check]" a few lines up - they must reconcile from the printed output
+            # alone. They do NOT reconcile to the SAME number, though: `te` (EXCLUDED-RECORD
+            # DISTINCT, row_from()'s `excluded_distinct` - see _artifact_population()'s taxonomy
+            # for why this is a fourth population, not (2)/(3)/`out`) can exceed `to` ("excluded
+            # outright") by exactly the count of strings that carry an exclusion record from one
+            # skill while ALSO being genuinely mandated, in-scope, by another (verified against
+            # real evidence: davila7's `.mcp.json`) - that gap is stated explicitly, not left for
+            # a reader to notice as an unexplained mismatch. Every number below is reused, not
+            # re-derived: `ledger_records` sums the exact dict just printed per-class, `te` sums
+            # row_from()'s own excluded_distinct, and `to` is the exact value the bracket line
+            # above already printed - so the two lines can never drift apart by construction.
             ledger_records = sum(ledger.values())
+            te = sum(r["excluded_distinct"] for r in pub)
             print("exclusion ledger (full counts, all ranked repos): "
                   + ", ".join("%s=%d" % (k, ledger[k]) for k in sorted(ledger))
-                  + " - %d reason records across %d distinct artifacts (one artifact can be "
-                    "mandated by several skills)" % (ledger_records, to))
-        # Phantom COUNTERFACTUAL, summed across every ranked public repo (audit.py's own
+                  + " - %d reason records across %d distinct artifacts: %d excluded outright "
+                    "(the bracket), %d also mandated in-scope by another skill and counted "
+                    "there" % (ledger_records, te, to, te - to))
+        # COUNTERFACTUAL, summed across every ranked public repo (audit.py's own
         # phantom_counterfactual() is the single-repo version this mirrors - see audit.py:667
-        # and row_from()'s cf_all_n/cf_all_phantom above). Council ruling #3 kept the
+        # and row_from()'s cf_all_n/cf_all_phantom above). The in-scope side reuses tm/tp -
+        # IN-SCOPE DISTINCT (population 3), the SAME numbers the headline above already
+        # printed. The 'all' side (ta/tap) is DISTINCT ARTIFACTS (population 2) -
+        # cf_all_n/cf_all_phantom, scope exclusions counted back in. Council ruling #3 kept the
         # path-prefix scope filter explicitly IN EXCHANGE for this reaching readers HERE, not
         # just a single `audit --artifacts` run: the first number is the in-scope-only rate the
         # PHANTOM line above has always reported; the second is what it would read if every
