@@ -3,7 +3,7 @@
   "sha": "8fbf26908531c127a6076be0e55fbe17b57fb2d8",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.3.0",
+    "version": "0.5.0",
     "root": "<clone of sanjeed5/awesome-cursor-rules-mdc at 8fbf26908531>",
     "mode": "*.md (no instruction dir)",
     "all": {
@@ -41,7 +41,36 @@
         "zero": 1
       }
     },
-    "artifacts": [],
+    "artifacts": [
+      {
+        "skill": "cursor-rules-docs.md",
+        "artifact": "@reactiveStorageService.tsx",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true
+      },
+      {
+        "skill": "cursor-rules-reference.md",
+        "artifact": "@reactiveStorageService.tsx",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true
+      }
+    ],
     "history_shallow": false,
     "has_git": true,
     "skills": [
@@ -61,8 +90,14 @@
         "doctrine_hits": 0,
         "epistemic": 0,
         "action": 26,
-        "mandated": [],
-        "scaffolding": false,
+        "mandated": [
+          {
+            "tok": "@reactiveStorageService.tsx",
+            "line": "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`."
+          }
+        ],
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 3.89,
@@ -91,8 +126,14 @@
         "doctrine_hits": 0,
         "epistemic": 0,
         "action": 26,
-        "mandated": [],
-        "scaffolding": false,
+        "mandated": [
+          {
+            "tok": "@reactiveStorageService.tsx",
+            "line": "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`."
+          }
+        ],
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 3.89,
@@ -122,7 +163,8 @@
         "epistemic": 1,
         "action": 46,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.64,
@@ -152,7 +194,8 @@
         "epistemic": 0,
         "action": 7,
         "mandated": [],
-        "scaffolding": true,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.43,
@@ -182,7 +225,8 @@
         "epistemic": 1,
         "action": 17,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 9.09,
@@ -195,6 +239,13 @@
         "genre_detected": "procedure",
         "skill": "src/plan.md"
       }
-    ]
+    ],
+    "exclusion_ledger": {},
+    "phantom_counterfactual": {
+      "in_scope_pct": 100.0,
+      "in_scope_n": 2,
+      "all_pct": 100.0,
+      "all_n": 2
+    }
   }
 }

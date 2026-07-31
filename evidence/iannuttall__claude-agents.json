@@ -3,41 +3,41 @@
   "sha": "f7df2c3e7395d163ad52d0793bac8fa7ce0d776a",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.3.0",
+    "version": "0.5.0",
     "root": "<clone of iannuttall/claude-agents at f7df2c3e7395>",
     "mode": "instruction-dir/*.md",
     "all": {
       "lines": 727,
-      "instructions": 96,
-      "checkable": 2,
-      "claimable": 94,
+      "instructions": 100,
+      "checkable": 11,
+      "claimable": 89,
       "runnable_fences": 0,
-      "checkboxes": 0,
+      "checkboxes": 9,
       "units": 7,
-      "pct": 2.0833333333333335,
+      "pct": 11.0,
       "zero": 5
     },
     "procedure_only": {
       "lines": 419,
-      "instructions": 53,
-      "checkable": 1,
-      "claimable": 52,
+      "instructions": 57,
+      "checkable": 10,
+      "claimable": 47,
       "runnable_fences": 0,
-      "checkboxes": 0,
+      "checkboxes": 9,
       "units": 4,
-      "pct": 1.8867924528301887,
+      "pct": 17.54385964912281,
       "zero": 3
     },
     "by_genre": {
       "procedure": {
         "lines": 419,
-        "instructions": 53,
-        "checkable": 1,
-        "claimable": 52,
+        "instructions": 57,
+        "checkable": 10,
+        "claimable": 47,
         "runnable_fences": 0,
-        "checkboxes": 0,
+        "checkboxes": 9,
         "units": 4,
-        "pct": 1.8867924528301887,
+        "pct": 17.54385964912281,
         "zero": 3
       },
       "persona": {
@@ -60,6 +60,11 @@
         "in_history": false,
         "in_scope": false,
         "out_of_scope_reason": "path prefix '.content/' does not exist in this repo",
+        "out_of_scope_class": "prefix-missing",
+        "templated": true,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
         "phantom": false
       },
       {
@@ -69,6 +74,11 @@
         "in_history": false,
         "in_scope": true,
         "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
         "phantom": true
       },
       {
@@ -78,6 +88,11 @@
         "in_history": false,
         "in_scope": true,
         "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
         "phantom": true
       }
     ],
@@ -101,7 +116,8 @@
         "epistemic": 0,
         "action": 10,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 6.52,
           "procedure": 6.52,
@@ -136,7 +152,8 @@
             "line": "- Save as Markdown in specified folder (default: `.content/{slug}.md`)"
           }
         ],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 5.88,
           "procedure": 1.96,
@@ -153,28 +170,29 @@
         "lines": 190,
         "fences": 4,
         "runnable_fences": 0,
-        "checkboxes": 0,
-        "instructions": 19,
-        "checkable": 1,
-        "claimable": 18,
+        "checkboxes": 9,
+        "instructions": 23,
+        "checkable": 10,
+        "claimable": 13,
         "inline_cmds": 0,
-        "steps": 8,
+        "steps": 12,
         "seq": 0,
         "tables": 0,
         "persona_hits": 1,
         "doctrine_hits": 0,
         "epistemic": 2,
-        "action": 17,
+        "action": 21,
         "mandated": [
           {
             "tok": "frontend-design-spec.md",
             "line": "Generate `frontend-design-spec.md` in the user-specified location (ask for confirmation on location, suggest `/docs/design/` if not specified):"
           }
         ],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 1.58,
-          "procedure": 2.11,
+          "procedure": 12.63,
           "reference": 0.0,
           "doctrine": 0.0
         },
@@ -201,7 +219,8 @@
         "epistemic": 0,
         "action": 15,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 4.92,
           "procedure": 6.56,
@@ -231,7 +250,8 @@
         "epistemic": 0,
         "action": 9,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 4.92,
           "procedure": 8.61,
@@ -266,7 +286,8 @@
             "line": "2. Generate a comprehensive security report named `security-report.md` in the location specified by the user. If no location is provided, suggest an appropriate location first (such as the project roo"
           }
         ],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 1.6,
           "procedure": 0.53,
@@ -296,7 +317,8 @@
         "epistemic": 1,
         "action": 17,
         "mandated": [],
-        "scaffolding": false,
+        "length_cap_dropped": 0,
+        "declared_scope": null,
         "genre_scores": {
           "persona": 8.7,
           "procedure": 3.62,
@@ -309,6 +331,15 @@
         "genre_detected": "persona",
         "skill": "agents/vibe-coding-coach.md"
       }
-    ]
+    ],
+    "exclusion_ledger": {
+      "prefix-missing": 1
+    },
+    "phantom_counterfactual": {
+      "in_scope_pct": 100.0,
+      "in_scope_n": 2,
+      "all_pct": 100.0,
+      "all_n": 3
+    }
   }
 }
