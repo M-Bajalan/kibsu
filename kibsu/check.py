@@ -334,8 +334,8 @@ def write_receipt(root, index, scope_n, viol, warn, enforce, bt, arts, shallow, 
     L.append("")
     if not arts:
         L.append("- **not measured by this tool.** Artifact/phantom analysis lives in")
-        L.append("  `skill_audit.py --artifacts`. Reporting zero here would be a number this run")
-        L.append("  did not compute.")
+        L.append("  `python -m kibsu audit <dir> --artifacts`. Reporting zero here would be a")
+        L.append("  number this run did not compute.")
     elif shallow:
         L.append("- **SHALLOW CLONE** - history unavailable, phantom status is UNKNOWN, not zero.")
     else:
@@ -547,8 +547,8 @@ def main():
         d = os.path.dirname(rp)
         if d:
             os.makedirs(d, exist_ok=True)
-        # artifact/phantom analysis lives in skill_audit.py, not here - the receipt says so
-        # rather than silently printing a zero it did not measure.
+        # artifact/phantom analysis lives in `python -m kibsu audit --artifacts`, not here - the
+        # receipt says so rather than silently printing a zero it did not measure.
         nl = write_receipt(root, index, len(scope), len(violations), len(warnings),
                            enforce, bt, [], False, rp)
         say("\n  receipt written: %s (%d lines)" % (receipt_arg, nl))
