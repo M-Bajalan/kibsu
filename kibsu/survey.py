@@ -176,7 +176,7 @@ def main():
         to = sum(r["out"] for r in pub)
         tu = sum(r.get("unverifiable", 0) for r in pub)
         print("in-scope mandated artifacts: %d distinct, %d PHANTOM (%.0f%%)   "
-              "[%d excluded as user-project scope, %d unverifiable-pattern]"
+              "[%d excluded from the phantom check (all classes), %d unverifiable-pattern]"
               % (tm, tp, (100.0 * tp / tm) if tm else 0, to, tu))
         # Disclosure ledger, summed across every ranked public repo (audit.py's own
         # exclusion_ledger is the single-repo version - see build_exclusion_ledger() there).

@@ -796,7 +796,11 @@ def main():
                 tag = "  [templated - checked by pattern]" if x["templated"] else ""
                 print("      %-34s  mandated by %s%s" % (x["artifact"][:34], x["skill"][:40], tag))
             if out:
-                print("    excluded as user-project scope (%d), sample:" % len(out))
+                # "out" aggregates every exclusion class (scaffold-scope, user-scope,
+                # prefix-missing, declared-scope), not just the original user-project reason -
+                # the header must say so, or the per-class ledger above gets contradicted by
+                # its own sample listing's title.
+                print("    excluded from the phantom check (%d, all classes - see ledger), sample:" % len(out))
                 for x in out[:3]:
                     print("      %-30s  [%s] %s"
                           % (x["artifact"][:30], x.get("out_of_scope_class") or "?",
