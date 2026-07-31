@@ -113,5 +113,170 @@ class AuditTests(unittest.TestCase):
         assert_repo_untouched(repo)
 
 
+class ArtifactInstanceCountTests(unittest.TestCase):
+    """v0.4.0's INSTANCE-COUNT phantom redesign (public issue #14 plus the two bugs hiding behind
+    it - see audit.py's glob_re()/check_artifacts()).
+
+    Before this: `{...}` placeholder segments survived re.escape() as LITERAL characters, so a
+    mandate like `logs/report_{date}.md` could only ever match a file that literally contained a
+    brace - it always read as phantom no matter how many real report_2026-07-30.md files a repo
+    had. Fixed by expanding `{...}` to "any run of non-slash characters", identically to how `*`
+    already expands - applied to the directory prefix too, so a brace in a directory segment no
+    longer gets dropped for the wrong reason ("path prefix does not exist") before the phantom
+    check ever sees it.
+
+    Every fixture here uses a skill file under `.claude/skills/` (matching the existing tests'
+    fixture shape) plus files committed at the REPO ROOT, because check_artifacts() walks the
+    whole git repo (via git_root()), not just the audited subdirectory - a mandated artifact can
+    live anywhere in the tree.
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_audit_artifacts_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _artifact(self, result, token):
+        arts = [a for a in result["artifacts"] if a["artifact"] == token]
+        self.assertEqual(
+            len(arts), 1,
+            "expected exactly one artifact record for %r, got %r" % (token, arts),
+        )
+        return arts[0]
+
+    def test_issue_14_templated_mandate_with_committed_match_is_not_phantom(self):
+        """The issue #14 repro: `logs/report_{date}.md` mandated, and a real
+        logs/report_2026-07-30.md committed. Must NOT be phantom, must show match_count >= 1,
+        and must be flagged templated=True so a reader knows this was a pattern check, not a
+        literal one."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": (
+                "# Reporting Skill\n\n"
+                "Write `logs/report_{date}.md` after each nightly run.\n"
+            ),
+            "logs/report_2026-07-30.md": "nightly report\n",
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "logs/report_{date}.md")
+
+        self.assertTrue(art["in_scope"], art)
+        self.assertTrue(art["templated"], art)
+        self.assertGreaterEqual(art["match_count"], 1, art)
+        self.assertTrue(art["in_tree"], art)
+        self.assertFalse(art["unverifiable_pattern"], art)
+        self.assertFalse(art["phantom"], art)
+        assert_repo_untouched(repo)
+
+    def test_templated_mandate_with_zero_matches_is_still_phantom(self):
+        """The anti-laundering case the council was explicit about: braces must not launder a
+        mandate nobody ever served. Same mandate as above, same in-scope directory (`logs/`
+        exists, via a real committed file), but nothing matching `report_{date}.md` was ever
+        committed - this must still be reported phantom, with match_count == 0."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": (
+                "# Reporting Skill\n\n"
+                "Write `logs/report_{date}.md` after each nightly run.\n"
+            ),
+            "logs/README.md": "not a report\n",
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "logs/report_{date}.md")
+
+        self.assertTrue(art["in_scope"], art)
+        self.assertTrue(art["templated"], art)
+        self.assertEqual(art["match_count"], 0, art)
+        self.assertFalse(art["unverifiable_pattern"], art)
+        self.assertTrue(art["phantom"], art)
+        assert_repo_untouched(repo)
+
+    def test_bare_placeholder_basename_is_unverifiable_not_phantom(self):
+        """`{name}.md` retains no literal character beyond its extension - there is nothing left
+        to search FOR, so it lands in the new unverifiable_pattern bucket: neither phantom
+        (nothing was actually checked) nor served (nothing was actually found)."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": (
+                "# Notes Skill\n\n"
+                "Create `{name}.md` for each entry.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "{name}.md")
+
+        self.assertTrue(art["in_scope"], art)
+        self.assertTrue(art["templated"], art)
+        self.assertTrue(art["unverifiable_pattern"], art)
+        self.assertFalse(art["phantom"], art)
+        assert_repo_untouched(repo)
+
+    def test_brace_in_directory_segment_is_prefix_checked_with_pattern(self):
+        """The wrong-reason-drop bug: a brace in a DIRECTORY segment used to make the path-prefix
+        filter compare `{lang}` to real directory names literally, always lose, and get dropped
+        as out-of-scope before the phantom check ever ran. `docs/{lang}/README.md` mandated,
+        `docs/en/README.md` really committed - must be in-scope and not phantom."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": (
+                "# Translation Skill\n\n"
+                "Save `docs/{lang}/README.md` after translating.\n"
+            ),
+            "docs/en/README.md": "hello\n",
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "docs/{lang}/README.md")
+
+        self.assertTrue(art["in_scope"], art)
+        self.assertIsNone(art["out_of_scope_reason"], art)
+        self.assertTrue(art["templated"], art)
+        self.assertGreaterEqual(art["match_count"], 1, art)
+        self.assertFalse(art["phantom"], art)
+        assert_repo_untouched(repo)
+
+    def test_literal_mandate_phantom_behaviour_unchanged(self):
+        """Regression guard: a plain literal mandate that was never committed must behave exactly
+        as it did before this redesign - phantom, not templated, not unverifiable."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": (
+                "# Changelog Skill\n\n"
+                "Update `CHANGELOG.md` after every release.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "CHANGELOG.md")
+
+        self.assertTrue(art["in_scope"], art)
+        self.assertFalse(art["templated"], art)
+        self.assertEqual(art["match_count"], 0, art)
+        self.assertFalse(art["in_tree"], art)
+        self.assertFalse(art["in_history"], art)
+        self.assertFalse(art["unverifiable_pattern"], art)
+        self.assertTrue(art["phantom"], art)
+        assert_repo_untouched(repo)
+
+
 if __name__ == "__main__":
     unittest.main()
