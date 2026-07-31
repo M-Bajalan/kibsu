@@ -143,10 +143,16 @@ def row_from(slug, d):
     all_names, all_zero = _artifact_population(arts, include_out_of_scope=True)
     cf_all_n = len(all_names)
     cf_all_phantom = len(all_zero) if usable_hist else None
+    # `out` (the aggregate bracket's distinct-excluded count) is now derived from the exact same
+    # all_names/in_scope_names sets mand and cf_all_n already use, not a separately re-derived
+    # distinct count - see _artifact_population()'s docstring. This also fixed a real
+    # divergence: the old formula (distinct-all minus distinct-in-scope, neither side excluding
+    # unverifiable_pattern) let an in-scope-but-unverifiable mandate's mere presence hide that
+    # same string's separate out-of-scope mandate from `out` entirely.
     return dict(slug=slug, units=A["units"], instr=A["instructions"], pct_all=A["pct"],
                 p_units=P["units"], p_instr=P["instructions"], pct_proc=P["pct"],
                 zero=A["zero"], mand=len(in_scope_names),
-                out=len({x["artifact"] for x in arts}) - len(inscope_all),
+                out=len(all_names) - len(in_scope_names),
                 unverifiable=unverifiable, exclusions=exclusions,
                 phantom=(len(in_scope_zero) if usable_hist else None),
                 cf_all_n=cf_all_n, cf_all_phantom=cf_all_phantom,
@@ -237,8 +243,20 @@ def main():
             for cls, n in r.get("exclusions", {}).items():
                 ledger[cls] = ledger.get(cls, 0) + n
         if ledger:
+            # A reader sums the per-class counts printed here and compares against the bracket's
+            # "[N excluded from the phantom check]" a few lines up - they must reconcile from the
+            # printed output alone. The bracket (`to`, from `out`) is a DISTINCT-artifact count;
+            # this ledger is a REASON-RECORD count (audit.py's own build_exclusion_ledger() is
+            # record-based too - see its docstring), and one artifact excluded by several skills
+            # for the same reason inflates the record count without moving the distinct count.
+            # Both numbers below are reused, not re-derived: `ledger_records` sums the exact dict
+            # just printed per-class, and `to` is the exact value the bracket line above already
+            # printed - so the two lines can never drift apart by construction.
+            ledger_records = sum(ledger.values())
             print("exclusion ledger (full counts, all ranked repos): "
-                  + ", ".join("%s=%d" % (k, ledger[k]) for k in sorted(ledger)))
+                  + ", ".join("%s=%d" % (k, ledger[k]) for k in sorted(ledger))
+                  + " - %d reason records across %d distinct artifacts (one artifact can be "
+                    "mandated by several skills)" % (ledger_records, to))
         # Phantom COUNTERFACTUAL, summed across every ranked public repo (audit.py's own
         # phantom_counterfactual() is the single-repo version this mirrors - see audit.py:667
         # and row_from()'s cf_all_n/cf_all_phantom above). Council ruling #3 kept the

@@ -337,6 +337,35 @@ class RowFromTests(unittest.TestCase):
                                             "the unverifiable_pattern record all included)")
         self.assertEqual(r["cf_all_phantom"], 2)
 
+    def test_out_count_is_pinned_to_the_same_population_function_as_mand_and_cf_all_n(self):
+        """`out` (and therefore the aggregate bracket's "[N excluded from the phantom check]"
+        distinct-artifact count) is now derived from the exact same _artifact_population() sets
+        mand and cf_all_n already use - all_names minus in_scope_names - not a separately
+        re-derived distinct count that could silently drift from the population discipline the
+        rest of row_from() follows.
+
+        '{name}.md' is mandated twice: once in-scope but unverifiable_pattern (no literal
+        content to check - excluded from the in-scope population), once by a different skill,
+        classified out-of-scope. The OLD `out` formula (distinct-all minus distinct-in-scope,
+        neither side excluding unverifiable_pattern) let the in-scope mandate's mere presence
+        hide the string from `out` entirely (0) - the population-based formula correctly counts
+        its separate out-of-scope, verifiable instance (1), since an unverifiable in-scope
+        mandate does not count as real in-scope membership under the shared discipline."""
+        arts = [
+            _artifact("{name}.md", in_scope=True, phantom=False, unverifiable_pattern=True),
+            _artifact("{name}.md", in_scope=False, out_of_scope_class="prefix-missing", match_count=0),
+        ]
+        d = _result(5, 60, 10.0, 5, 60, 10.0, artifacts=arts)
+        r = survey.row_from("outcount/repo", d)
+
+        all_names, _ = survey._artifact_population(arts, include_out_of_scope=True)
+        in_scope_names, _ = survey._artifact_population(arts, include_out_of_scope=False)
+        self.assertEqual(r["out"], len(all_names) - len(in_scope_names),
+                          "not by coincidence: row_from() computes `out` from these exact sets")
+        self.assertEqual(r["out"], 1, "the OLD formula would have read 0 here - the unverifiable "
+                                       "in-scope mandate hid the string's separate out-of-scope "
+                                       "instance from `out` entirely")
+
 
 def _median_line(output, label):
     """Parse one of main()'s `ranked public n=... <label> median ...% min ...% max ...%`
@@ -498,6 +527,45 @@ class SurveyAggregationTests(unittest.TestCase):
 
         self.assertIn("scaffold-scope=1", out)
         self.assertIn("prefix-missing=2", out)
+
+    def test_exclusion_ledger_reconciles_with_the_bracket_distinct_count(self):
+        """A verifier's reader test: sum the printed per-class ledger counts and compare against
+        the bracket's "[N excluded from the phantom check]" a few lines up - they used to
+        disagree with no explanation. The bracket (`to`, from `out`) is a DISTINCT-artifact
+        count; the ledger is a REASON-RECORD count, and one artifact mandated by several skills
+        with the same exclusion reason inflates the record count without moving the distinct
+        count. The ledger line must now state both numbers on the SAME line, sourced from the
+        exact `to` value already printed in the bracket and the exact `ledger` dict already
+        printed per-class - reconcilable from the printed output alone, by construction."""
+        slug = survey.REPOS[0]
+        arts = [
+            _artifact("dup.md", in_scope=False, out_of_scope_class="prefix-missing", match_count=0),
+            _artifact("dup.md", in_scope=False, out_of_scope_class="prefix-missing", match_count=0),
+            _artifact("single.md", in_scope=False, out_of_scope_class="user-scope", match_count=0),
+        ]
+        results = {slug: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts)}
+        out, _ = _SurveyRun(results=results).run()
+
+        bracket_m = re.search(r"\[(\d+) excluded from the phantom check", out)
+        self.assertIsNotNone(bracket_m, "no bracket line found in:\n%s" % out)
+        bracket_n = int(bracket_m.group(1))
+        self.assertEqual(bracket_n, 2, "dup.md deduped to one, plus single.md")
+
+        ledger_m = re.search(
+            r"exclusion ledger \(full counts, all ranked repos\): (.+?) - "
+            r"(\d+) reason records across (\d+) distinct artifacts",
+            out,
+        )
+        self.assertIsNotNone(ledger_m, "no reconciled ledger line found in:\n%s" % out)
+        per_class_text, records_n, distinct_n = ledger_m.groups()
+        records_n, distinct_n = int(records_n), int(distinct_n)
+
+        per_class_sum = sum(int(v) for v in re.findall(r"=(\d+)", per_class_text))
+        self.assertEqual(per_class_sum, records_n, "a reader summing the printed per-class "
+                          "counts must land on the stated record total")
+        self.assertEqual(records_n, 3, "prefix-missing=2 + user-scope=1")
+        self.assertEqual(distinct_n, bracket_n, "the ledger's stated distinct total must equal "
+                          "the bracket's own count, not merely be printed near it")
 
     def test_phantom_counterfactual_line_prints_summed_in_scope_and_all_rates(self):
         """Council ruling #3 (IMP 3): the path-prefix scope filter stays IN EXCHANGE for this
