@@ -17,6 +17,7 @@ is the tool's actual, verified behaviour for a populated skills directory either
 """
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -275,6 +276,323 @@ class ArtifactInstanceCountTests(unittest.TestCase):
         self.assertFalse(art["in_history"], art)
         self.assertFalse(art["unverifiable_pattern"], art)
         self.assertTrue(art["phantom"], art)
+        assert_repo_untouched(repo)
+
+
+class ScaffoldScopeLineLevelTests(unittest.TestCase):
+    """The council ruling on the SCAFFOLD_SKILL false-positive class: the old sweep matched a
+    scaffold keyword ANYWHERE in a skill's frontmatter or the first 1500 characters of its
+    body, then excluded EVERY artifact that skill mandated - so a persona skill that merely
+    mentioned "template" in an unrelated sentence lost phantom-checking on artifacts it never
+    even scaffolds. Replaced by a LINE-LEVEL rule scoped to the artifact's own mandate line
+    (`m["line"]`): excluded as scaffold-scope only when a scaffold keyword and user-scope
+    language ("your project", "the new project", "the generated", ...) co-occur on THAT line,
+    and the keyword itself is not negated within a few tokens before it ("do not scaffold",
+    "never scaffold").
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_audit_scaffold_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _artifact(self, result, token):
+        arts = [a for a in result["artifacts"] if a["artifact"] == token]
+        self.assertEqual(
+            len(arts), 1,
+            "expected exactly one artifact record for %r, got %r" % (token, arts),
+        )
+        return arts[0]
+
+    def test_false_positive_persona_body_mentioning_template_no_longer_sweeps_artifact(self):
+        """Confirmed false positive #1: an Angular persona skill whose BODY merely says
+        "Template-driven and reactive forms" - nowhere near the skill's actual mandated
+        artifact line. Under the old unit-level sweep, that lone word "template" anywhere in
+        the first 1500 characters blanket-excluded every artifact this skill mandates. The
+        mandate line itself ("Update `CHANGELOG.md` ...") carries no scaffold keyword and no
+        user-scope language, so under the new line-level rule it must be in scope and
+        genuinely phantom-checked (CHANGELOG.md is never committed here)."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/angular-expert.md": (
+                "# Angular Expert\n\n"
+                "You are a senior Angular engineer with deep framework expertise. "
+                "Template-driven and reactive forms are both supported; prefer reactive "
+                "forms for complex validation scenarios.\n\n"
+                "Update `CHANGELOG.md` after every release.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "CHANGELOG.md")
+
+        self.assertTrue(art["in_scope"], art)
+        self.assertIsNone(art["out_of_scope_reason"], art)
+        self.assertIsNone(art.get("out_of_scope_class"), art)
+        self.assertTrue(art["phantom"], art)  # never committed - now actually checked
+        assert_repo_untouched(repo)
+
+    def test_false_positive_negated_scaffold_keyword_is_kept_in(self):
+        """Confirmed false positive #2, and the negation fixture: the mandate line itself says
+        the skill does NOT scaffold any project - "do NOT" sits a couple of tokens before
+        "scaffold", so the keyword is negated and must not exclude the artifact, even though
+        the word "scaffold" is right there on the same line as the mandated file."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/inplace-editor.md": (
+                "# In-place Editor\n\n"
+                "Update `CONFIG.md` in place - do NOT scaffold any project.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "CONFIG.md")
+
+        self.assertTrue(art["in_scope"], art)
+        self.assertIsNone(art["out_of_scope_reason"], art)
+        self.assertIsNone(art.get("out_of_scope_class"), art)
+        assert_repo_untouched(repo)
+
+    def test_genuine_generator_line_still_excluded_as_scaffold_scope(self):
+        """The rule must still catch a REAL generator: a non-negated scaffold keyword
+        co-occurring with user-scope language on the mandate's own line - "scaffold
+        `src/App.tsx` in the new project" - must still be excluded, and specifically with
+        reason class 'scaffold-scope', not folded into a different reason."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/react-scaffolder.md": (
+                "# React Scaffolder\n\n"
+                "This skill must scaffold `src/App.tsx` in the new project.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "src/App.tsx")
+
+        self.assertFalse(art["in_scope"], art)
+        self.assertEqual(art["out_of_scope_class"], "scaffold-scope", art)
+        assert_repo_untouched(repo)
+
+    def test_user_scope_vocabulary_into_the_users_without_a_listed_noun(self):
+        """USER_SCOPE_LINE's vocabulary extension: "into the user's ..." must count as
+        user-scope language even when the noun after it ("workspace") is not one of the
+        specific nouns (project/repo/app/...) the rest of the pattern lists - the council
+        named "into the user's" as its own vocabulary entry, not conditioned on a fixed noun
+        list. Combined with a non-negated scaffold keyword on the same line, this must still
+        exclude as scaffold-scope."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/bundler.md": (
+                "# Bundler\n\n"
+                "This skill must scaffold `dist/out.js` into the user's workspace.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "dist/out.js")
+
+        self.assertFalse(art["in_scope"], art)
+        self.assertEqual(art["out_of_scope_class"], "scaffold-scope", art)
+        assert_repo_untouched(repo)
+
+
+class DeclaredScopeOverrideTests(unittest.TestCase):
+    """Council ruling #2: a unit's frontmatter can declare its scope explicitly (`scope:
+    user-project` or `scope: repo`), and the declaration wins over the heuristic in BOTH
+    directions - a declared user-project excludes even an artifact line with no scaffold or
+    user-scope language at all, and a declared repo includes even an artifact line the
+    heuristic would otherwise flag as scaffold-scope.
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_audit_declared_scope_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _artifact(self, result, token):
+        arts = [a for a in result["artifacts"] if a["artifact"] == token]
+        self.assertEqual(
+            len(arts), 1,
+            "expected exactly one artifact record for %r, got %r" % (token, arts),
+        )
+        return arts[0]
+
+    def test_declared_user_project_excludes_even_without_any_keywords(self):
+        """The mandate line here - "Write `output.txt` when finished." - carries no scaffold
+        keyword and no user-scope language, and its path prefix trivially exists (no
+        directory at all). Under the heuristic alone this artifact would be in scope. The
+        frontmatter's explicit `scope: user-project` must override that and exclude it
+        anyway, with reason class 'declared-scope'."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/generic-writer.md": (
+                "---\n"
+                "scope: user-project\n"
+                "---\n"
+                "# Generic Writer\n\n"
+                "Write `output.txt` when finished.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "output.txt")
+
+        self.assertFalse(art["in_scope"], art)
+        self.assertEqual(art["out_of_scope_class"], "declared-scope", art)
+        assert_repo_untouched(repo)
+
+    def test_declared_repo_includes_despite_a_matching_scaffold_scope_line(self):
+        """The opposite direction: this mandate line - "must scaffold `dist/bundle.js` in
+        the new project" - is exactly the shape the scaffold-scope heuristic excludes (see
+        ScaffoldScopeLineLevelTests). With `scope: repo` declared in frontmatter, the
+        declaration must win: the heuristic never even runs, and the artifact stays in
+        scope (still subject to the path-prefix check, which is satisfied here by a real
+        `dist/` directory)."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/repo-bundler.md": (
+                "---\n"
+                "scope: repo\n"
+                "---\n"
+                "# Repo Bundler\n\n"
+                "This skill must scaffold `dist/bundle.js` in the new project.\n"
+            ),
+            "dist/.gitkeep": "",
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        art = self._artifact(result, "dist/bundle.js")
+
+        self.assertTrue(art["in_scope"], art)
+        self.assertIsNone(art["out_of_scope_reason"], art)
+        self.assertIsNone(art.get("out_of_scope_class"), art)
+        assert_repo_untouched(repo)
+
+
+class DisclosureLedgerTests(unittest.TestCase):
+    """Council ruling #3, the non-negotiable: every exclusion reason-class is reported with
+    its TOTAL count - never just a handful of samples - in both text output and JSON, and the
+    counterfactual phantom rate (with exclusions applied vs. with every exclusion simply
+    counted) is printed too, so the denominator's own effect on the headline number is never
+    silent.
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_audit_ledger_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _make_multi_exclusion_repo(self):
+        # A single mandate token this long (>=90 chars) is silently dropped by analyse()'s
+        # length cap before it ever becomes an "artifact" record at all - the one exclusion
+        # class that never appears in `artifacts`, only in the ledger's own separate count.
+        long_token = ("x" * 95) + ".md"
+        lines = [
+            "# Multi Exclusion Skill",
+            "",
+            # in-scope, literal, and REAL (committed) - not phantom.
+            "Update `CHANGELOG.md` after every release.",
+        ]
+        # five distinct prefix-missing exclusions - directories that were never committed.
+        for i in range(1, 6):
+            lines.append("Write `missing%d/report.md` on completion." % i)
+        # one scaffold-scope exclusion.
+        lines.append("This skill must scaffold `src/App.tsx` in the new project.")
+        # one unverifiable_pattern (in-scope, no literal basename left to search for).
+        lines.append("Create `{name}.md` for each entry.")
+        # one length-cap drop - never reaches the artifacts list at all.
+        lines.append("Write `%s` after finishing." % long_token)
+        return make_repo(self.tmpdir, {
+            ".claude/skills/multi-exclusion.md": "\n".join(lines) + "\n",
+            "CHANGELOG.md": "existing changelog\n",
+        })
+
+    def test_exclusion_ledger_totals_present_in_json_and_text_not_just_samples(self):
+        """--limit 1 caps every SAMPLE list this tool prints to one entry each - the ledger
+        totals must be unaffected by that limit, because they are full counts, not samples."""
+        repo = self._make_multi_exclusion_repo()
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+            "--limit", "1",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        ledger = result["exclusion_ledger"]
+
+        self.assertEqual(ledger["prefix-missing"], 5, ledger)
+        self.assertEqual(ledger["scaffold-scope"], 1, ledger)
+        self.assertEqual(ledger["unverifiable_pattern"], 1, ledger)
+        self.assertEqual(ledger["length-cap"], 1, ledger)
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--artifacts", "--limit", "1",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        for cls, want in (("prefix-missing", 5), ("scaffold-scope", 1),
+                          ("unverifiable_pattern", 1), ("length-cap", 1)):
+            m = re.search(re.escape(cls) + r":\s*(\d+)", stdout)
+            self.assertIsNotNone(m, "no ledger line for %r in:\n%s" % (cls, stdout))
+            self.assertEqual(int(m.group(1)), want,
+                             "%s: expected total %d, text said %s" % (cls, want, m.group(1)))
+        assert_repo_untouched(repo)
+
+    def test_counterfactual_prints_in_scope_and_all_exclusions_rates(self):
+        """The scoped rate (in-scope, verifiable artifacts only - what the headline PHANTOM
+        line already reports) must differ visibly from the counterfactual rate that counts
+        every excluded artifact too, so a reader can see how much the scope filtering itself
+        is doing to the number. Here the one in-scope verifiable artifact (CHANGELOG.md) is
+        real (0% phantom), while most of the excluded artifacts were never committed anywhere
+        - counting them raises the rate sharply."""
+        repo = self._make_multi_exclusion_repo()
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        cf = result["phantom_counterfactual"]
+
+        self.assertEqual(cf["in_scope_n"], 1, cf)
+        self.assertEqual(cf["in_scope_pct"], 0.0, cf)
+        self.assertEqual(cf["all_n"], 8, cf)
+        self.assertGreater(cf["all_pct"], cf["in_scope_pct"], cf)
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        m = re.search(
+            r"([\d.]+)% in-scope-only \((\d+) artifacts\) / "
+            r"([\d.]+)% if all exclusions are counted \((\d+) artifacts\)",
+            stdout,
+        )
+        self.assertIsNotNone(m, "no counterfactual line found in:\n%s" % stdout)
+        self.assertEqual(float(m.group(1)), cf["in_scope_pct"])
+        self.assertEqual(int(m.group(2)), cf["in_scope_n"])
+        self.assertEqual(float(m.group(3)), cf["all_pct"])
+        self.assertEqual(int(m.group(4)), cf["all_n"])
         assert_repo_untouched(repo)
 
 
