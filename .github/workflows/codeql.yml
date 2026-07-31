@@ -3,7 +3,9 @@
 # people's unverifiable claims should not ask to be taken on trust about its own.
 #
 # Two languages are scanned, not one:
-#   python  - the package itself (3,679 lines, no dependencies).
+#   python  - the package itself (4,781 lines, no dependencies). An earlier revision of
+#             this comment said 3,679 - the same blank-line-skipping measurement the
+#             README's correction note describes, caught there and missed here until 0.2.0.
 #   actions - the workflow files in this directory. GitHub Actions workflow
 #             analysis is a first-class CodeQL language, and a supply-chain
 #             problem in release.yml would be a more serious defect than
