@@ -50,6 +50,9 @@ BINARIES = r"(?:python3?|py|pip3?|git|npm|npx|pnpm|yarn|node|deno|bun|pytest|tox
 INLINE_CMD = re.compile(r"`\s*" + BINARIES + r"\b[^`]*`")
 BARE_CMD = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)?" + BINARIES + r"\b\s+\S")
 CHECKBOX = re.compile(r"^\s*(?:[-*+]\s*)?(?:\[[ xX]\]|[□☐☑☒])")
+# A fence-looking line: a run of 3+ backticks OR 3+ tildes (CommonMark section 4.5), plus
+# whatever follows on the line (the candidate info string / closer test happens in analyse()).
+FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
 PATHY = re.compile(r"[`\"']?[\w./\\*-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv|lock)\b")
 EXITY = re.compile(r"\b(exit code|exit 0|exit 1|non-zero|returns? 0|must pass|passes|green|fails? loud|"
                    r"assert|verify that|diff|git status|git log|numstat)\b", re.I)
@@ -189,17 +192,34 @@ def analyse(text):
              persona_hits=0, doctrine_hits=0, epistemic=0, action=0, mandated=[])
     if any(r.search(fm) for r in PERSONA_RE):
         o["persona_hits"] += 2
-    in_fence, lang = False, ""
+    # CommonMark-aligned fence tracking (fixes public issue #13 and its ~~~ sibling). A fence
+    # OPENS on a run of 3+ backticks or 3+ tildes, and records the delimiter char, the run
+    # length, and the info string (lang). While inside, a line CLOSES the fence only if it
+    # repeats the SAME delimiter char, with a run at least as long as the opener, and carries
+    # NO info string (a bare closer) - section 4.5. The old code was a plain boolean that
+    # toggled on ANY ```-looking line: no delimiter check, no length check, no info-string
+    # check, and no ~~~ support at all. That meant a fenced EXAMPLE that itself contained a
+    # fence (e.g. a ```md block showing a ```bash snippet) flipped the state early and let the
+    # example's checkboxes/instructions/mandated artifacts leak into the real counts. Any
+    # fence-looking line that fails the closer test is just fence CONTENT - skip it exactly
+    # like the rest of the fence body, don't toggle.
+    in_fence, fence_char, fence_len, lang = False, "", 0, ""
     for ln in lines:
-        f = re.match(r"^\s*```+\s*([\w+-]*)", ln)
+        f = FENCE_RE.match(ln)
         if f:
-            if not in_fence:
-                in_fence, lang = True, (f.group(1) or "").lower()
+            run, rest = f.group(1), f.group(2)
+            if in_fence:
+                if run[0] == fence_char and len(run) >= fence_len and not rest.strip():
+                    in_fence, fence_char, fence_len, lang = False, "", 0, ""
+                # else: fence-looking but not a valid closer (wrong char, too short, or carries
+                # an info string) - it's content inside the still-open fence, fall through to
+                # "if in_fence: continue" below like any other line in the fence body.
+            else:
+                in_fence, fence_char, fence_len = True, run[0], len(run)
+                lang = (re.match(r"^\s*([\w+-]*)", rest).group(1) or "").lower()
                 o["fences"] += 1
                 if lang in RUNNABLE_LANGS:
                     o["runnable_fences"] += 1
-            else:
-                in_fence, lang = False, ""
             continue
         if in_fence:
             continue
