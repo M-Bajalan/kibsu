@@ -60,9 +60,12 @@ The five, each with the direction it biased the published numbers:
 | phantom artifacts | 44 (43%) | **56 (42%)** |
 | kibsu-lab baseline (procedure / doctrine) | 46.7% / 0.0% | **unmoved / unmoved** |
 
-Both phantom counts rose — the corrected scorer *finds more mandates* (line-level scope,
-templated paths, `.tsx`/`.jsx`) — and the rate still fell a point, because the denominator
-grew faster than the numerator. Three of the eight ranked collections are numerically
+Both phantom counts rose — the corrected scorer *counts more mandates*, for three separable
+reasons, each attributable per artifact via `out_of_scope_reason`/`templated` in the
+evidence JSONs: the line-level scope rule returns artifacts the old scorer had extracted
+and then excluded (the largest share), templated paths now match instead of always reading
+phantom, and `.tsx`/`.jsx` joined the extension list — and the rate still fell a point,
+because the denominator grew faster than the numerator. Three of the eight ranked collections are numerically
 identical under both scorers on every published column, and the origin workspace's
 pre-registered numbers reproduce digit-for-digit under both instruments (see
 [PREREGISTRATION.md](PREREGISTRATION.md)'s appended note). Two disclosures the aggregate

@@ -55,8 +55,11 @@ Real output, against a public repository at commit `3dcbd5c`:
 
 > That block was re-run against `3dcbd5c` with scorer 0.5.0 on 2026-07-31 before being
 > pasted here — its fourth line changed under the corrected scorer (was: "your instructions
-> promise no artifacts at all"; the fixed `{placeholder}` handling now finds the one
-> templated mandate this repo makes, and it is phantom). This is the second time this block
+> promise no artifacts at all"). The cause is the scaffold-scope fix, not the placeholder
+> one: the old scorer had *extracted* this repo's one mandated artifact and then excluded it
+> under the unit-level scaffold sweep ("skill scaffolds the user's project" — check
+> `evidence/obra__superpowers.json` on both sides); the line-level rule returns it to scope,
+> where it has never existed in any commit. This is the second time this block
 > has had to be re-pasted: an earlier revision showed the fifth line as
 > `!  Follow your own rules` with a bare `2 of 5 ready.` summary — output from a build
 > predating the `?` mark, which the legend and the paragraph directly below it already
@@ -182,7 +185,9 @@ python -m kibsu survey                    # today's HEADs - comparable method, n
 
 ```bash
 # this table exactly: clone each repo, check out the sha from evidence/<slug>.json,
-# then audit the pinned clones (SKILL_AUDIT_CLONES reuses them instead of re-cloning):
+# then audit the pinned clones (SKILL_AUDIT_CLONES reuses them instead of re-cloning).
+# Clone dirs MUST be named <owner>__<repo> (e.g. obra__superpowers) - any other name
+# silently falls through to a fresh HEAD clone, the exact drift this note warns about:
 SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 ```
 
@@ -243,10 +248,13 @@ unit.
 
 **Three of the eight mandate zero artifacts.** Not "promised and missing" — *never promised anything
 at all*. The field splits into two distinct failure modes: collections that make no verifiable claim
-in the first place, and collections whose claims fail roughly 40% of the time. (An earlier revision
-said *five* of the eight — true under the old scorer. The corrected scorer finds a mandate the old
-one missed in two more collections, one templated and one `.tsx`; both turned out phantom. Finding
-more promises moved two collections from the first failure mode into the second.)
+in the first place, and collections whose claims fail — at rates from 25% to 100% per collection,
+42% in aggregate. (An earlier revision said *five* of the eight — true under the old scorer. Two
+collections moved off that list for two different reasons, both checkable in `evidence/`: obra's
+one mandate was never missed — the old scorer extracted it, then the unit-level scaffold sweep
+excluded it; the line-level rule returns it to scope. sanjeed5's was genuinely invisible until
+`.tsx` joined the extension list. Both turned out phantom — two collections moved from the first
+failure mode into the second.)
 
 ---
 
