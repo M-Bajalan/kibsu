@@ -58,10 +58,18 @@ def _agg(units, instructions, pct, zero=0):
 
 
 def _artifact(name, in_scope=True, phantom=False, unverifiable_pattern=False,
-              out_of_scope_class=None):
+              out_of_scope_class=None, match_count=None):
+    # match_count mirrors audit.py's own field (check_artifacts() -> phantom_counterfactual()):
+    # phantom is defined there as in_scope and not unverifiable and match_count == 0, so an
+    # in-scope phantom fixture defaults to match_count=0 and everything else to 1 - callers
+    # building the counterfactual negative-control fixtures override it explicitly to give an
+    # OUT-OF-SCOPE artifact a real match_count=0 (never found anywhere), independent of `phantom`
+    # (which audit.py only ever sets True for in-scope artifacts).
+    if match_count is None:
+        match_count = 0 if phantom else 1
     return {"artifact": name, "in_scope": in_scope, "phantom": phantom,
             "unverifiable_pattern": unverifiable_pattern,
-            "out_of_scope_class": out_of_scope_class}
+            "out_of_scope_class": out_of_scope_class, "match_count": match_count}
 
 
 def _result(all_units, all_instr, all_pct, proc_units, proc_instr, proc_pct,
@@ -224,6 +232,38 @@ class RowFromTests(unittest.TestCase):
         r = survey.row_from("genre/repo", d)
         self.assertEqual(r["genres"], {"procedure": 4, "doctrine": 1})
 
+    def test_counterfactual_all_rate_widens_when_excluded_artifacts_were_never_found(self):
+        """Mirrors audit.py's own phantom_counterfactual() (audit.py:667) at the per-repo level:
+        `cf_all_n` is every artifact reference this repo produced (in-scope and out, verifiable
+        and not) and `cf_all_phantom` is how many of THOSE have zero matching instances anywhere
+        (match_count == 0), regardless of scope. Negative control: two out-of-scope artifacts
+        that were never found anywhere (match_count=0) must inflate the 'all' side without
+        moving the in-scope side (mand/phantom) at all."""
+        arts = [
+            _artifact("in.md", in_scope=True, phantom=True),     # in-scope, phantom -> both sides
+            _artifact("in2.md", in_scope=True, phantom=False),   # in-scope, found -> neither side
+            _artifact("excluded1.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+            _artifact("excluded2.md", in_scope=False, out_of_scope_class="prefix-missing", match_count=0),
+        ]
+        d = _result(5, 60, 10.0, 5, 60, 10.0, artifacts=arts)
+        r = survey.row_from("cf/repo", d)
+        self.assertEqual(r["mand"], 2, "in-scope side must be untouched by the exclusions")
+        self.assertEqual(r["phantom"], 1)
+        self.assertEqual(r["cf_all_n"], 4)
+        self.assertEqual(r["cf_all_phantom"], 3, "the two excluded, never-found artifacts join "
+                                                  "the single in-scope phantom on the 'all' side")
+
+    def test_counterfactual_all_phantom_is_none_without_usable_history(self):
+        """match_count == 0 is exactly as unreliable on a shallow clone as the existing
+        `phantom` field is - same gate, same reason (a shallow clone cannot prove an artifact
+        never existed anywhere in history)."""
+        arts = [_artifact("a.md", in_scope=True, phantom=True, match_count=0)]
+        d = _result(5, 60, 10.0, 5, 60, 10.0, artifacts=arts, has_git=True, history_shallow=True)
+        r = survey.row_from("shallow/repo", d)
+        self.assertEqual(r["cf_all_n"], 1, "the denominator (a pure count of references) needs "
+                                            "no git history and stays a real number")
+        self.assertIsNone(r["cf_all_phantom"])
+
 
 def _median_line(output, label):
     """Parse one of main()'s `ranked public n=... <label> median ...% min ...% max ...%`
@@ -385,6 +425,54 @@ class SurveyAggregationTests(unittest.TestCase):
 
         self.assertIn("scaffold-scope=1", out)
         self.assertIn("prefix-missing=2", out)
+
+    def test_phantom_counterfactual_line_prints_summed_in_scope_and_all_rates(self):
+        """Council ruling #3 (IMP 3): the path-prefix scope filter stays IN EXCHANGE for this
+        disclosure reaching every reader of the AGGREGATE table, not just a single-repo
+        `audit --artifacts` run - see audit.py's phantom_counterfactual() docstring. Printed
+        right where the phantom line and the exclusion ledger already are.
+
+        Two repos: repo A mandates one real in-scope phantom plus one excluded artifact that
+        was never found anywhere; repo B mandates one in-scope artifact that WAS found plus one
+        excluded artifact that was never found anywhere. Summed across both:
+          in-scope-only: 1 phantom / 2 mandated  = 50.0%
+          all-exclusions-counted: 3 never-found / 4 total = 75.0%
+        The two rates must genuinely differ - that gap IS the disclosure the council required."""
+        slug_a, slug_b = survey.REPOS[0], survey.REPOS[1]
+        arts_a = [
+            _artifact("in.md", in_scope=True, phantom=True),
+            _artifact("ex.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+        ]
+        arts_b = [
+            _artifact("in2.md", in_scope=True, phantom=False),
+            _artifact("ex2.md", in_scope=False, out_of_scope_class="prefix-missing", match_count=0),
+        ]
+        results = {
+            slug_a: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts_a),
+            slug_b: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts_b),
+        }
+        out, _ = _SurveyRun(results=results).run()
+
+        pat = re.compile(
+            r"phantom rate \(all ranked repos, summed\):\s+([\d.]+)%\s+in-scope-only\s+"
+            r"\((\d+) artifacts\)\s+/\s+([\d.]+)%\s+if all exclusions are counted\s+"
+            r"\((\d+) artifacts\)"
+        )
+        m = pat.search(out)
+        self.assertTrue(m, "no aggregate phantom-counterfactual line found in:\n%s" % out)
+        in_scope_pct, in_scope_n, all_pct, all_n = (float(m.group(1)), int(m.group(2)),
+                                                      float(m.group(3)), int(m.group(4)))
+        self.assertEqual(in_scope_n, 2)
+        self.assertAlmostEqual(in_scope_pct, 50.0)
+        self.assertEqual(all_n, 4)
+        self.assertAlmostEqual(all_pct, 75.0)
+        self.assertNotAlmostEqual(in_scope_pct, all_pct, msg="negative control: exclusions "
+                                   "exist and must make the two rates genuinely differ")
+
+        idx_phantom = out.index("in-scope mandated artifacts:")
+        idx_cf = out.index("phantom rate (all ranked repos, summed):")
+        self.assertGreater(idx_cf, idx_phantom, "the counterfactual disclosure must live in "
+                            "the same block as the phantom headline, not float elsewhere")
 
     def test_genre_mix_summary_silently_omits_doctrine_units(self):
         """A genuine finding surfaced BY writing this test, not asserted-then-fixed: the

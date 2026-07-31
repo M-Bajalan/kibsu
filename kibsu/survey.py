@@ -107,12 +107,26 @@ def row_from(slug, d):
         if not x["in_scope"]:
             cls = x.get("out_of_scope_class") or "unspecified"
             exclusions[cls] = exclusions.get(cls, 0) + 1
+    # PHANTOM COUNTERFACTUAL (council ruling #3): mirrors audit.py's own phantom_counterfactual()
+    # (audit.py:667) at the per-repo level, so main() can sum these SAME numerator/denominator
+    # quantities across every ranked repo instead of re-deriving the rate by a different formula.
+    # cf_all_n is every artifact reference this repo produced - in-scope and out, verifiable and
+    # not (audit.py's own `all_n = len(arts)`). cf_all_phantom is how many of THOSE have zero
+    # matching instances anywhere (match_count == 0), regardless of scope (audit.py's own
+    # `all_phantom = len([x for x in arts if x["match_count"] == 0])`) - gated to None on
+    # unusable history exactly like `phantom` above, since match_count==0 is unreliable evidence
+    # when history is shallow or absent (a "never matched" cannot be told apart from "matched
+    # somewhere history can't reach").
+    cf_all_n = len(arts)
+    cf_all_phantom = (len([x for x in arts if x.get("match_count") == 0])
+                       if usable_hist else None)
     return dict(slug=slug, units=A["units"], instr=A["instructions"], pct_all=A["pct"],
                 p_units=P["units"], p_instr=P["instructions"], pct_proc=P["pct"],
                 zero=A["zero"], mand=len(verifiable),
                 out=len({x["artifact"] for x in arts}) - len(inscope_all),
                 unverifiable=unverifiable, exclusions=exclusions,
                 phantom=(len(phantom) if usable_hist else None),
+                cf_all_n=cf_all_n, cf_all_phantom=cf_all_phantom,
                 enough=(P["units"] >= MIN_UNITS and P["instructions"] >= MIN_INSTR),
                 genres={g: v["units"] for g, v in d.get("by_genre", {}).items()})
 
@@ -202,6 +216,22 @@ def main():
         if ledger:
             print("exclusion ledger (full counts, all ranked repos): "
                   + ", ".join("%s=%d" % (k, ledger[k]) for k in sorted(ledger)))
+        # Phantom COUNTERFACTUAL, summed across every ranked public repo (audit.py's own
+        # phantom_counterfactual() is the single-repo version this mirrors - see audit.py:667
+        # and row_from()'s cf_all_n/cf_all_phantom above). Council ruling #3 kept the
+        # path-prefix scope filter explicitly IN EXCHANGE for this reaching readers HERE, not
+        # just a single `audit --artifacts` run: the first number is the in-scope-only rate the
+        # PHANTOM line above has always reported; the second is what it would read if every
+        # excluded artifact (out-of-scope, all classes) were simply counted too, using each
+        # artifact's own already-computed match_count==0 - no new evidence gathered, the
+        # exclusions just undone. Numerators and denominators are summed across repos first and
+        # divided once, the same way tm/tp above already are - never averaged as per-repo
+        # percentages, and never re-derived by a formula of its own.
+        ta = sum(r["cf_all_n"] for r in pub)
+        tap = sum(r["cf_all_phantom"] for r in pub if r["cf_all_phantom"] is not None)
+        print("phantom rate (all ranked repos, summed): %.1f%% in-scope-only (%d artifacts) / "
+              "%.1f%% if all exclusions are counted (%d artifacts)"
+              % ((100.0 * tp / tm) if tm else 0.0, tm, (100.0 * tap / ta) if ta else 0.0, ta))
         print("genre mix:", {g: sum(r["genres"].get(g, 0) for r in pub)
                              for g in ("procedure", "persona", "reference", "mixed")})
     if thin:
