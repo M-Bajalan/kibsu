@@ -114,6 +114,55 @@ class HeaderVersionTests(unittest.TestCase):
         self.assertNotIn("skill-audit", title_line)
 
 
+class ArtifactPopulationTests(unittest.TestCase):
+    """An independent verifier BLOCKED the first version of the phantom counterfactual: the
+    in-scope-only side (mand/phantom) is a DEDUPED SET with unverifiable_pattern excluded, but
+    the 'all' side (cf_all_n/cf_all_phantom) summed len(arts) - the raw reference LIST,
+    duplicates and unverifiable_pattern both included. Three axes differed (dedup,
+    unverifiable_pattern, scope) where the printed sentence claimed only one (scope). This
+    class pins survey._artifact_population() - the single population rule both sides must now
+    share, toggling ONLY the scope filter - and proves the in-scope call reproduces row_from()'s
+    own mand/phantom exactly, structurally (same function, same call), not by coincidence."""
+
+    def test_in_scope_call_reproduces_row_froms_own_mand_and_phantom_exactly(self):
+        arts = [
+            _artifact("a.md", in_scope=True, phantom=True),
+            _artifact("a.md", in_scope=True, phantom=True),   # duplicate mandate, same string
+            _artifact("b.md", in_scope=True, phantom=False),
+            _artifact("{name}.md", in_scope=True, phantom=False, unverifiable_pattern=True),
+            _artifact("ex.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+        ]
+        names, zero = survey._artifact_population(arts, include_out_of_scope=False)
+        d = _result(5, 60, 10.0, 5, 60, 10.0, artifacts=arts)
+        r = survey.row_from("pop/repo", d)
+
+        self.assertEqual(len(names), r["mand"], "not by coincidence: row_from() calls the "
+                                                  "exact same function for this population")
+        self.assertEqual(len(zero), r["phantom"])
+        self.assertEqual(len(names), 2, "a.md deduped to one, b.md counted; {name}.md "
+                                         "(unverifiable_pattern) and ex.md (out of scope) both "
+                                         "excluded")
+        self.assertEqual(len(zero), 1, "only a.md has zero matching instances")
+
+    def test_all_scope_call_counts_exclusions_back_in_with_the_identical_dedup_rule(self):
+        """Only the scope filter may differ between the two calls - dedup and the
+        unverifiable_pattern exclusion must be IDENTICAL on both sides. Real audit.py data can
+        never produce an out-of-scope unverifiable_pattern artifact (check_artifacts() sets
+        `unverifiable` only when `in_scope` is already true - see audit.py's own `unverifiable =
+        in_scope and literal_remainder == ""`), so this fixture keeps that same invariant."""
+        arts = [
+            _artifact("a.md", in_scope=True, phantom=True),
+            _artifact("{name}.md", in_scope=True, phantom=False, unverifiable_pattern=True),
+            _artifact("ex.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+            _artifact("ex.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+        ]
+        names, zero = survey._artifact_population(arts, include_out_of_scope=True)
+        self.assertEqual(len(names), 2, "a.md + ex.md, ex.md's duplicate mandate deduped away; "
+                                         "{name}.md stays excluded as unverifiable_pattern even "
+                                         "with scope exclusions counted back in")
+        self.assertEqual(len(zero), 2, "both a.md and ex.md have zero matching instances")
+
+
 class RowFromTests(unittest.TestCase):
     """`row_from()` is the pure, importable half of survey's aggregation - the function that
     turns one audit.py JSON result into the flat row `main()` later ranks and sums. Exercised
@@ -263,6 +312,30 @@ class RowFromTests(unittest.TestCase):
         self.assertEqual(r["cf_all_n"], 1, "the denominator (a pure count of references) needs "
                                             "no git history and stays a real number")
         self.assertIsNone(r["cf_all_phantom"])
+
+    def test_counterfactual_all_side_dedupes_and_excludes_unverifiable_pattern_like_the_headline(self):
+        """The bug an independent verifier caught: the old cf_all_n/cf_all_phantom summed
+        len(arts) directly - the raw reference LIST - so a duplicate mandate inflated the
+        denominator and an unverifiable_pattern artifact (which the headline's mand/phantom has
+        always excluded) leaked into the 'all' side uncounted-for. Two skills mandating the
+        identical 'dup.md', plus an in-scope unverifiable_pattern mandate, plus a duplicated
+        out-of-scope mandate - the SAME dedup and unverifiable_pattern rules must govern both
+        sides; only the scope filter may differ."""
+        arts = [
+            _artifact("dup.md", in_scope=True, phantom=True),
+            _artifact("dup.md", in_scope=True, phantom=True),           # same mandate, 2 skills
+            _artifact("{name}.md", in_scope=True, phantom=False, unverifiable_pattern=True),
+            _artifact("out.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+            _artifact("out.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+        ]
+        d = _result(5, 60, 10.0, 5, 60, 10.0, artifacts=arts)
+        r = survey.row_from("dedup/repo", d)
+        self.assertEqual(r["mand"], 1, "dup.md deduped; unverifiable_pattern excluded")
+        self.assertEqual(r["phantom"], 1)
+        self.assertEqual(r["cf_all_n"], 2, "dup.md + out.md, EACH deduped once - the old code "
+                                            "would have read 5 (raw len(arts): duplicates and "
+                                            "the unverifiable_pattern record all included)")
+        self.assertEqual(r["cf_all_phantom"], 2)
 
 
 def _median_line(output, label):
@@ -473,6 +546,89 @@ class SurveyAggregationTests(unittest.TestCase):
         idx_cf = out.index("phantom rate (all ranked repos, summed):")
         self.assertGreater(idx_cf, idx_phantom, "the counterfactual disclosure must live in "
                             "the same block as the phantom headline, not float elsewhere")
+
+    def test_aggregate_counterfactual_deduplicates_and_excludes_unverifiable_across_repos(self):
+        """Requirement (c) of the verifier's finding: the live-shape aggregate on a two-repo
+        fixture, by hand-computed expected values, with BOTH the duplicate-reference and
+        unverifiable_pattern traps the finding named baked in. Repo A mandates 'in.md' via two
+        skills (a duplicate reference), an in-scope unverifiable_pattern mandate, and one
+        excluded, never-found artifact. Repo B mandates one in-scope artifact that WAS found and
+        one excluded, never-found artifact mandated by two skills (another duplicate). Hand
+        computed:
+          in-scope-only: 1 phantom / 2 mandated = 50.0%   (in.md phantom, in2.md found)
+          all-exclusions-counted: 3 never-found / 4 total = 75.0%
+              (in.md, ex.md, ex2.md each deduped once and zero-match; in2.md found;
+               {x}.md excluded as unverifiable_pattern on both sides)
+        The buggy raw-list version this replaces summed len(arts) = 7 (both duplicates and the
+        unverifiable_pattern record all counted) with 5 zero-match records, printing 71.4%
+        instead of the correct 75.0% - a real, not hypothetical, gap."""
+        slug_a, slug_b = survey.REPOS[0], survey.REPOS[1]
+        arts_a = [
+            _artifact("in.md", in_scope=True, phantom=True),
+            _artifact("in.md", in_scope=True, phantom=True),               # duplicate mandate
+            _artifact("{x}.md", in_scope=True, phantom=False, unverifiable_pattern=True),
+            _artifact("ex.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+        ]
+        arts_b = [
+            _artifact("in2.md", in_scope=True, phantom=False),
+            _artifact("ex2.md", in_scope=False, out_of_scope_class="prefix-missing", match_count=0),
+            _artifact("ex2.md", in_scope=False, out_of_scope_class="prefix-missing", match_count=0),
+        ]
+        results = {
+            slug_a: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts_a),
+            slug_b: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts_b),
+        }
+        out, _ = _SurveyRun(results=results).run()
+
+        pat = re.compile(
+            r"phantom rate \(all ranked repos, summed\):\s+([\d.]+)%\s+in-scope-only\s+"
+            r"\((\d+) artifacts\)\s+/\s+([\d.]+)%\s+if all exclusions are counted\s+"
+            r"\((\d+) artifacts\)"
+        )
+        m = pat.search(out)
+        self.assertTrue(m, "no aggregate phantom-counterfactual line found in:\n%s" % out)
+        in_scope_pct, in_scope_n, all_pct, all_n = (float(m.group(1)), int(m.group(2)),
+                                                      float(m.group(3)), int(m.group(4)))
+        self.assertEqual(in_scope_n, 2)
+        self.assertAlmostEqual(in_scope_pct, 50.0)
+        self.assertEqual(all_n, 4, "deduped and unverifiable-excluded, not the raw 7-record list")
+        self.assertAlmostEqual(all_pct, 75.0, msg="not the buggy 71.4% (5 of 7) the raw-list "
+                                                    "version of this line would have printed")
+
+    def test_aggregate_all_side_denominator_skips_the_same_repos_the_numerator_skips(self):
+        """FIX 2 (latent, same block): the 'all' denominator used to sum every ranked repo's
+        cf_all_n regardless of whether that repo's cf_all_phantom was even usable, while the
+        numerator already skipped repos with unusable history (cf_all_phantom is None on a
+        shallow clone). A repo with a shallow clone would silently deflate the printed 'all'
+        rate by padding the denominator with zero matching numerator contribution. Repo A has
+        full history and both its artifacts are zero-match; repo B has a shallow clone and must
+        be skipped by BOTH sides of the 'all' fraction, not just the numerator."""
+        slug_a, slug_b = survey.REPOS[0], survey.REPOS[1]
+        arts_a = [
+            _artifact("in.md", in_scope=True, phantom=True),
+            _artifact("ex.md", in_scope=False, out_of_scope_class="scaffold-scope", match_count=0),
+        ]
+        arts_b = [_artifact("z.md", in_scope=True, phantom=True)]  # would-be noise if summed in
+        results = {
+            slug_a: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts_a,
+                             has_git=True, history_shallow=False),
+            slug_b: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts_b,
+                             has_git=True, history_shallow=True),
+        }
+        out, _ = _SurveyRun(results=results).run()
+
+        pat = re.compile(
+            r"phantom rate \(all ranked repos, summed\):\s+([\d.]+)%\s+in-scope-only\s+"
+            r"\((\d+) artifacts\)\s+/\s+([\d.]+)%\s+if all exclusions are counted\s+"
+            r"\((\d+) artifacts\)"
+        )
+        m = pat.search(out)
+        self.assertTrue(m, "no aggregate phantom-counterfactual line found in:\n%s" % out)
+        all_pct, all_n = float(m.group(3)), int(m.group(4))
+        self.assertEqual(all_n, 2, "repo B's shallow-history artifact must not inflate the "
+                                    "denominator when its numerator is unusable (None)")
+        self.assertAlmostEqual(all_pct, 100.0, msg="both of repo A's artifacts are zero-match "
+                                                     "and repo B contributes nothing to either side")
 
     def test_genre_mix_summary_silently_omits_doctrine_units(self):
         """A genuine finding surfaced BY writing this test, not asserted-then-fixed: the

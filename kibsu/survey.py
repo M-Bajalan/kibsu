@@ -82,6 +82,34 @@ def _version_banner():
 MIN_UNITS, MIN_INSTR = 5, 50
 
 
+def _artifact_population(arts, include_out_of_scope):
+    """Distinct artifact strings, unverifiable_pattern excluded - the ONE population rule the
+    in-scope headline (mand/phantom below) and the phantom counterfactual's 'all' side
+    (cf_all_n/cf_all_phantom below) must both be built from, toggling ONLY the scope filter.
+
+    An independent verifier BLOCKED the first version of this: it paired mand/phantom (a
+    DEDUPED SET, unverifiable_pattern excluded) against cf_all_n/cf_all_phantom computed as
+    len(arts) - the raw reference LIST, duplicates and unverifiable_pattern both included.
+    Three axes differed (dedup, unverifiable_pattern, scope) where the printed line claimed
+    only one (scope), understating the true "if all exclusions are counted" rate. Routing both
+    call sites through this single function is what makes "only scope differs" true rather than
+    asserted: include_out_of_scope=False reproduces mand/phantom exactly (pinned in
+    ArtifactPopulationTests, tests/test_survey.py) because row_from() calls this exact function
+    for that population too - not a parallel computation that happens to agree today.
+
+    match_count == 0 (not the `phantom` boolean, which audit.py only ever sets for an in-scope,
+    verifiable artifact - see check_artifacts()) is what lets ONE formula serve both scope
+    settings: for an in-scope, verifiable artifact the two are equivalent by audit.py's own
+    definition (phantom = in_scope and not unverifiable and match_count == 0), so nothing about
+    the in-scope numbers changes by using it here instead.
+    """
+    pool = [x for x in arts if not x.get("unverifiable_pattern")
+            and (include_out_of_scope or x["in_scope"])]
+    names = {x["artifact"] for x in pool}
+    zero_match = {x["artifact"] for x in pool if x.get("match_count") == 0}
+    return names, zero_match
+
+
 def row_from(slug, d):
     A, P = d["all"], d["procedure_only"]
     arts = d.get("artifacts", [])
@@ -93,11 +121,8 @@ def row_from(slug, d):
     # check_artifacts()/main()). `mand`/`phantom` here must agree with that, or this survey's
     # printed rate and a single-repo `audit --artifacts` run on the same data would silently
     # disagree on what "mandated, checkable" means.
-    verifiable = {x["artifact"] for x in arts
-                  if x["in_scope"] and not x.get("unverifiable_pattern")}
-    phantom = {x["artifact"] for x in arts
-               if x["in_scope"] and not x.get("unverifiable_pattern") and x["phantom"]}
-    unverifiable = len(inscope_all) - len(verifiable)
+    in_scope_names, in_scope_zero = _artifact_population(arts, include_out_of_scope=False)
+    unverifiable = len(inscope_all) - len(in_scope_names)
     # Every OUT-OF-SCOPE reason class this repo's audit produced, summed here so main() can add
     # them across every ranked repo into one disclosure-ledger total (audit.py's own
     # `exclusion_ledger` is the single-repo version of the same idea - see its
@@ -110,22 +135,20 @@ def row_from(slug, d):
     # PHANTOM COUNTERFACTUAL (council ruling #3): mirrors audit.py's own phantom_counterfactual()
     # (audit.py:667) at the per-repo level, so main() can sum these SAME numerator/denominator
     # quantities across every ranked repo instead of re-deriving the rate by a different formula.
-    # cf_all_n is every artifact reference this repo produced - in-scope and out, verifiable and
-    # not (audit.py's own `all_n = len(arts)`). cf_all_phantom is how many of THOSE have zero
-    # matching instances anywhere (match_count == 0), regardless of scope (audit.py's own
-    # `all_phantom = len([x for x in arts if x["match_count"] == 0])`) - gated to None on
-    # unusable history exactly like `phantom` above, since match_count==0 is unreliable evidence
-    # when history is shallow or absent (a "never matched" cannot be told apart from "matched
-    # somewhere history can't reach").
-    cf_all_n = len(arts)
-    cf_all_phantom = (len([x for x in arts if x.get("match_count") == 0])
-                       if usable_hist else None)
+    # cf_all_n/cf_all_phantom are the SAME _artifact_population() call as mand/phantom above,
+    # with only the scope filter toggled - gated to None on unusable history exactly like
+    # `phantom` below, since match_count==0 is unreliable evidence when history is shallow or
+    # absent (a "never matched" cannot be told apart from "matched somewhere history can't
+    # reach").
+    all_names, all_zero = _artifact_population(arts, include_out_of_scope=True)
+    cf_all_n = len(all_names)
+    cf_all_phantom = len(all_zero) if usable_hist else None
     return dict(slug=slug, units=A["units"], instr=A["instructions"], pct_all=A["pct"],
                 p_units=P["units"], p_instr=P["instructions"], pct_proc=P["pct"],
-                zero=A["zero"], mand=len(verifiable),
+                zero=A["zero"], mand=len(in_scope_names),
                 out=len({x["artifact"] for x in arts}) - len(inscope_all),
                 unverifiable=unverifiable, exclusions=exclusions,
-                phantom=(len(phantom) if usable_hist else None),
+                phantom=(len(in_scope_zero) if usable_hist else None),
                 cf_all_n=cf_all_n, cf_all_phantom=cf_all_phantom,
                 enough=(P["units"] >= MIN_UNITS and P["instructions"] >= MIN_INSTR),
                 genres={g: v["units"] for g, v in d.get("by_genre", {}).items()})
@@ -225,10 +248,14 @@ def main():
         # excluded artifact (out-of-scope, all classes) were simply counted too, using each
         # artifact's own already-computed match_count==0 - no new evidence gathered, the
         # exclusions just undone. Numerators and denominators are summed across repos first and
-        # divided once, the same way tm/tp above already are - never averaged as per-repo
-        # percentages, and never re-derived by a formula of its own.
-        ta = sum(r["cf_all_n"] for r in pub)
-        tap = sum(r["cf_all_phantom"] for r in pub if r["cf_all_phantom"] is not None)
+        # divided once - never averaged as per-repo percentages, and never re-derived by a
+        # formula of its own. The denominator is restricted to the SAME repos the numerator can
+        # even be computed for (cf_all_phantom is not None) - a shallow-history repo's cf_all_n
+        # must not pad the denominator while contributing nothing to the numerator, which would
+        # silently deflate the printed rate.
+        cf_repos = [r for r in pub if r["cf_all_phantom"] is not None]
+        ta = sum(r["cf_all_n"] for r in cf_repos)
+        tap = sum(r["cf_all_phantom"] for r in cf_repos)
         print("phantom rate (all ranked repos, summed): %.1f%% in-scope-only (%d artifacts) / "
               "%.1f%% if all exclusions are counted (%d artifacts)"
               % ((100.0 * tp / tm) if tm else 0.0, tm, (100.0 * tap / ta) if ta else 0.0, ta))
