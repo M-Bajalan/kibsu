@@ -13,8 +13,17 @@ from . import __version__
 
 
 def _cmd_version(args):
-    print("kibsu %s" % __version__)
+    print("kibsu %s (scorer %s)" % (__version__, _scorer_version()))
     return 0
+
+
+def _scorer_version():
+    # The package version says which CLI shipped; the scorer version (audit.py's VERSION,
+    # stamped into every evidence JSON) says which RULESET measured. They move independently -
+    # a reader checking "was this measured with the instrument that had the bugs" needs the
+    # second number, so --version prints both.
+    from . import audit
+    return audit.VERSION
 
 
 # Tools that carry their own argparse.ArgumentParser and handle their own -h/--help. Their
@@ -95,7 +104,7 @@ def build_parser():
     parser.add_argument(
         "--version",
         action="version",
-        version="kibsu %s" % __version__,
+        version="kibsu %s (scorer %s)" % (__version__, _scorer_version()),
     )
 
     subparsers = parser.add_subparsers(dest="command", metavar="<command>")
