@@ -57,8 +57,11 @@ def _agg(units, instructions, pct, zero=0):
     return {"units": units, "instructions": instructions, "pct": pct, "zero": zero}
 
 
-def _artifact(name, in_scope=True, phantom=False):
-    return {"artifact": name, "in_scope": in_scope, "phantom": phantom}
+def _artifact(name, in_scope=True, phantom=False, unverifiable_pattern=False,
+              out_of_scope_class=None):
+    return {"artifact": name, "in_scope": in_scope, "phantom": phantom,
+            "unverifiable_pattern": unverifiable_pattern,
+            "out_of_scope_class": out_of_scope_class}
 
 
 def _result(all_units, all_instr, all_pct, proc_units, proc_instr, proc_pct,
@@ -152,6 +155,40 @@ class RowFromTests(unittest.TestCase):
         self.assertEqual(r["mand"], 1)
         self.assertEqual(r["out"], 0, "the out-of-scope mandate of 'shared.md' is invisible "
                                       "because the identical name is also in-scope elsewhere")
+
+    def test_unverifiable_pattern_artifacts_excluded_from_mand_and_phantom_denominator(self):
+        """audit.py's own `ver` set (see check_artifacts()/main()) excludes unverifiable_pattern
+        mandates from BOTH the phantom numerator and denominator - a hit or miss on a pattern
+        like `{name}.md` proves nothing either way. row_from()'s `mand`/`phantom` counts must
+        agree with that, not silently count an in-scope-but-unverifiable artifact toward
+        `mand` while it can structurally never contribute to `phantom` - that mismatch would
+        deflate the printed phantom rate for no reason a reader could see."""
+        arts = [
+            _artifact("a.md", in_scope=True, phantom=True),
+            _artifact("b.md", in_scope=True, phantom=False),
+            _artifact("{name}.md", in_scope=True, phantom=False, unverifiable_pattern=True),
+        ]
+        d = _result(5, 60, 10.0, 5, 60, 10.0, artifacts=arts)
+        r = survey.row_from("unverifiable/repo", d)
+        self.assertEqual(r["mand"], 2, "the unverifiable_pattern artifact must not count "
+                                        "toward the mandated (checkable) denominator")
+        self.assertEqual(r["phantom"], 1)
+        self.assertEqual(r["unverifiable"], 1)
+
+    def test_exclusion_reason_classes_summed_per_repo(self):
+        """row_from() surfaces the per-repo exclusion-class totals (audit.py's own
+        out_of_scope_class on each artifact) so main() can sum them across repos into the
+        disclosure ledger the printed evidence line reports - see
+        SurveyAggregationTests.test_exclusion_ledger_totals_summed_across_repos_in_output."""
+        arts = [
+            _artifact("in.md", in_scope=True),
+            _artifact("s1.md", in_scope=False, out_of_scope_class="scaffold-scope"),
+            _artifact("s2.md", in_scope=False, out_of_scope_class="scaffold-scope"),
+            _artifact("p1.md", in_scope=False, out_of_scope_class="prefix-missing"),
+        ]
+        d = _result(5, 60, 10.0, 5, 60, 10.0, artifacts=arts)
+        r = survey.row_from("exclusions/repo", d)
+        self.assertEqual(r["exclusions"], {"scaffold-scope": 2, "prefix-missing": 1})
 
     def test_genres_are_passed_through_verbatim(self):
         d = _result(5, 60, 10.0, 5, 60, 10.0,
@@ -297,6 +334,29 @@ class SurveyAggregationTests(unittest.TestCase):
         slug = survey.REPOS[0]
         out, _ = _SurveyRun(audit_errors={slug: "boom: traceback truncated"}).run()
         self.assertIn("audit: boom: traceback truncated", out)
+
+    def test_exclusion_ledger_totals_summed_across_repos_in_output(self):
+        """The printed "in-scope mandated artifacts" line is exactly where survey.py already
+        prints phantom evidence - the disclosure ledger's totals (summed across every ranked
+        public repo, not sampled) must surface right there, not in some separate, easy-to-miss
+        section."""
+        slug_a, slug_b = survey.REPOS[0], survey.REPOS[1]
+        arts_a = [
+            _artifact("in.md", in_scope=True, phantom=True),
+            _artifact("s.md", in_scope=False, out_of_scope_class="scaffold-scope"),
+        ]
+        arts_b = [
+            _artifact("p1.md", in_scope=False, out_of_scope_class="prefix-missing"),
+            _artifact("p2.md", in_scope=False, out_of_scope_class="prefix-missing"),
+        ]
+        results = {
+            slug_a: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts_a),
+            slug_b: _result(10, 100, 20.0, 10, 100, 20.0, artifacts=arts_b),
+        }
+        out, _ = _SurveyRun(results=results).run()
+
+        self.assertIn("scaffold-scope=1", out)
+        self.assertIn("prefix-missing=2", out)
 
     def test_genre_mix_summary_silently_omits_doctrine_units(self):
         """A genuine finding surfaced BY writing this test, not asserted-then-fixed: the

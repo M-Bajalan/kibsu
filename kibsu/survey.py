@@ -73,11 +73,32 @@ def row_from(slug, d):
     A, P = d["all"], d["procedure_only"]
     arts = d.get("artifacts", [])
     usable_hist = d.get("has_git") and not d.get("history_shallow")
-    inscope = {x["artifact"] for x in arts if x["in_scope"]}
-    phantom = {x["artifact"] for x in arts if x["in_scope"] and x["phantom"]}
+    inscope_all = {x["artifact"] for x in arts if x["in_scope"]}
+    # unverifiable_pattern artifacts are in-scope but carry no literal content to check - a hit
+    # or miss on `{name}.md` proves nothing either way (audit.py's own `ver` set excludes them
+    # from BOTH the phantom numerator and denominator for exactly this reason - see its
+    # check_artifacts()/main()). `mand`/`phantom` here must agree with that, or this survey's
+    # printed rate and a single-repo `audit --artifacts` run on the same data would silently
+    # disagree on what "mandated, checkable" means.
+    verifiable = {x["artifact"] for x in arts
+                  if x["in_scope"] and not x.get("unverifiable_pattern")}
+    phantom = {x["artifact"] for x in arts
+               if x["in_scope"] and not x.get("unverifiable_pattern") and x["phantom"]}
+    unverifiable = len(inscope_all) - len(verifiable)
+    # Every OUT-OF-SCOPE reason class this repo's audit produced, summed here so main() can add
+    # them across every ranked repo into one disclosure-ledger total (audit.py's own
+    # `exclusion_ledger` is the single-repo version of the same idea - see its
+    # build_exclusion_ledger()).
+    exclusions = {}
+    for x in arts:
+        if not x["in_scope"]:
+            cls = x.get("out_of_scope_class") or "unspecified"
+            exclusions[cls] = exclusions.get(cls, 0) + 1
     return dict(slug=slug, units=A["units"], instr=A["instructions"], pct_all=A["pct"],
                 p_units=P["units"], p_instr=P["instructions"], pct_proc=P["pct"],
-                zero=A["zero"], mand=len(inscope), out=len({x["artifact"] for x in arts}) - len(inscope),
+                zero=A["zero"], mand=len(verifiable),
+                out=len({x["artifact"] for x in arts}) - len(inscope_all),
+                unverifiable=unverifiable, exclusions=exclusions,
                 phantom=(len(phantom) if usable_hist else None),
                 enough=(P["units"] >= MIN_UNITS and P["instructions"] >= MIN_INSTR),
                 genres={g: v["units"] for g, v in d.get("by_genre", {}).items()})
@@ -153,8 +174,21 @@ def main():
         tm = sum(r["mand"] for r in pub)
         tp = sum(r["phantom"] for r in pub if r["phantom"] is not None)
         to = sum(r["out"] for r in pub)
-        print("in-scope mandated artifacts: %d distinct, %d PHANTOM (%.0f%%)   [%d excluded as user-project scope]"
-              % (tm, tp, (100.0 * tp / tm) if tm else 0, to))
+        tu = sum(r.get("unverifiable", 0) for r in pub)
+        print("in-scope mandated artifacts: %d distinct, %d PHANTOM (%.0f%%)   "
+              "[%d excluded from the phantom check (all classes), %d unverifiable-pattern]"
+              % (tm, tp, (100.0 * tp / tm) if tm else 0, to, tu))
+        # Disclosure ledger, summed across every ranked public repo (audit.py's own
+        # exclusion_ledger is the single-repo version - see build_exclusion_ledger() there).
+        # Printed right where the phantom evidence above already is, per the council's ruling
+        # that this must never be a separate, easy-to-miss section.
+        ledger = {}
+        for r in pub:
+            for cls, n in r.get("exclusions", {}).items():
+                ledger[cls] = ledger.get(cls, 0) + n
+        if ledger:
+            print("exclusion ledger (full counts, all ranked repos): "
+                  + ", ".join("%s=%d" % (k, ledger[k]) for k in sorted(ledger)))
         print("genre mix:", {g: sum(r["genres"].get(g, 0) for r in pub)
                              for g in ("procedure", "persona", "reference", "mixed")})
     if thin:
