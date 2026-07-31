@@ -50,7 +50,7 @@ BINARIES = r"(?:python3?|py|pip3?|git|npm|npx|pnpm|yarn|node|deno|bun|pytest|tox
 INLINE_CMD = re.compile(r"`\s*" + BINARIES + r"\b[^`]*`")
 BARE_CMD = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)?" + BINARIES + r"\b\s+\S")
 CHECKBOX = re.compile(r"^\s*(?:[-*+]\s*)?(?:\[[ xX]\]|[□☐☑☒])")
-PATHY = re.compile(r"[`\"']?[\w./\\*-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv|lock)\b")
+PATHY = re.compile(r"[`\"']?[\w./\\*-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv|lock)\b", re.I)
 EXITY = re.compile(r"\b(exit code|exit 0|exit 1|non-zero|returns? 0|must pass|passes|green|fails? loud|"
                    r"assert|verify that|diff|git status|git log|numstat)\b", re.I)
 MODALS = re.compile(r"\b(MUST|SHOULD|ALWAYS|NEVER|REQUIRED|DO NOT|DON'T|MANDATORY|"
@@ -104,7 +104,7 @@ ARTIFACT_VERB = re.compile(
     r"\b(creat|writ|wrote|append|produc|generat|sav|emit|updat|record|log|output|add|regenerat|"
     r"stamp|bump|export)\w*\b", re.I)
 FILE_TOKEN = re.compile(
-    r"`([^`\s]*?[\w*\[\]{}-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|sql|toml|ini|cfg|txt|csv))`")
+    r"`([^`\s]*?[\w*\[\]{}-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|sql|toml|ini|cfg|txt|csv))`", re.I)
 
 # --- phantom-scope filters (fix for the false-positive class) --------------------------------
 # A mandated artifact only counts as a PHANTOM if the skill claims it is produced INSIDE the repo

@@ -97,6 +97,74 @@ class AuditTests(unittest.TestCase):
         self.assertIn("skill-audit", stdout)
         assert_repo_untouched(repo)
 
+    def test_uppercase_extension_file_token_is_mandated(self):
+        """Sibling of issue #14: FILE_TOKEN (audit.py's mandated-artifact extractor) was compiled
+        without re.IGNORECASE, so an uppercase-extension mandate like `NOTES.MD` was invisible -
+        never extracted into `mandated`, never counted checkable, never phantom-checked, even
+        though the artifact-verb + backtick-file shape is identical to the lowercase case. A
+        skill that mandates `NOTES.MD` must show up in `mandated` the same way one that mandates
+        `notes.md` does."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": (
+                "# Uppercase Mandate Skill\n\n"
+                "Update `NOTES.MD` every time you finish a task.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        result = json.loads(stdout)
+        mandated_tokens = {m["tok"] for m in result["skills"][0]["mandated"]}
+        self.assertIn("NOTES.MD", mandated_tokens)
+        assert_repo_untouched(repo)
+
+    def test_uppercase_extension_line_scores_checkable(self):
+        """Sibling of issue #14: PATHY (the bare, non-backtick file-name detector that feeds the
+        `checkable` test) was also compiled without re.IGNORECASE, so a line naming an
+        uppercase-extension file with no backticks - e.g. "Update NOTES.MD after every run." -
+        never matched PATHY and was scored CLAIMABLE even though a reviewer can plainly confirm
+        the named file from the repo alone."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": (
+                "# Uppercase Path Skill\n\n"
+                "Update NOTES.MD after every run.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        result = json.loads(stdout)
+        self.assertEqual(result["all"]["instructions"], 1)
+        self.assertEqual(result["all"]["checkable"], 1)
+        assert_repo_untouched(repo)
+
+    def test_lowercase_mandate_still_works(self):
+        """Guard: the IGNORECASE fix must not change behaviour for the ordinary lowercase case
+        that already worked - `notes.md` must still be extracted into `mandated` exactly as
+        before."""
+        repo = make_repo(self.tmpdir, {
+            ".claude/skills/example-skill.md": (
+                "# Lowercase Mandate Skill\n\n"
+                "Update `notes.md` every time you finish a task.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, ".claude", "skills"), "--json",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        result = json.loads(stdout)
+        mandated_tokens = {m["tok"] for m in result["skills"][0]["mandated"]}
+        self.assertIn("notes.md", mandated_tokens)
+        assert_repo_untouched(repo)
+
     def test_no_markdown_found_exits_one(self):
         """Per audit.py's EXIT CODES section: a directory with no markdown files makes audit.py
         print "no .md found under ..." and return 1 - the only exit code besides 0 this tool has
