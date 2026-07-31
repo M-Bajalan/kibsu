@@ -103,6 +103,42 @@ class IndexTests(unittest.TestCase):
             "--stdout must not have written .kibsu/index.json",
         )
 
+    def test_nonexistent_path_cannot_run_and_creates_nothing(self):
+        """main() must validate the target path before build()/write - the same guard
+        discover.py already has for the identical input (`if not os.path.isdir(root): print
+        "CANNOT RUN: ... is not a directory"; return CANNOT_RUN`, discover.py lines ~129-130).
+
+        Without that guard, `python -m kibsu index <typo>` silently CREATES the directory: git
+        commands fail against the missing cwd (caught, treated as "not a git repo"), the
+        filesystem walk over a missing path just yields zero files, and the final
+        `os.makedirs(os.path.dirname(out), exist_ok=True)` - meant only to create `.kibsu/` -
+        creates the typo'd path itself as a side effect and reports a fabricated clean success:
+        exit 0, `.kibsu/index.json` written into a brand-new directory that did not exist a
+        moment ago. Exit code 3 matches CANNOT_RUN as used identically by discover.py, check.py,
+        guide.py, learn.py and report.py."""
+        missing = os.path.join(self.tmpdir, "does-not-exist")
+        self.assertFalse(os.path.isdir(missing))
+
+        exit_code, stdout, stderr = run_tool("index", missing)
+
+        self.assertEqual(exit_code, 3, "stdout=%r stderr=%r" % (stdout, stderr))
+        self.assertFalse(
+            os.path.exists(missing),
+            "index.py must not create the target path just by being pointed at it",
+        )
+
+    def test_existing_repo_behavior_is_unchanged_by_the_guard(self):
+        """The new path guard must not disturb the ordinary, existing-directory path: a plain
+        `python -m kibsu index <repo> --stdout` against a real repo still exits 0 and produces
+        the index, exactly as before the guard was added."""
+        repo = make_repo(self.tmpdir, FIXTURE_FILES)
+
+        exit_code, stdout, stderr = run_tool("index", repo, "--stdout")
+
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertIn('"schema"', stdout)
+        assert_repo_untouched(repo)
+
 
 if __name__ == "__main__":
     unittest.main()
