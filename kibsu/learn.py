@@ -35,7 +35,12 @@ Read-only. Dependency-free. Python 3.8+.
 EXIT CODES  (same meanings as ns_check.py and ns_report.py)
   0  clean            1  findings            3  cannot run
 """
-import argparse, io, json, os, re, sys
+import argparse
+import io
+import json
+import os
+import re
+import sys
 
 from . import config
 

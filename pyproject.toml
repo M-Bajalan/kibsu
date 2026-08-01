@@ -35,3 +35,24 @@ Homepage = "https://github.com/M-Bajalan/kibsu"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["kibsu*"]
+
+# Dev-only tool - not a runtime dependency (kibsu itself still ships with `dependencies = []`
+# above; CONTRIBUTING rule 1's "clone and run with zero build step" is about `kibsu` at
+# runtime, not about what CI installs to check it). Wired in to satisfy OpenSSF Best
+# Practices' `warnings`/`warnings_fixed` criteria: a FLOSS linter must exist and run clean.
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+# Pinned explicitly to Ruff's historical, conservative default - E4 (syntax-adjacent),
+# E7 (statement-structure), E9 (runtime errors), F (Pyflakes unused/undefined) - rather than
+# left unset. An unset `select` inherits whatever this Ruff version's out-of-the-box default
+# is, and as of ruff 0.16 that default pulls in ~20 additional stylistic categories (notably
+# a preference against %-formatting, used consistently in this codebase's print/error
+# strings). Leaving it unset would let a future `pip install --upgrade ruff` silently widen
+# CI's failure surface with no PR reviewing what changed. The four codes below already catch
+# real mistakes - unused/undefined names, ambiguous single-letter identifiers, multiple
+# statements or imports crammed on one line - which is what the criterion means by "catches
+# simple mistakes", without opening a large, purely-stylistic rewrite of working, tested code.
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

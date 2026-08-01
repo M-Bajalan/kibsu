@@ -52,7 +52,15 @@ EXIT CODES
 
   python -m kibsu install [repo] --install|--uninstall|--status [--dry-run] [--force] [--purge]
 """
-import argparse, hashlib, io, json, os, shutil, subprocess, sys, stat
+import argparse
+import hashlib
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+import stat
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -178,7 +186,8 @@ def status(root):
 def install(root, dry, force, index_rel, baseline_rel):
     gd = git_dir(root)
     if not gd:
-        print("  REFUSED: not a git repository."); return 3
+        print("  REFUSED: not a git repository.")
+        return 3
     ij = os.path.join(root, INSTALL_JSON)
     if os.path.isfile(ij) and not force:
         print("  REFUSED: already installed (%s). Use --uninstall first, or --force." % INSTALL_JSON)
@@ -193,7 +202,8 @@ def install(root, dry, force, index_rel, baseline_rel):
     here = os.path.dirname(os.path.abspath(__file__))
     checker = os.path.join(here, "check.py")
     if not os.path.isfile(checker):
-        print("  REFUSED: check.py not found next to this script."); return 3
+        print("  REFUSED: check.py not found next to this script.")
+        return 3
 
     hooks_abs = os.path.join(root, HOOKS_DIR)
     hook_path = os.path.join(hooks_abs, "pre-commit")

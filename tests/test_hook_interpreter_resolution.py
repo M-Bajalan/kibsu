@@ -36,8 +36,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PACKAGE_ROOT)
 
-from kibsu import gate as gate_mod
-from kibsu import install as install_mod
+from kibsu import gate as gate_mod  # noqa: E402 -- must follow the sys.path.insert above
+from kibsu import install as install_mod  # noqa: E402 -- ditto; this is THIS checkout's copy, not site-packages'
 
 # The exact old, unvalidated one-liner both templates used to share - presence via `command -v`,
 # nothing more. Its disappearance is itself part of what these tests pin: a stub that satisfies

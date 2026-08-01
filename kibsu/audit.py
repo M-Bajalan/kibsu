@@ -68,7 +68,13 @@ EXIT CODES
 
   python -m kibsu audit <dir> [--json] [--definitions] [--artifacts] [--limit N]
 """
-import argparse, io, json, os, re, subprocess, sys
+import argparse
+import io
+import json
+import os
+import re
+import subprocess
+import sys
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -435,7 +441,7 @@ def analyse(text):
     uniq = []
     for m in o["mandated"]:
         if m["tok"] not in seen:
-            seen.add(m["tok"]); uniq.append(m)
+            seen.add(m["tok"]); uniq.append(m)  # noqa: E702 -- mandated-token dedup; out of scope for lint-wiring
     o["mandated"] = uniq
     detected, o["genre_scores"] = classify(o, o["lines"])
     # DECLARATION BEATS DETECTION. Auto-detecting "doctrine" reliably proved beyond this tool:
@@ -472,8 +478,8 @@ def find_skills(root):
     hits = [os.path.join(dp, f) for dp, fn in _walk(root) for f in fn if f.lower() == "skill.md"]
     if hits:
         return hits, "SKILL.md"
-    ok = lambda f: f.lower().endswith(".md") and os.path.splitext(f)[0].lower() not in META
-    parts = lambda dp: {p.lower() for p in os.path.relpath(dp, root).replace("\\", "/").split("/")}
+    ok = lambda f: f.lower().endswith(".md") and os.path.splitext(f)[0].lower() not in META  # noqa: E731 -- find_skills() predicate; out of scope for lint-wiring
+    parts = lambda dp: {p.lower() for p in os.path.relpath(dp, root).replace("\\", "/").split("/")}  # noqa: E731 -- same, find_skills() predicate
     hits = [os.path.join(dp, f) for dp, fn in _walk(root) for f in fn if ok(f) and (parts(dp) & INSTR_DIRS)]
     if hits:
         return hits, "instruction-dir/*.md"
@@ -492,7 +498,7 @@ def history_paths(root):
     shallow = os.path.isfile(os.path.join(root, ".git", "shallow"))
     p = subprocess.run(["git", "log", "--all", "--pretty=format:", "--name-only"], cwd=root,
                        capture_output=True, text=True, encoding="utf-8", errors="replace")
-    paths = {l.strip() for l in p.stdout.split("\n") if l.strip()} if p.returncode == 0 else set()
+    paths = {l.strip() for l in p.stdout.split("\n") if l.strip()} if p.returncode == 0 else set()  # noqa: E741 -- history_paths() measurement logic; out of scope for lint-wiring
     return paths, shallow
 
 

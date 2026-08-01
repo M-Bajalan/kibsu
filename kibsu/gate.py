@@ -56,7 +56,15 @@ Dependency-free. Python 3.8+. --check writes nothing.
 EXIT CODES
   0  pass, or could-not-run (fail-safe)      1  BLOCKED - a new violation
 """
-import argparse, io, json, os, re, shutil, subprocess, sys, time
+import argparse
+import io
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
 
 # This file is also VENDORED on its own (see install(), below, which copies gate.py + config.py,
 # and only those two, into a target repo's .kibsu/bin/ so the hook never depends on kibsu being
@@ -339,7 +347,7 @@ def _run_one_gate(root, g, gate_base):
         # configured gate still runs and still enforces. Partial coverage beats none, and a gate
         # that silently allows everything because one checker is unavailable is the failure mode
         # this whole file exists to prevent.
-        first = next((l.strip() for l in out.split("\n") if l.strip()), "no detail")
+        first = next((ln.strip() for ln in out.split("\n") if ln.strip()), "no detail")
         return {"name": name, "cmd": cmd, "status": "SKIPPED",
                 "detail": "exit %d (%s)" % (rc, first)}
 
@@ -510,7 +518,7 @@ def baseline(root):
                   % (name, out[:120]))
             continue
         if cannot_run_exit is not None and rc == cannot_run_exit:
-            first = next((l.strip() for l in out.split("\n") if l.strip()), "no detail")
+            first = next((ln.strip() for ln in out.split("\n") if ln.strip()), "no detail")
             print("  gate '%s': CANNOT RUN (exit %d, %s) - not (re)baselined; other gates "
                   "continue." % (name, rc, first))
             continue

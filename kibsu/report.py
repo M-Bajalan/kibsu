@@ -37,7 +37,12 @@ EXIT CODES
   could not run is different in kind: that is the tool declaring its own output unreliable,
   which IS ours to signal.
 """
-import argparse, io, json, os, subprocess, sys
+import argparse
+import io
+import json
+import os
+import subprocess
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from . import config
@@ -160,7 +165,8 @@ def main():
         findings.append((BAD, "Find your docs",
                          "%d markdown files, no index. An agent must grep the tree." % docs))
     elif docs:
-        findings.append((OK, "Find your docs", "%d docs, index present." % docs)); score += 1
+        findings.append((OK, "Find your docs", "%d docs, index present." % docs))
+        score += 1
     else:
         findings.append((WARN, "Find your docs", "no markdown found - nothing to navigate."))
 
@@ -170,7 +176,8 @@ def main():
         if t["enforceable"]:
             keys = ", ".join(k["key"] for k in t["required"])
             findings.append((OK, "Know your conventions",
-                             "consistent frontmatter (%s) - enforceable." % keys)); score += 1
+                             "consistent frontmatter (%s) - enforceable." % keys))
+            score += 1
         else:
             findings.append((BAD, "Know your conventions",
                              "%d of %d docs carry frontmatter, no key is consistent enough "
@@ -237,7 +244,8 @@ def main():
                                 "" if not ver else " - the rest exist")))
         else:
             findings.append((OK, "Resume after a break",
-                             "all %d promised artifacts exist." % len(arts))); score += 1
+                             "all %d promised artifacts exist." % len(arts)))
+            score += 1
 
     else:
         findings.append((SKIP, "Resume after a break",
@@ -251,7 +259,8 @@ def main():
     catalog_candidate = os.path.join(cfg["docs_root"], "index.json")
     for c in (catalog_candidate, cfg["index_path"], "docs/index.json"):
         if os.path.isfile(os.path.join(root, c.replace("/", os.sep))):
-            cat = c; break
+            cat = c
+            break
     if cat:
         # ns_check needs an index in ITS format; the repo's own catalog is a different
         # shape, and passing it made ns_check exit 3 (cannot run) so the backtest never ran

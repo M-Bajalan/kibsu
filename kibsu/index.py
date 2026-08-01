@@ -24,7 +24,14 @@ Stdlib only. Python 3.8+. Reads only; writes exactly one file.
 
   python -m kibsu index [repo] [-o .kibsu/index.json] [--verify-determinism] [--stdout]
 """
-import argparse, hashlib, io, json, os, re, subprocess, sys
+import argparse
+import hashlib
+import io
+import json
+import os
+import re
+import subprocess
+import sys
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")

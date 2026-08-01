@@ -6,7 +6,10 @@ FULL clones (not shallow) so the phantom-artifact check has real history to sear
 Read-only: reads markdown, executes nothing from the cloned repos.
 Failures are reported, never silently dropped.
 """
-import json, os, subprocess, sys
+import json
+import os
+import subprocess
+import sys
 
 from . import __version__
 
@@ -213,13 +216,16 @@ def main():
         sys.stderr.write("  ... %s\n" % slug)
         dest, err = clone(slug)
         if err:
-            failures.append((slug, "clone: " + err)); continue
+            failures.append((slug, "clone: " + err))
+            continue
         d, err = audit(dest)
         if err:
-            failures.append((slug, "audit: " + err)); continue
+            failures.append((slug, "audit: " + err))
+            continue
         if d["all"]["instructions"] < 20:
             failures.append((slug, "only %d instructions (mode=%s) - unmeasurable"
-                             % (d["all"]["instructions"], d["mode"]))); continue
+                             % (d["all"]["instructions"], d["mode"])))
+            continue
         r = row_from(slug, d)
         r["sha"] = head_sha(dest)
         rows.append(r)

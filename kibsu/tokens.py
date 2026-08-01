@@ -52,7 +52,12 @@ EXIT CODES
   python -m kibsu tokens --ledger             < hook JSON on stdin
   python -m kibsu tokens --report [--weekly-budget N] [--days 7]
 """
-import argparse, io, json, os, sys, time
+import argparse
+import io
+import json
+import os
+import sys
+import time
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
