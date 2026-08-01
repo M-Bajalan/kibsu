@@ -35,7 +35,13 @@ Read-only. Dependency-free. Python 3.8+.
 EXIT CODES  (same meanings as ns_check.py, ns_report.py, ns_learn.py)
   0  nothing inert        1  something is declared but dead        3  cannot run
 """
-import argparse, io, json, os, re, subprocess, sys
+import argparse
+import io
+import json
+import os
+import re
+import subprocess
+import sys
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")

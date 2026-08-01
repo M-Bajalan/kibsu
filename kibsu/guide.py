@@ -48,7 +48,13 @@ EXIT CODES
   prints (or --json-reports) drift findings. `kibsu guide .` with no flags in a CI job is
   therefore a green tick that can never go red - gating on this tool requires passing --check.
 """
-import argparse, io, json, os, re, subprocess, sys
+import argparse
+import io
+import json
+import os
+import re
+import subprocess
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

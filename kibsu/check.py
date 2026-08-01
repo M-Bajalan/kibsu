@@ -29,7 +29,13 @@ EXIT CODES   0 clean · 1 violations (BLOCK) · 2 warnings only · 3 cannot run
 
   python -m kibsu check [repo] [--staged|--all] [--index .kibsu/index.json] [--quiet] [--warn-only]
 """
-import argparse, hashlib, io, json, os, subprocess, sys
+import argparse
+import hashlib
+import io
+import json
+import os
+import subprocess
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from index import derive_taxonomy, parse_frontmatter   # single source of the rule
