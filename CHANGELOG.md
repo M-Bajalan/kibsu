@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-08-07
 
 Three scorer corrections (audit.py, scorer 0.5.0 -> 0.6.0, PR #42: issues #26/#27/#28), the
 survey re-measured at the same pinned SHAs, `evidence/` regenerated, both PREREGISTRATION
@@ -15,6 +15,10 @@ new median.
 - Fixed #26: MODALS compiles with re.IGNORECASE; Title-case directives count.
 - Fixed #27: check_artifacts() records every ancestor directory, not just immediate parents.
 - Fixed #28: strip_frontmatter() strips a UTF-8 BOM, as index.py already did.
+
+Minor version, not patch, same reasoning as 0.2.0: no API change, but the scorer's judgments
+and every published figure move, so anyone comparing numbers across versions sees a
+difference that is the instrument's, not their repo's.
 
 ## 0.2.1 - 2026-08-01
 
