@@ -23,6 +23,7 @@ detection itself (what check.py reports and why) is covered in test_check.py and
 black box: a hook-blocked commit here is verified by exit code and by the presence of check.py's
 own "commit blocked by ns_check" text, not by re-deriving STALE semantics.
 """
+import json
 import os
 import shutil
 import subprocess
@@ -235,6 +236,30 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
         self.assertIn("core.hooksPath", stdout)
         assert_repo_untouched(repo)
+
+    def test_install_records_wall_clock_time_and_head_at_install(self):
+        """installed_at must record wall-clock install time, while head_at_install records head commit time."""
+        repo = self._prepare_repo_with_clean_index()
+
+        exit_code, stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        ij_path = os.path.join(repo, ".kibsu", "install.json")
+        self.assertTrue(os.path.isfile(ij_path))
+        with open(ij_path, "r", encoding="utf-8") as fh:
+            rec = json.load(fh)
+
+        self.assertIn("installed_at", rec)
+        self.assertIn("head_at_install", rec)
+        self.assertIsNotNone(rec["installed_at"])
+
+        rc, out, _ = run_git(repo, "log", "-1", "--format=%cI")
+        self.assertEqual(rc, 0)
+        self.assertEqual(rec["head_at_install"], out.strip())
+
+        exit_code, stdout_status, _ = run_tool("install", repo, "--status")
+        self.assertEqual(exit_code, 0)
+        self.assertIn("head at install", stdout_status)
 
 
 if __name__ == "__main__":
