@@ -98,7 +98,7 @@ PATHY = re.compile(r"[`\"']?[\w./\\*-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|js
 EXITY = re.compile(r"\b(exit code|exit 0|exit 1|non-zero|returns? 0|must pass|passes|green|fails? loud|"
                    r"assert|verify that|diff|git status|git log|numstat)\b", re.I)
 MODALS = re.compile(r"\b(MUST|SHOULD|ALWAYS|NEVER|REQUIRED|DO NOT|DON'T|MANDATORY|"
-                    r"must|never|always|do not|don't|ensure|make sure)\b")
+                    r"ENSURE|MAKE SURE)\b", re.I)
 VERBS = (r"add|append|apply|archive|ask|assert|bump|build|call|change|check|clean|clear|close|commit|"
          r"compare|confirm|copy|create|declare|delete|deploy|describe|do|document|edit|enable|ensure|"
          r"enumerate|execute|explain|export|extract|fetch|fill|find|finish|fix|follow|generate|get|give|"
@@ -229,7 +229,9 @@ DEFINITIONS = """
 METRIC DEFINITIONS (contest them - that is the point)
 
   instruction  a non-heading, non-code line telling the agent to do something: opens with an
-               imperative verb, or carries a modal (MUST / NEVER / ALWAYS / DO NOT / ensure).
+               imperative verb, or carries a modal (must / should / always / never / required /
+               do not / mandatory / ensure / make sure - any capitalisation; "Must run the
+               tests" counts the same as "MUST run the tests").
 
   CHECKABLE    a reviewer could confirm it happened from the repo alone:
                  tick-box | runnable command | names a concrete file | exit code / diff / assertion
@@ -313,6 +315,9 @@ METRIC DEFINITIONS (contest them - that is the point)
 
 
 def strip_frontmatter(t):
+    # A UTF-8 BOM defeats startswith("---"). Same bytes, same fix as index.py's
+    # parse_frontmatter - the two must not disagree about whether frontmatter exists (#28).
+    t = t.lstrip("﻿")
     if t.startswith("---"):
         e = t.find("\n---", 3)
         if e != -1:
@@ -550,8 +555,15 @@ def check_artifacts(root, rows):
     gr = git_root(root)
     hist, shallow = (history_paths(gr) if gr else (set(), False))
     tree = tree_paths(gr or root)
-    dirs = {os.path.dirname(p) for p in (tree | hist)}
-    dirs.discard("")
+    # Every ancestor, not just the immediate parent: a directory holding only subdirectories
+    # (skills/ in a skills/<name>/SKILL.md tree) exists just as surely as one holding a file,
+    # and the prefix check below is meant to be a directory-existence fact (#27).
+    dirs = set()
+    for p in (tree | hist):
+        d = os.path.dirname(p)
+        while d:
+            dirs.add(d)
+            d = os.path.dirname(d)
     res = []
     for r in rows:
         for m in r["mandated"]:
