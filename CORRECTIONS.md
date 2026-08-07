@@ -7,7 +7,70 @@ expects to keep finding errors in its own instrument; the alternative is not fin
 
 ---
 
-## 2026-07-31 — five scorer bugs (kibsu 0.2.0, scorer 0.5.0)
+## 2026-08-07 — the scorer could not see Title-case directives (scorer 0.6.0)
+
+A full review of this repository (six review agents by dimension, one adversarial verifier
+per finding, both criticals re-reproduced by hand before being believed) confirmed three
+defects in the scorer, fixed in
+[#42](https://github.com/M-Bajalan/kibsu/pull/42) as issues
+[#26](https://github.com/M-Bajalan/kibsu/issues/26),
+[#27](https://github.com/M-Bajalan/kibsu/issues/27),
+[#28](https://github.com/M-Bajalan/kibsu/issues/28). The survey was re-run at the **same
+pinned SHAs** with scorer 0.6.0 and `evidence/` regenerated. Unlike the 0.5.0 round, this
+time the headline moved: **the published median was 11.1%; the corrected instrument reads
+9.4%.**
+
+The three, each with the direction it biased the published numbers:
+
+1. **`MODALS` was case-sensitive** (#26). `- Must run the tests before merging.` was
+   counted as no instruction at all — Title-case matched neither the ALL-CAPS nor the
+   lowercase alternation, and SHOULD/REQUIRED/MANDATORY had no lowercase branch to begin
+   with. Instruction counts were biased **down** about 17% across every collection, which
+   biased every published percentage **up** — the truth about checkability is worse than
+   the table said. The extra mandate lines the fix extracts also grew the phantom
+   population: in-scope mandates 134 → 159, phantoms 56 → 69. **Every number that moved in
+   this round moved because of this one bug** — verified by ablation, not assumed: the
+   survey was re-run twice more with each of the other two fixes individually reverted,
+   and both runs reproduced the corrected evidence byte-for-byte.
+2. **The path-prefix scope check could not see nested-only directories** (#27). A mandate
+   under a directory holding only subdirectories (`skills/` in a `skills/<name>/SKILL.md`
+   tree) was wrongly excluded as `prefix-missing`, silently shrinking the phantom
+   population. Real — reproduced against a fixture repo end-to-end — and **zero effect at
+   these pinned SHAs** (the ablation above): a bug with nothing to bite in this corpus,
+   like 0.5.0's tilde-fence fix before it.
+3. **A UTF-8 BOM defeated frontmatter detection in the scorer** (#28), so a declared
+   `genre:`/`scope:` on a BOM'd file was silently ignored — the fix `index.py` already
+   carried had never reached `audit.py`. Also **zero effect at these pinned SHAs**, by the
+   same ablation.
+
+Zero units changed genre under the new instrument (the genre classifier does not consume
+the modal signal), and the identity of the two failure modes — three collections mandating
+nothing, five collections whose mandates go unserved — is unchanged.
+
+**What moved** (survey at the same pinned SHAs, scorer 0.5.0 → 0.6.0):
+
+| figure | 0.5.0 published | 0.6.0 re-measured |
+|---|---|---|
+| median procedure-only checkability (8 ranked collections) | 11.1% | **9.4%** |
+| total instructions, 8 ranked collections | 17,361 | **20,286 (+16.8%)** |
+| in-scope mandated artifacts | 134 distinct | **159 distinct** |
+| phantom artifacts | 56 (42%) | **69 (43%)** |
+| kibsu-lab baseline, procedure-only / doctrine | 46.7% / 0.0% | **42.4% / 0.0%** |
+| origin workspace baseline, procedure-only / doctrine | 28.7% / 0.0% | **27.1% / 0.0%** |
+
+Both PREREGISTRATION baselines were re-measured at their pinned states with the new
+instrument (its appended note carries the full columns); doctrine checkability is a hard
+0.0% at every stage under both instruments, so the pre-registered disqualification clause
+is untouched, and cycle 1's improvement survives re-instrumentation (27.1% → 29.3% under
+0.6.0; the old instrument read the same move as 28.7% → 31.4%).
+
+Reproduce both sides: the old numbers with `pip install kibsu==0.2.1` at the pinned SHAs,
+the new with this repository at `main`. One procedural caveat that had not been written
+down before: the phantom check walks `git log --all`, so a **fresh clone made today
+contains commits newer than the pin** and would let the history walk see the future.
+Check out the pinned SHA and point every local ref at it (delete other branches, tags,
+and the remote) before measuring — that reproduces the state the original measurement ran
+in, when the pin *was* the tip.
 
 An audit of this project's own measurement core (three review agents, nine adversarial
 verifiers, a thirteen-seat design council; every finding verified against source before

@@ -825,10 +825,12 @@ class SurveyNetworkTests(unittest.TestCase):
 
 class RealEvidenceReconciliationTests(unittest.TestCase):
     """Pin against the actual committed evidence/*.json - not a synthetic fixture. The Round 4
-    verifier's finding (26 distinct artifacts across exclusion records, 25 excluded outright,
-    1 overlap - davila7's `.mcp.json`) was computed against this exact data; if a re-measurement
-    or a scorer change ever moves these numbers, this test is the trip-wire that catches it,
-    rather than a stale docstring claim nobody re-checks."""
+    verifier's finding was computed against the 0.5.0 evidence (26 distinct artifacts across
+    exclusion records, 25 excluded outright, 1 overlap - davila7's `.mcp.json`); the 0.6.0
+    re-measure (CORRECTIONS.md, 2026-08-07) moved the pins to 30/27/3 - the overlap grew to
+    three davila7 artifacts (`.mcp.json`, `progress.md`, `task_plan.md`), each mandated
+    in-scope by one skill and excluded under another. The trip-wire fired exactly as this
+    docstring said it would, and these constants moved WITH the evidence in the same commit."""
 
     def test_ledger_reconciliation_on_committed_evidence(self):
         evidence_dir = os.path.join(PACKAGE_ROOT, "evidence")
@@ -851,10 +853,10 @@ class RealEvidenceReconciliationTests(unittest.TestCase):
 
         to = sum(r["out"] for r in rows)
         te = sum(r["excluded_distinct"] for r in rows)
-        self.assertEqual(to, 25, "bracket (excluded outright) on committed evidence")
-        self.assertEqual(te, 26, "distinct artifacts across exclusion records")
-        self.assertEqual(te - to, 1, "davila7's .mcp.json - in scope under two skills, "
-                                      "excluded under a third")
+        self.assertEqual(to, 27, "bracket (excluded outright) on committed evidence")
+        self.assertEqual(te, 30, "distinct artifacts across exclusion records")
+        self.assertEqual(te - to, 3, "davila7's .mcp.json, progress.md, task_plan.md - each "
+                                      "in scope under one skill, excluded under another")
 
 
 if __name__ == "__main__":

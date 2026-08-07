@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+Three scorer corrections (audit.py, scorer 0.5.0 -> 0.6.0, PR #42: issues #26/#27/#28), the
+survey re-measured at the same pinned SHAs, `evidence/` regenerated, both PREREGISTRATION
+baselines re-measured per that file's own standing clause, and every number that moved is
+indexed in [CORRECTIONS.md](CORRECTIONS.md) (2026-08-07 entry). This round the headline
+median moved: 11.1% -> 9.4%, because case-insensitive MODALS grew instruction counts ~17%
+across every ranked collection. Ablation runs attribute every moved number to #26 alone;
+#27 and #28 are real bugs with nothing to bite at these pins. README's pasted report sample
+re-run and re-pasted (third time, recorded in place); report.py's PEER_MEDIAN follows the
+new median.
+
+- Fixed #26: MODALS compiles with re.IGNORECASE; Title-case directives count.
+- Fixed #27: check_artifacts() records every ancestor directory, not just immediate parents.
+- Fixed #28: strip_frontmatter() strips a UTF-8 BOM, as index.py already did.
+
 ## 0.2.1 - 2026-08-01
 
 One character. `glob_re()`'s docstring quotes the `\*` / `\?` escape sequences it explains,
