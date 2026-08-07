@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-kibsu audit v0.5.0 - how much of an agent instruction set can actually be checked?
+kibsu audit v0.6.0 - how much of an agent instruction set can actually be checked?
 
 An instruction is CHECKABLE if a reviewer could tell from the repo alone whether it happened: it
 runs a command, produces or edits a named file, or is a tick-box. It is CLAIMABLE if the only
 evidence is the agent saying so.
+
+v0.6.0 is three corrections to what the scorer can SEE, none to how it judges (#26/#27/#28):
+MODALS is case-insensitive ("- Must run the tests." was counted as no instruction at all -
+Title-case matched neither the ALL-CAPS nor the lowercase alternation, and SHOULD / REQUIRED /
+MANDATORY had no lowercase branch to begin with); check_artifacts() records every ancestor
+directory, not just immediate parents, so a mandate under a directory holding only
+subdirectories (skills/ in a skills/<name>/SKILL.md tree) stays in the phantom population; and
+strip_frontmatter() strips a UTF-8 BOM before testing for "---", the fix parse_frontmatter in
+index.py had already carried. All three widen what is measured, so figures moved and the
+re-measure is indexed in CORRECTIONS.md like every round before it.
 
 v0.5.0 is the SCAFFOLD-SCOPE redesign plus the disclosure ledger. The scope filter used to sweep
 at the UNIT level: one scaffold keyword anywhere in a skill's frontmatter or the first 1500
@@ -79,7 +89,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 INCLUDE_ARCHIVED = False
 
 RUNNABLE_LANGS = {"bash", "sh", "shell", "console", "powershell", "ps1", "pwsh", "zsh",
