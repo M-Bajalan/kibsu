@@ -26,6 +26,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from support import make_repo, run_tool, assert_repo_untouched
 from kibsu.audit import VERSION as SCORER_VERSION
+from kibsu.audit import analyse, strip_frontmatter
 
 
 class AuditTests(unittest.TestCase):
@@ -806,6 +807,132 @@ class DisclosureLedgerTests(unittest.TestCase):
         self.assertEqual(int(m.group(2)), cf["in_scope_n"])
         self.assertEqual(float(m.group(3)), cf["all_pct"])
         self.assertEqual(int(m.group(4)), cf["all_n"])
+        assert_repo_untouched(repo)
+
+
+class ScorerCaseBomAncestorTests(unittest.TestCase):
+    """Regression tests for public issues #26, #27, #28 - three scorer-core defects found by
+    the 2026-08-07 review. Per CONTRIBUTING rule 4, every test here was run RED against the
+    pre-fix scorer before the fix landed; the red runs are quoted in the fixing PR.
+
+    #26 - MODALS was compiled without re.IGNORECASE, so Title-case directives ("- Must run
+    the tests.") matched neither the ALL-CAPS nor the lowercase alternation and were never
+    counted as instructions at all.
+    #27 - check_artifacts() collected only IMMEDIATE parent directories, so a mandate under
+    a directory that contains only subdirectories (skills/ in the skills/<name>/SKILL.md
+    layout this tool itself targets first) was wrongly excluded as prefix-missing and left
+    the phantom population.
+    #28 - strip_frontmatter() tested startswith("---") on raw text, so a UTF-8 BOM (real in
+    the wild; PowerShell writes them) made declared genre/scope invisible - index.py has
+    carried the equivalent fix since it met the same bytes.
+    """
+
+    TITLE_CASE = (
+        "# Release Rules\n\n"
+        "- Must run the tests before merging.\n"
+        "- Never commit directly to main.\n"
+        "- Always confirm before deleting a file.\n"
+        "- Should verify the output before shipping.\n"
+        "- This step is Mandatory for release.\n"
+    )
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_audit_scorerfix_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_issue_26_title_case_directives_are_counted_as_instructions(self):
+        """Five unambiguous directives in ordinary first-word-capitalized bullet style. The
+        pre-fix scorer reported instructions=0 for this exact text."""
+        r = analyse(self.TITLE_CASE)
+        self.assertEqual(r["instructions"], 5, r)
+
+    def test_issue_26_case_does_not_change_the_measurement(self):
+        """The invariant behind the fix: the same directives lowercased must produce the same
+        instruction/checkable/claimable counts as the Title-case original."""
+        title, lower = analyse(self.TITLE_CASE), analyse(self.TITLE_CASE.lower())
+        for key in ("instructions", "checkable", "claimable"):
+            self.assertEqual(title[key], lower[key], key)
+
+    def test_issue_27_mandate_under_nested_only_directory_is_in_scope(self):
+        """skills/ exists only as the parent of two skill subdirectories - no file lives
+        directly inside it. The mandate `skills/NOTES.md` must stay in scope and, never
+        having been committed, must be phantom. The pre-fix scorer excluded it as
+        prefix-missing ("path prefix 'skills/' does not exist in this repo")."""
+        repo = make_repo(self.tmpdir, {
+            "skills/skill-a/SKILL.md": (
+                "# Skill A\n\n"
+                "Update `skills/NOTES.md` with the outcome after every run.\n"
+            ),
+            "skills/skill-b/SKILL.md": "# Skill B\n\nNothing mandated here.\n",
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        arts = [a for a in result["artifacts"] if a["artifact"] == "skills/NOTES.md"]
+        self.assertEqual(len(arts), 1, result["artifacts"])
+        art = arts[0]
+        self.assertTrue(art["in_scope"], art)
+        self.assertIsNone(art["out_of_scope_reason"], art)
+        self.assertTrue(art["phantom"], art)
+        assert_repo_untouched(repo)
+
+    def test_issue_27_truly_missing_prefix_is_still_excluded(self):
+        """The other direction must not regress: a mandate whose directory has never held a
+        file in any commit, directly or through subdirectories, stays prefix-missing."""
+        repo = make_repo(self.tmpdir, {
+            "skills/skill-a/SKILL.md": (
+                "# Skill A\n\n"
+                "Update `warehouse/NOTES.md` with the outcome after every run.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        arts = [a for a in result["artifacts"] if a["artifact"] == "warehouse/NOTES.md"]
+        self.assertEqual(len(arts), 1, result["artifacts"])
+        self.assertFalse(arts[0]["in_scope"], arts[0])
+        self.assertEqual(arts[0]["out_of_scope_class"], "prefix-missing", arts[0])
+        assert_repo_untouched(repo)
+
+    def test_issue_28_bom_prefixed_declaration_is_honored(self):
+        """A BOM-prefixed unit declaring `genre: doctrine` must be read as declared doctrine,
+        not silently re-detected from the body."""
+        text = (
+            "﻿---\ngenre: doctrine\n---\n\n"
+            "You must always verify the intent before building.\n"
+            "Never skip the review step.\n"
+        )
+        body, fm = strip_frontmatter(text)
+        self.assertIn("genre: doctrine", fm)
+        r = analyse(text)
+        self.assertEqual(r["genre"], "doctrine", r)
+        self.assertEqual(r["genre_source"], "declared", r)
+
+    def test_issue_28_bom_prefixed_file_on_disk_is_honored_end_to_end(self):
+        """Same guarantee through the CLI against real bytes on disk (make_repo writes UTF-8,
+        so the leading \\ufeff lands as a real EF BB BF BOM)."""
+        repo = make_repo(self.tmpdir, {
+            "skills/doctrine-skill/SKILL.md": (
+                "﻿---\ngenre: doctrine\n---\n\n"
+                "You must always verify the intent before building.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, "skills"), "--json",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        doctrine_units = result["by_genre"].get("doctrine", {}).get("units", 0)
+        self.assertEqual(doctrine_units, 1, result["by_genre"])
         assert_repo_untouched(repo)
 
 
