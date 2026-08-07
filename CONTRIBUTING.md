@@ -118,7 +118,7 @@ Run all of it. Paste the exit codes into the pull request. Bare commands, not
 piped — a pipe replaces the exit code you are trying to report with the exit code
 of whatever it was piped into, which is how an untested change passes review.
 
-- [ ] `python -m unittest discover -s tests` → exit **0** (72 tests at time of writing;
+- [ ] `python -m unittest discover -s tests` → exit **0** (144 tests at time of writing;
       the command prints the count, so do not trust this number, read that one)
 - [ ] `python -m kibsu report .` → exit **3** on this repo, and `git status --porcelain`
       afterwards shows only your own changes

@@ -51,7 +51,8 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 VERSION = "1.1.0"
-PEER_MEDIAN = 11.1          # procedure-only checkability, 8 public collections, SHA-pinned
+PEER_MEDIAN = 9.4           # procedure-only checkability, 8 public collections, SHA-pinned,
+                            # scorer 0.6.0 (was 11.1 under 0.5.0 - CORRECTIONS.md, 2026-08-07)
 BAD, WARN, OK, SKIP = "x", "!", "+", "?"
 CANNOT_RUN = 3              # exit code, same value and same meaning as in ns_check.py
 # SKIP is not a pass. A check that could not run must say so on its own line - printing one

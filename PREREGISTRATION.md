@@ -186,3 +186,41 @@ regardless.)
 requires a re-baseline of both workspaces and a dated note here, before any "after" numbers
 are published. An instrument that changes silently between the before and the after is the
 oldest trick in the book, and this file would rather name the trick than be suspected of it.
+
+## Appended note — 2026-08-07: the instrument changed again, so everything was re-measured again
+
+The clause directly above this note fired for the first time. Scorer 0.6.0 fixes three
+defects found by a full review of the repository — chiefly that `MODALS` was
+case-sensitive, so ordinary Title-case directives ("- Must run the tests.") were never
+counted as instructions at all; see [CORRECTIONS.md](CORRECTIONS.md), 2026-08-07 entry.
+This fix DOES bite these files' counted regions (unlike the 0.5.0 round's five), so this
+time the numbers move — denominators grow everywhere, percentages come down, and the
+comparison column for all future cycles is the 0.6.0 one below.
+
+**Re-measurement, origin workspace (1a), same pinned states:**
+
+| pinned state | scorer 0.5.0 (previous column) | scorer 0.6.0 (re-measured) |
+|---|---|---|
+| baseline, procedure-only | 28.7% — 208/726, 36 units | **27.1% — 240/887, 36 units** |
+| baseline, doctrine | 0.0% — 0/34, 3 units | **0.0% — 0/37, 3 units** |
+| post-cycle-1, procedure-only | 31.4% — 251/800, 39 units | **29.3% — 283/967, 39 units** |
+| post-cycle-1, doctrine | 0.0% — 0/34, 3 units | **0.0% — 0/37, 3 units** |
+
+**Re-measurement, kibsu-lab (1b) and the public survey:**
+
+| | scorer 0.5.0 (previous column) | scorer 0.6.0 (re-measured) |
+|---|---|---|
+| 1b kibsu-lab @ `8bec5ee`, procedure-only | 46.7% (14/30, 3 units) | **42.4% (14/33, 3 units)** |
+| 1b kibsu-lab @ `8bec5ee`, doctrine | 0.0% (0/7, 1 unit) | **0.0% (0/7, 1 unit)** |
+| public median (procedure-only), 8 ranked collections | 11.1% | **9.4%** |
+
+What survives re-instrumentation, which is the point of publishing both columns: cycle 1's
+improvement is still there and still the same shape (27.1% → 29.3% under 0.6.0; the old
+instrument read the same move as 28.7% → 31.4%) — the gain shrank with the growing
+denominator but did not vanish, and no unit changed genre. Doctrine checkability is a hard
+0.0% at every stage under both instruments, so clause 3's disqualification floor is
+untouched, and the 2026-07-31 ruling on instrument-caused movement was not even needed —
+the doctrine numerator stayed zero on its own. Per this file's own rule, nothing above the
+2026-07-31 note has been edited; the checkable counts in both tables above were produced by
+`kibsu audit <skills dir> --json` at the pinned states, with the private origin states
+carrying the same directional-only caveat as section 1a.
