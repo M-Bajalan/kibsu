@@ -504,7 +504,8 @@ def find_skills(root):
 # ---- artifacts ----------------------------------------------------------------------------
 def git_root(path):
     p = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=path,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     return p.stdout.strip() if p.returncode == 0 else None
 
 
