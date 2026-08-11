@@ -97,7 +97,7 @@ class GateTests(unittest.TestCase):
         files = {
             "gate_widgets.py": GATE_WIDGETS_SCRIPT,
             "widgets.txt": "a\n",
-            ".kibsu.json": '{"gates": [{"name": "widgets", "cmd": ["python", "gate_widgets.py"]}]}\n',
+            ".kibsu.json": '{"gates": [{"name": "widgets", "cmd": ["' + sys.executable + '", "gate_widgets.py"]}]}\n',
         }
         if extra_files:
             files.update(extra_files)
@@ -190,8 +190,8 @@ class GateTests(unittest.TestCase):
             "widgets.txt": "a\n",
             ".kibsu.json": (
                 '{"gates": ['
-                '{"name": "widgets", "cmd": ["python", "gate_widgets.py"]}, '
-                '{"name": "flaky", "cmd": ["python", "gate_flaky.py"], "cannot_run_exit": 42}'
+                '{"name": "widgets", "cmd": ["' + sys.executable + '", "gate_widgets.py"]}, '
+                '{"name": "flaky", "cmd": ["' + sys.executable + '", "gate_flaky.py"], "cannot_run_exit": 42}'
                 ']}\n'
             ),
         }
