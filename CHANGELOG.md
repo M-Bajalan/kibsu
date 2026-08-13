@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed #33: install carries a pre-existing pre-commit hook as `pre-commit.carried` and the
+  generated hook execs it FIRST - its logic keeps firing and its failure keeps blocking,
+  exactly as before kibsu arrived. It used to be excluded from the carry list outright,
+  silently disabled the moment core.hooksPath redirected git, while the module docstring
+  promised "nothing is silently disabled". The docstring now describes the chain, the
+  dry-run preview announces it, and install.json records it.
 - Fixed #31: gate identity acceptance is a MULTISET. Two distinct violations that digit-fold
   to the same identity are two accepted occurrences, and a third occurrence of that identity
   now BLOCKS - it used to pass silently, the exact case the gate's own docstring promised to
