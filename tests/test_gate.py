@@ -264,5 +264,88 @@ class GateTests(unittest.TestCase):
         assert_repo_untouched(repo)
 
 
+class GateOccurrenceCountTests(unittest.TestCase):
+    """Regression tests for public issue #31 - the digit-folded identity collapsed DISTINCT
+    violations into one, so a genuinely new occurrence of a known identity passed the gate.
+
+    The design insight the fix rests on: the baseline FILE already records multiplicity -
+    baseline() has always written the raw items list, duplicates included. Only
+    load_baseline()'s set() and check()'s set() collapsed it at read time. Multiset semantics
+    restore what the file already knew, so old baseline files work unchanged - no schema
+    change, no migration.
+
+    Per CONTRIBUTING rule 4, every test here was run RED against the pre-fix gate first; the
+    red outputs are quoted in the fixing PR. The fixture texts deliberately mirror norm()'s
+    own docstring example - violations differing only by an embedded line number, the exact
+    shape digit-folding exists to absorb."""
+
+    TWO = "file.py:120 .unsafe_call(...)\nfile.py:340 .unsafe_call(...)\n"
+    THREE = TWO + "file.py:500 .unsafe_call(...)\n"
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_gate_counts_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _repo_with_baseline(self, widgets):
+        repo = make_repo(self.tmpdir, {
+            "gate_widgets.py": GATE_WIDGETS_SCRIPT,
+            "widgets.txt": widgets,
+            ".kibsu.json": '{"gates": [{"name": "widgets", "cmd": ["python", "gate_widgets.py"]}]}\n',
+        })
+        exit_code, _out, err = run_tool("gate", "--baseline", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % err)
+        return repo
+
+    def test_issue_31_surplus_occurrence_of_known_identity_blocks(self):
+        """Two same-identity violations baselined; a THIRD occurrence appears. The pre-fix
+        gate printed PASS and exit 0 for exactly this - the case its own docstring says a
+        gate exists to catch."""
+        repo = self._repo_with_baseline(self.TWO)
+        _write(repo, "widgets.txt", self.THREE)
+
+        exit_code, out, _err = run_tool("gate", "--check", "--repo", repo)
+        self.assertEqual(exit_code, 1, out)
+        self.assertIn("COMMIT BLOCKED", out)
+        self.assertIn(".unsafe_call", out)
+
+    def test_issue_31_fewer_occurrences_than_baseline_still_passes(self):
+        """The other direction must not regress: fixing one of three baselined occurrences
+        is progress, not new breakage - the gate passes and reports the gain."""
+        repo = self._repo_with_baseline(self.THREE)
+        _write(repo, "widgets.txt", self.TWO)
+
+        exit_code, out, _err = run_tool("gate", "--check", "--repo", repo)
+        self.assertEqual(exit_code, 0, out)
+        self.assertIn("FIXED", out)
+
+    def test_issue_31_baseline_file_already_carries_multiplicity(self):
+        """The backward-compat proof: the on-disk accepted list keeps BOTH same-identity
+        entries (this is the format every existing baseline file already has), and the gate
+        honors that multiplicity on the very next check."""
+        import json as _json
+        repo = self._repo_with_baseline(self.TWO)
+
+        with open(os.path.join(repo, ".kibsu", "gate_baseline.json"), encoding="utf-8") as fh:
+            payload = _json.load(fh)
+        accepted = payload["gates"]["widgets"]["accepted"]
+        self.assertEqual(len(accepted), 2, accepted)
+        self.assertEqual(accepted[0], accepted[1], accepted)
+
+        exit_code, out, _err = run_tool("gate", "--check", "--repo", repo)
+        self.assertEqual(exit_code, 0, out)
+
+    def test_issue_31_novel_identity_still_blocks(self):
+        """The original guarantee is untouched: an identity never baselined at all still
+        blocks, independent of any occurrence arithmetic."""
+        repo = self._repo_with_baseline(self.TWO)
+        _write(repo, "widgets.txt", self.TWO + "other.py:7 .different_call(...)\n")
+
+        exit_code, out, _err = run_tool("gate", "--check", "--repo", repo)
+        self.assertEqual(exit_code, 1, out)
+        self.assertIn(".different_call", out)
+
+
 if __name__ == "__main__":
     unittest.main()

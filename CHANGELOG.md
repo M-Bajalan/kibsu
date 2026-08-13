@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Fixed #31: gate identity acceptance is a MULTISET. Two distinct violations that digit-fold
+  to the same identity are two accepted occurrences, and a third occurrence of that identity
+  now BLOCKS - it used to pass silently, the exact case the gate's own docstring promised to
+  catch. No baseline schema change and no migration: the accepted list on disk always carried
+  the duplicates; only the in-memory set() collapsed them. The blocked report names the
+  arithmetic ("3 occurrence(s) now, 2 accepted"), and the FIXED tally now counts occurrences.
+
 ## 0.3.0 - 2026-08-07
 
 Three scorer corrections (audit.py, scorer 0.5.0 -> 0.6.0, PR #42: issues #26/#27/#28), the

@@ -13,15 +13,20 @@ WHY
   So the rule ends up enforced, for its entire life, by whoever remembers. That makes it a
   mechanism, not a mandate, and mechanisms are what this file is.
 
-WHY A BASELINE, AND WHY IDENTITY AND NOT A COUNT
+WHY A BASELINE, AND WHY IDENTITY AND NOT A BARE COUNT
   A repo's checks can easily start out already failing - pre-existing violations awaiting
   cleanup that nobody has gotten to yet. A gate that blocks on "the check exited non-zero" would
   block EVERY commit from the moment it is installed, and get ripped out within the hour. That is
   how gates die - not by being wrong, but by being unusable.
 
-  So the gate blocks on NEW violations only. And it stores the IDENTITY of each accepted
-  violation, not the count: a baseline of "42" passes happily when you fix one violation and
-  introduce another, which is precisely the case a gate exists to catch.
+  So the gate blocks on NEW violations only. It stores the IDENTITY of each accepted violation
+  rather than a bare per-rule count: a baseline of "42" passes happily when you fix one
+  violation and introduce another, which is precisely the case a gate exists to catch. And
+  identity acceptance is a MULTISET, not a set (public issue #31): two distinct violations that
+  digit-fold to the same identity - "file.py:120 .unsafe_call" and "file.py:340 .unsafe_call" -
+  are two accepted occurrences, and a THIRD occurrence of that same identity is new breakage
+  and blocks. The baseline file has always recorded the duplicates; the fix was to stop
+  collapsing them at read time.
 
 DRIVEN BY CONFIG, NOT TWO HARDCODED SCRIPTS
   What used to be exactly two constants pointing at two specific scripts is now a list read from
@@ -65,6 +70,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections import Counter
 
 # This file is also VENDORED on its own (see install(), below, which copies gate.py + config.py,
 # and only those two, into a target repo's .kibsu/bin/ so the hook never depends on kibsu being
@@ -180,7 +186,9 @@ def norm(s):
 
     Growth is still caught: the per-rule declared COUNT is baselined separately, so a rule firing
     on MORE things blocks. What no longer blocks is the same violation reporting a different
-    number, which is not new breakage and must not read as it."""
+    number, which is not new breakage and must not read as it. And folding two DISTINCT
+    violations to one identity does not merge them away: acceptance is a multiset (issue #31),
+    so a third occurrence of a twice-accepted identity still blocks."""
     s = s.encode("ascii", "replace").decode("ascii").strip()
     return re.sub(r"\d+", "#", s)
 
@@ -269,7 +277,7 @@ def is_ignored_violation(text, ign):
 
 
 def _empty_gate_baseline():
-    return {"accepted": set(), "counts": {}, "truncated": set()}
+    return {"accepted": Counter(), "counts": {}, "truncated": set()}
 
 
 def load_baseline_raw(root):
@@ -287,16 +295,20 @@ def load_baseline_raw(root):
 
 def load_baseline(root):
     """The baseline file, converted for check(): per-gate accepted/counts/truncated, with
-    accepted upgraded to a set of tuples and truncated to a set. None means "no baseline file at
-    all" (or unreadable), which is the fail-safe trigger - never confuse that with "a baseline
-    exists but doesn't cover this particular gate yet", which is a normal, per-gate state."""
+    accepted upgraded to a MULTISET (Counter) of tuples and truncated to a set. A Counter, not
+    a set, because the on-disk accepted list has always carried duplicates for same-identity
+    violations and collapsing them here was issue #31: a third occurrence of a twice-accepted
+    identity silently passed. Old baseline files need no migration - the multiplicity was
+    already in the file. None means "no baseline file at all" (or unreadable), which is the
+    fail-safe trigger - never confuse that with "a baseline exists but doesn't cover this
+    particular gate yet", which is a normal, per-gate state."""
     raw = load_baseline_raw(root)
     if raw is None:
         return None
     gates = {}
     for name, g in (raw.get("gates") or {}).items():
         gates[name] = {
-            "accepted": set(tuple(x) for x in g.get("accepted", [])),
+            "accepted": Counter(tuple(x) for x in g.get("accepted", [])),
             "counts": g.get("counts", {}),
             "truncated": set(g.get("truncated_rules", [])),
         }
@@ -368,9 +380,16 @@ def _run_one_gate(root, g, gate_base):
             hygiene.add(rule)
 
     skipped_ignored = [t for (_, t), f in zip(raws, ign_flag) if f]
-    now_ids = set(i for i, f in zip(items, ign_flag) if i[0] not in trunc and not f)
-    new = sorted(now_ids - gate_base["accepted"])
-    fixed = len(gate_base["accepted"] - now_ids)
+    # MULTISETS, not sets (issue #31): two distinct violations digit-folding to one identity
+    # are two occurrences, and a third occurrence is NEW. Counter subtraction keeps only
+    # positive surpluses, so each direction reads directly: `now - base` is new breakage,
+    # `base - now` is fixed occurrences.
+    now_counts = Counter(i for i, f in zip(items, ign_flag) if i[0] not in trunc and not f)
+    base_counts = gate_base["accepted"]
+    surplus = now_counts - base_counts
+    new = sorted(surplus)
+    surplus_notes = {i: (now_counts[i], base_counts[i]) for i in new if base_counts[i]}
+    fixed = sum((base_counts - now_counts).values())
 
     grew = []
     for rule in sorted(trunc - hygiene):
@@ -381,9 +400,9 @@ def _run_one_gate(root, g, gate_base):
 
     blocked = bool(new) or bool(grew)
     return {"name": name, "cmd": cmd, "rc": rc, "status": "BLOCKED" if blocked else "PASS",
-            "new": new, "fixed": fixed, "grew": grew, "hygiene": hygiene,
-            "skipped_ignored": skipped_ignored,
-            "accepted_n": len(gate_base["accepted"]), "trunc_n": len(trunc)}
+            "new": new, "surplus_notes": surplus_notes, "fixed": fixed, "grew": grew,
+            "hygiene": hygiene, "skipped_ignored": skipped_ignored,
+            "accepted_n": sum(base_counts.values()), "trunc_n": len(trunc)}
 
 
 def check(root):
@@ -466,7 +485,14 @@ def check(root):
         if r["new"]:
             print("       %d NEW violation(s) not in the accepted baseline:" % len(r["new"]))
             for rule, item in r["new"][:10]:
-                print("         [%s] %s" % (rule, item))
+                note = r.get("surplus_notes", {}).get((rule, item))
+                if note:
+                    # A known identity occurring MORE often than accepted - name the arithmetic,
+                    # since the folded text alone looks identical to what the baseline allows.
+                    print("         [%s] %s   (%d occurrence(s) now, %d accepted)"
+                          % (rule, item, note[0], note[1]))
+                else:
+                    print("         [%s] %s" % (rule, item))
             if len(r["new"]) > 10:
                 print("         ... and %d more" % (len(r["new"]) - 10))
         if r["grew"]:
@@ -553,9 +579,11 @@ def baseline(root):
         "version": VERSION,
         "written": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "note": "Violations accepted as pre-existing, per configured gate. The gate blocks only "
-                "on what is NOT here. Rules with a COMPLETE list are matched by identity, so "
-                "fixing one violation and introducing another is still caught. Rules a gate's "
-                "checker TRUNCATES are matched by count only - a weaker guarantee, listed under "
+                "on what is NOT here. Rules with a COMPLETE list are matched by identity - as a "
+                "MULTISET: same-identity duplicates in the accepted list are distinct accepted "
+                "occurrences, and one more of them is new breakage (issue #31). Fixing one "
+                "violation and introducing another is still caught. Rules a gate's checker "
+                "TRUNCATES are matched by count only - a weaker guarantee, listed under "
                 "truncated_rules so it is visible rather than assumed.",
         "gates": gates_payload,
     }
