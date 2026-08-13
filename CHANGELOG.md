@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed #39: every scan-path read carries a 5 MB per-file ceiling (MAX_READ_BYTES) checked
+  before the read - a scanned repo git-tracking a multi-gigabyte markdown file no longer
+  triggers an unbounded whole-file read (the realistic failure being the OOM-killer's
+  SIGKILL, which no except clause sees). Over-ceiling files are skipped with a printed
+  reason on stderr, never silently; learn.py's read - the one with no try/except at all -
+  is guarded both ways.
 - Fixed #31: gate identity acceptance is a MULTISET. Two distinct violations that digit-fold
   to the same identity are two accepted occurrences, and a third occurrence of that identity
   now BLOCKS - it used to pass silently, the exact case the gate's own docstring promised to

@@ -90,6 +90,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 VERSION = "0.6.0"
+
+# Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
+# git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
+# allocation the kernel OOM-killer ends with a SIGKILL no `except` clause sees. 5 MB is
+# generous for instruction markdown; over-ceiling files are SKIPPED WITH A PRINTED REASON
+# on stderr (stdout stays clean for --json), never silently.
+MAX_READ_BYTES = 5 * 1024 * 1024
 INCLUDE_ARCHIVED = False
 
 RUNNABLE_LANGS = {"bash", "sh", "shell", "console", "powershell", "ps1", "pwsh", "zsh",
@@ -744,6 +751,10 @@ def main():
     rows = []
     for p in sorted(files):
         try:
+            if os.path.getsize(p) > MAX_READ_BYTES:
+                sys.stderr.write("kibsu audit: skipping %s (%d bytes > %d byte ceiling)\n"
+                                 % (p, os.path.getsize(p), MAX_READ_BYTES))
+                continue
             t = io.open(p, encoding="utf-8", errors="replace").read()
         except Exception:
             continue

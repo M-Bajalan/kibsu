@@ -62,6 +62,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 VERSION = "1.0.0"
+
+# Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
+# git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
+# allocation the kernel OOM-killer ends with a SIGKILL no `except` clause sees. 5 MB is
+# generous for instruction markdown; over-ceiling files are SKIPPED WITH A PRINTED REASON
+# on stderr (stdout stays clean for --json), never silently.
+MAX_READ_BYTES = 5 * 1024 * 1024
 OK, DRIFT, CANNOT_RUN = 0, 1, 3
 
 AGENT_DOCS = ["CLAUDE.md", "AGENTS.md", "GEMINI.md", ".cursorrules", "CONVENTIONS.md"]
@@ -93,6 +100,10 @@ def relpath(p):
 
 def read(p):
     try:
+        if os.path.getsize(p) > MAX_READ_BYTES:
+            sys.stderr.write("kibsu guide: skipping %s (over the %d byte ceiling)\n"
+                             % (p, MAX_READ_BYTES))
+            return ""
         with io.open(p, encoding="utf-8", errors="replace") as f:
             return f.read().lstrip("﻿")
     except Exception:
