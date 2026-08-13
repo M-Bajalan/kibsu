@@ -25,6 +25,7 @@ own "commit blocked by ns_check" text, not by re-deriving STALE semantics.
 """
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -266,7 +267,9 @@ class CarriedPreCommitTests(unittest.TestCase):
             os.makedirs(os.path.dirname(hook))
         with open(hook, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(hook_body)
-        os.chmod(hook, 0o755)
+        # The OR-with-existing-mode idiom install.py itself uses - a bare 0o755 mask
+        # is the exact overly-permissive-chmod shape CodeQL rightly flags.
+        os.chmod(hook, os.stat(hook).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         return repo
 
     def test_issue_33_preexisting_precommit_is_carried_and_still_runs(self):
