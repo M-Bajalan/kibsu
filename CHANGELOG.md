@@ -11,6 +11,13 @@
   root-relative remainder before its bare basename - kibsu's own installed-hook idiom
   (`$ROOT/.kibsu/bin/check.py`) is followed, so a genuinely-enforced gate no longer reads
   INERT on the tool's own primary layout.
+- Fixed #30: the headline "in-scope mandated artifacts" aggregate applies the same
+  unusable-history guard its counterfactual sibling always had - a shallow-history repo's
+  mandates no longer pad the denominator while contributing nothing to the numerator. No
+  published figure moves: at the pinned SHAs every ranked repo has usable history.
+- Fixed #34: the printed "genre mix" census includes doctrine - all five genres, not four.
+  The test that previously PINNED the buggy output now asserts the honest one.
+
 - Fixed #31: gate identity acceptance is a MULTISET. Two distinct violations that digit-fold
   to the same identity are two accepted occurrences, and a third occurrence of that identity
   now BLOCKS - it used to pass silently, the exact case the gate's own docstring promised to
