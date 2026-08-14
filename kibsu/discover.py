@@ -100,8 +100,16 @@ def git(root, *args):
         return None
 
 
-def capability(name, state, detail, evidence=""):
-    return {"capability": name, "state": state, "detail": detail, "evidence": evidence}
+def capability(name, state, detail, evidence="", scripts=None):
+    """`scripts`, when given, is {script: "live"|"monitored"|"unenforced"} - the
+    machine-readable form of what detail/evidence say in prose. guide.py consumes THIS
+    (issue #32): its buckets() used to regex the prose, and the schedule-only branch's
+    wording matched none of its patterns, so merely-MONITORED gates fell through to
+    ENFORCED - "you do not need to remember these" - the harmful inversion."""
+    cap = {"capability": name, "state": state, "detail": detail, "evidence": evidence}
+    if scripts is not None:
+        cap["scripts"] = scripts
+    return cap
 
 
 def os_scheduler_text():
@@ -176,10 +184,19 @@ def main():
     # this very repo within a minute of a working gate being installed. One level only: enough
     # for the runner-script pattern, no cycle risk.
     for m in re.findall(r"[\w$./\\{}-]+\.(?:py|sh|ps1|js)", hook_text):
-        cand = m.split("/")[-1] if "$" in m else m.replace("\\", "/")
+        # A `$`-containing path is a computed one - `$ROOT/.kibsu/bin/check.py`, kibsu's OWN
+        # installed-hook idiom. Probe the variable-stripped, root-relative remainder FIRST
+        # (issue #35: collapsing straight to the bare basename only ever found wrappers
+        # sitting at repo root, so the tool's own layout read INERT), then the basename.
         # A second fallback probe here used to try a hardcoded, origin-specific subdirectory.
         # Removed: an origin's private layout belongs in config, never baked into published code.
-        for probe in (cand,):
+        if "$" in m:
+            parts = [p for p in m.replace("\\", "/").split("/") if p]
+            keep = next((i for i, seg in enumerate(parts) if "$" not in seg), len(parts) - 1)
+            probes = ("/".join(parts[keep:]), parts[-1])
+        else:
+            probes = (m.replace("\\", "/"),)
+        for probe in probes:
             fp = os.path.join(root, probe.replace("/", os.sep))
             if os.path.isfile(fp):
                 hook_text += "\n" + read(fp)
@@ -270,14 +287,18 @@ def main():
     # log satisfies neither half of that. Counted separately, never folded into "live".
     monitored = []
     unenforced = []
+    script_states = {}
     for script, where in sorted(doc_hits.items()):
         base = os.path.basename(script)
         if base in runner_text or script in runner_text:
+            script_states[script] = "live"
             continue
         if sched_text and (base in sched_text or script.replace("/", "\\") in sched_text):
             monitored.append((script, sorted(where)))
+            script_states[script] = "monitored"
             continue
         unenforced.append((script, sorted(where)))
+        script_states[script] = "unenforced"
 
     if not docs_found:
         caps.append(capability("Mandated gates", UNKNOWN,
@@ -300,15 +321,18 @@ def main():
                                "invoked by no automation at all.%s"
                                % (len(unenforced), len(doc_hits), note),
                                "; ".join("%s (named in %s)" % (s, "+".join(w))
-                                         for s, w in unenforced)))
+                                         for s, w in unenforced),
+                               scripts=script_states))
     elif monitored:
         caps.append(capability("Mandated gates", INERT,
                                "every mandated script runs on a SCHEDULE, and none of them gates "
                                "a commit. Your instructions say 'before commit - do not commit "
-                               "red'; a scheduled job discovers red afterwards."))
+                               "red'; a scheduled job discovers red afterwards.",
+                               scripts=script_states))
     else:
         caps.append(capability("Mandated gates", LIVE,
-                               "every script the instructions mandate is invoked by automation."))
+                               "every script the instructions mandate is invoked by automation.",
+                               scripts=script_states))
 
     inert = [c for c in caps if c["state"] == INERT]
 

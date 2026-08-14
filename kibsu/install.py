@@ -16,8 +16,12 @@ WHY core.hooksPath AND NOT .git/hooks/pre-commit
   key plus one directory - which is also why it uninstalls cleanly.
 
   Cost, stated plainly: core.hooksPath REPLACES the default hooks directory. Any existing hook
-  in .git/hooks is copied into the new directory at install time and its SHA recorded; nothing
-  is left behind and nothing is silently disabled.
+  in .git/hooks is copied into the new directory at install time and its SHA recorded; a
+  pre-existing pre-commit - the one name this installer also writes - is carried as
+  `pre-commit.carried` and the generated hook execs it FIRST, so its logic keeps firing and
+  its failure keeps blocking, exactly as before (issue #33: it used to be excluded from the
+  carry list outright, which silently disabled it while this paragraph promised otherwise).
+  Nothing is left behind and nothing is silently disabled - now checkably.
 
 FAIL-SAFE, NOT FAIL-SHUT
   ns_check exit 1 (violations) blocks the commit.
@@ -78,6 +82,20 @@ HOOK = """#!/bin/sh
 # hook works in anyone's clone. Nothing here points at the machine that installed it.
 ROOT="$(git rev-parse --show-toplevel)"
 NS_TOOL="$ROOT/.kibsu/bin/check.py"
+
+# A pre-commit that existed BEFORE this install is carried, not silently disabled: it runs
+# first, and its failure blocks, exactly as it did before kibsu arrived (issue #33). Exec'd
+# directly so its own shebang decides the interpreter - the same way git itself ran it.
+CARRIED="$ROOT/{hooks}/pre-commit.carried"
+if [ -f "$CARRIED" ]; then
+  "$CARRIED" "$@"
+  crc=$?
+  if [ $crc -ne 0 ]; then
+    echo "  commit blocked by the carried pre-existing pre-commit hook (exit $crc)."
+    echo "  It lives at {hooks}/pre-commit.carried - it predates kibsu and still applies."
+    exit $crc
+  fi
+fi
 
 # Windows ships a "python"/"python3" App Execution Alias stub even on a machine with NO real
 # interpreter installed: `command -v` finds it happily, but running it only prints a Microsoft
@@ -209,13 +227,20 @@ def install(root, dry, force, index_rel, baseline_rel):
     hook_path = os.path.join(hooks_abs, "pre-commit")
     default_hooks = os.path.join(gd, "hooks")
     carry = []
+    carried_precommit = False
     if os.path.isdir(default_hooks):
         carry = [f for f in sorted(os.listdir(default_hooks))
-                 if not f.endswith(".sample") and f != "pre-commit"
+                 if not f.endswith(".sample")
                  and os.path.isfile(os.path.join(default_hooks, f))]
+        # The one name this installer also writes cannot keep it (issue #33) - it is carried
+        # under a recorded rename and the generated hook execs it first, failure still blocking.
+        if "pre-commit" in carry:
+            carry.remove("pre-commit")
+            carried_precommit = True
 
     bin_dir = os.path.join(root, NS_DIR, "bin")
     body = HOOK.format(v=VERSION,
+                       hooks=HOOKS_DIR.replace("\\", "/"),
                        index=index_rel.replace("\\", "/"),
                        baseline=('--baseline "%s"' % baseline_rel.replace("\\", "/")) if baseline_rel else "")
 
@@ -225,6 +250,9 @@ def install(root, dry, force, index_rel, baseline_rel):
     print("  will vendor   %s/bin/{check.py, index.py}  (hook resolves from repo root)" % NS_DIR)
     if carry:
         print("  will carry    existing hooks into the new dir: %s" % ", ".join(carry))
+    if carried_precommit:
+        print("  will carry    the existing pre-commit as pre-commit.carried - it runs FIRST "
+              "on every commit and its failure still blocks")
     print("  will set      core.hooksPath = %s   (was: %s)" % (HOOKS_DIR, prev or "unset"))
     print("  behaviour     ns_check --staged on every commit;")
     print("                exit 1 blocks · exit 3 warns and ALLOWS · --no-verify bypasses")
@@ -246,6 +274,11 @@ def install(root, dry, force, index_rel, baseline_rel):
             vendored.append(NS_DIR + "/bin/" + tool)
     for f in carry:
         shutil.copy2(os.path.join(default_hooks, f), os.path.join(hooks_abs, f))
+    if carried_precommit:
+        dst = os.path.join(hooks_abs, "pre-commit.carried")
+        shutil.copy2(os.path.join(default_hooks, "pre-commit"), dst)
+        os.chmod(dst, os.stat(dst).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        carry = carry + ["pre-commit.carried"]
     with io.open(hook_path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(body)
     os.chmod(hook_path, os.stat(hook_path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
