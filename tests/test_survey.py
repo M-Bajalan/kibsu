@@ -782,14 +782,38 @@ class SurveyAggregationTests(unittest.TestCase):
         self.assertAlmostEqual(all_pct, 100.0, msg="both of repo A's artifacts are zero-match "
                                                      "and repo B contributes nothing to either side")
 
-    def test_genre_mix_summary_silently_omits_doctrine_units(self):
-        """A genuine finding surfaced BY writing this test, not asserted-then-fixed: the
-        printed "genre mix" aggregate sums four of the five genres audit.py recognises -
-        procedure, persona, reference, mixed - and OMITS doctrine, even though a row's
-        `genres` dict can carry a doctrine count and the README's own genre table lists
-        doctrine as one of four first-class genres. A collection that is mostly doctrine
-        content still prints a genre mix with no doctrine key and no indication anything
-        was left out of the total."""
+    def test_headline_mandated_line_excludes_unusable_history_denominator(self):
+        """Issue #30: `tm` summed every ranked repo's mandated-artifact count unconditionally
+        while `tp` skipped repos whose history is unusable (phantom=None on a shallow clone) -
+        the exact bug class the 'all' side already guards three lines below, with the guard's
+        own comment naming the failure. Repo A: full history, one in-scope phantom mandate.
+        Repo B: shallow history, one in-scope mandate that must not pad the denominator while
+        contributing nothing to the numerator. Pre-fix this printed '2 distinct, 1 PHANTOM
+        (50%)'; the honest figure is '1 distinct, 1 PHANTOM (100%)'."""
+        slug_a, slug_b = survey.REPOS[0], survey.REPOS[1]
+        results = {
+            slug_a: _result(10, 100, 20.0, 10, 100, 20.0,
+                            artifacts=[_artifact("in.md", in_scope=True, phantom=True)],
+                            has_git=True, history_shallow=False),
+            slug_b: _result(10, 100, 20.0, 10, 100, 20.0,
+                            artifacts=[_artifact("z.md", in_scope=True, phantom=True)],
+                            has_git=True, history_shallow=True),
+        }
+        out, _ = _SurveyRun(results=results).run()
+
+        m = re.search(r"in-scope mandated artifacts: (\d+) distinct, (\d+) PHANTOM \((\d+)%\)", out)
+        self.assertTrue(m, "no headline mandated-artifacts line found in:\n%s" % out)
+        self.assertEqual(int(m.group(1)), 1, "repo B's shallow-history mandate must not pad "
+                                              "the denominator when its numerator is unusable")
+        self.assertEqual(int(m.group(2)), 1)
+        self.assertEqual(int(m.group(3)), 100)
+
+    def test_genre_mix_summary_includes_doctrine_units(self):
+        """Issue #34, and the closing of a loop: this test's previous life PINNED the buggy
+        output (asserting doctrine absent) as documentation of a live defect. The printed
+        "genre mix" aggregate now sums all five genres audit.py recognises - a collection
+        that is mostly doctrine content shows its doctrine units instead of silently losing
+        them from the total."""
         slug = survey.REPOS[0]
         results = {slug: _result(all_units=20, all_instr=300, all_pct=15.0,
                                   proc_units=10, proc_instr=100, proc_pct=25.0,
@@ -798,8 +822,7 @@ class SurveyAggregationTests(unittest.TestCase):
 
         genre_mix_line = next(ln for ln in out.splitlines() if ln.startswith("genre mix:"))
         self.assertIn("'procedure': 10", genre_mix_line)
-        self.assertNotIn("doctrine", genre_mix_line, "doctrine units are silently excluded "
-                                                       "from the printed genre mix total")
+        self.assertIn("'doctrine': 9", genre_mix_line)
 
 
 class SurveyNetworkTests(unittest.TestCase):
