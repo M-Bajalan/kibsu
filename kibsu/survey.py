@@ -283,7 +283,11 @@ def main():
             med = ps[n // 2] if n % 2 else (ps[n // 2 - 1] + ps[n // 2]) / 2
             print("ranked public n=%d  %-22s median %5.1f%%   min %4.1f%%   max %5.1f%%"
                   % (n, lbl, med, ps[0], ps[-1]))
-        tm = sum(r["mand"] for r in pub)
+        # Same guard as cf_repos below (issue #30): a shallow-history repo's mand must not
+        # pad the denominator while its unusable numerator (phantom=None) contributes
+        # nothing - that silently deflates the printed rate, the exact failure the cf_all
+        # comment further down names for the parallel computation.
+        tm = sum(r["mand"] for r in pub if r["phantom"] is not None)
         tp = sum(r["phantom"] for r in pub if r["phantom"] is not None)
         to = sum(r["out"] for r in pub)
         tu = sum(r.get("unverifiable", 0) for r in pub)
@@ -351,8 +355,11 @@ def main():
         print("phantom rate (all ranked repos, summed): %.1f%% in-scope-only (%d artifacts) / "
               "%.1f%% if all exclusions are counted (%d artifacts)"
               % ((100.0 * tp / tm) if tm else 0.0, tm, (100.0 * tap / ta) if ta else 0.0, ta))
+        # All FIVE genres audit.py recognises (issue #34) - doctrine was silently absent
+        # from this census, which is the wrong place to lose the genre whose 0% score is
+        # "the genre working" per the README's own argument.
         print("genre mix:", {g: sum(r["genres"].get(g, 0) for r in pub)
-                             for g in ("procedure", "persona", "reference", "mixed")})
+                             for g in ("procedure", "doctrine", "persona", "reference", "mixed")})
     if thin:
         print("\nBELOW SAMPLE FLOOR - measured, not ranked (a %% from <%d instructions is noise):" % MIN_INSTR)
         for r in thin:
