@@ -106,7 +106,8 @@ class InstallHookTemplateTests(unittest.TestCase):
 
     def setUp(self):
         self.hook = install_mod.HOOK.format(
-            v=install_mod.VERSION, index=".kibsu/index.json", baseline="",
+            v=install_mod.VERSION, hooks=".kibsu/hooks", index=".kibsu/index.json",
+            baseline="",
         )
 
     def test_old_naive_presence_check_is_gone(self):

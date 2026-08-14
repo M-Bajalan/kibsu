@@ -25,6 +25,7 @@ own "commit blocked by ns_check" text, not by re-deriving STALE semantics.
 """
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -235,6 +236,84 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
         self.assertIn("core.hooksPath", stdout)
         assert_repo_untouched(repo)
+
+
+class CarriedPreCommitTests(unittest.TestCase):
+    """Issue #33: install()'s carry-forward list excluded `pre-commit` unconditionally while
+    core.hooksPath redirected git away from .git/hooks - so a repo's pre-existing pre-commit
+    hook silently stopped firing: not copied, not chained, not in carried_hooks, invisible in
+    the dry-run preview. That contradicted the module docstring's own guarantee ("nothing is
+    left behind and nothing is silently disabled") word for word.
+
+    The fix carries it as `pre-commit.carried`, and the generated hook execs it FIRST - its
+    failure still blocks, exactly as it did before kibsu arrived. Both tests below ran RED
+    against the pre-fix installer (no .carried file; the old hook's evidence file never
+    written; a failing old hook no longer blocking anything). Real `git commit` subprocesses
+    against the throwaway repo, same as every other hook test in this file."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_install_carried_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _repo_with_old_precommit(self, hook_body):
+        repo = make_repo(self.tmpdir, {"doc.md": "version one\n"})
+        idx_exit, _out, idx_err = run_tool("index", repo, "-o", ".kibsu/index.json")
+        self.assertEqual(idx_exit, 0, "stderr=%r" % idx_err)
+        _commit_all(repo, "build index matching current content")
+        hook = os.path.join(repo, ".git", "hooks", "pre-commit")
+        if not os.path.isdir(os.path.dirname(hook)):
+            os.makedirs(os.path.dirname(hook))
+        with open(hook, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(hook_body)
+        # The OR-with-existing-mode idiom install.py itself uses - a bare 0o755 mask
+        # is the exact overly-permissive-chmod shape CodeQL rightly flags.
+        os.chmod(hook, os.stat(hook).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        return repo
+
+    def test_issue_33_preexisting_precommit_is_carried_and_still_runs(self):
+        repo = self._repo_with_old_precommit(
+            '#!/bin/sh\necho carried-hook-ran > "$(git rev-parse --show-toplevel)/hook_evidence.txt"\nexit 0\n'
+        )
+        exit_code, stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertTrue(os.path.isfile(os.path.join(repo, ".kibsu", "hooks", "pre-commit.carried")),
+                        "the old pre-commit must be carried, not silently disabled")
+
+        import json as _json
+        with open(os.path.join(repo, ".kibsu", "install.json"), encoding="utf-8") as fh:
+            rec = _json.load(fh)
+        self.assertIn("pre-commit.carried", rec["carried_hooks"], rec)
+
+        with open(os.path.join(repo, "doc.md"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("more\n")
+        run_tool("index", repo, "-o", ".kibsu/index.json")
+        rc, _out2, err2 = run_git(repo, "add", "-A")
+        self.assertEqual(rc, 0)
+        rc, out3, err3 = run_git(repo, *(IDENTITY + ("commit", "-q", "-m", "with both hooks")))
+        self.assertEqual(rc, 0, "commit should pass both hooks: %s %s" % (out3, err3))
+        self.assertTrue(os.path.isfile(os.path.join(repo, "hook_evidence.txt")),
+                        "the carried hook's own logic must actually FIRE on commit")
+
+    def test_issue_33_failing_carried_hook_still_blocks_the_commit(self):
+        repo = self._repo_with_old_precommit(
+            '#!/bin/sh\necho "old hook says no" >&2\nexit 1\n'
+        )
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        commits_before = _commit_count(repo)
+        with open(os.path.join(repo, "doc.md"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("more\n")
+        # Re-index BEFORE committing so kibsu's own check is clean - the carried hook must be
+        # the ONLY thing standing, or this test would go red/green for the wrong reason.
+        run_tool("index", repo, "-o", ".kibsu/index.json")
+        run_git(repo, "add", "-A")
+        rc, _out, _err = run_git(repo, *(IDENTITY + ("commit", "-q", "-m", "must be blocked")))
+        self.assertNotEqual(rc, 0, "the carried hook exits 1 - the commit must block, "
+                                    "exactly as it did before kibsu arrived")
+        self.assertEqual(_commit_count(repo), commits_before)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed #33: install carries a pre-existing pre-commit hook as `pre-commit.carried` and the
+  generated hook execs it FIRST - its logic keeps firing and its failure keeps blocking,
+  exactly as before kibsu arrived. It used to be excluded from the carry list outright,
+  silently disabled the moment core.hooksPath redirected git, while the module docstring
+  promised "nothing is silently disabled". The docstring now describes the chain, the
+  dry-run preview announces it, and install.json records it.
 - Fixed #32: discover's Mandated-gates capability carries a machine-readable `scripts`
   map ({script: live|monitored|unenforced}) and guide's buckets() consumes it instead of
   regexing prose - a schedule-only gate now reads MONITORED ("still on you before a
