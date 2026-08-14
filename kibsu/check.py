@@ -54,6 +54,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 VERSION = "1.0.0"
+
+# Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
+# git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
+# allocation the kernel OOM-killer ends with a SIGKILL no `except` clause sees. 5 MB is
+# generous for instruction markdown; over-ceiling files are SKIPPED WITH A PRINTED REASON
+# on stderr (stdout stays clean for --json), never silently.
+MAX_READ_BYTES = 5 * 1024 * 1024
 OK, VIOLATIONS, WARNINGS_ONLY, CANNOT_RUN = 0, 1, 2, 3
 DEFAULT_INDEX_REL = ".kibsu/index.json"   # byte-identical to config.DEFAULTS["index_path"]
 
@@ -91,6 +98,10 @@ def tracked_md(root):
 
 def sha16(path):
     try:
+        if os.path.getsize(path) > MAX_READ_BYTES:
+            sys.stderr.write("kibsu check: skipping %s (%d bytes > %d byte ceiling)\n"
+                             % (path, os.path.getsize(path), MAX_READ_BYTES))
+            return None
         return hashlib.sha256(io.open(path, encoding="utf-8", errors="replace")
                               .read().encode("utf-8", "replace")).hexdigest()[:16]
     except Exception:
@@ -483,6 +494,10 @@ def main():
         if not t:
             continue
         try:
+            if os.path.getsize(full) > MAX_READ_BYTES:
+                sys.stderr.write("kibsu check: skipping %s (%d bytes > %d byte ceiling)\n"
+                                 % (full, os.path.getsize(full), MAX_READ_BYTES))
+                continue
             fm = parse_frontmatter(io.open(full, encoding="utf-8", errors="replace").read())
         except Exception:
             continue

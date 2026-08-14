@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed #39: every scan-path read carries a 5 MB per-file ceiling (MAX_READ_BYTES) checked
+  before the read - a scanned repo git-tracking a multi-gigabyte markdown file no longer
+  triggers an unbounded whole-file read (the realistic failure being the OOM-killer's
+  SIGKILL, which no except clause sees). Over-ceiling files are skipped with a printed
+  reason on stderr, never silently; learn.py's read - the one with no try/except at all -
+  is guarded both ways.
 - Fixed #33: install carries a pre-existing pre-commit hook as `pre-commit.carried` and the
   generated hook execs it FIRST - its logic keeps firing and its failure keeps blocking,
   exactly as before kibsu arrived. It used to be excluded from the carry list outright,
