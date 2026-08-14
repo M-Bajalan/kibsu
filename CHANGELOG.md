@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Fixed #32: discover's Mandated-gates capability carries a machine-readable `scripts`
+  map ({script: live|monitored|unenforced}) and guide's buckets() consumes it instead of
+  regexing prose - a schedule-only gate now reads MONITORED ("still on you before a
+  commit"), never ENFORCED. Unclassified scripts default to the SAFE reading (ON YOU); the
+  prose parse survives only as a fallback for older discover JSON.
+- Fixed #35: the hook indirection resolver probes a `$VAR` path's variable-stripped,
+  root-relative remainder before its bare basename - kibsu's own installed-hook idiom
+  (`$ROOT/.kibsu/bin/check.py`) is followed, so a genuinely-enforced gate no longer reads
+  INERT on the tool's own primary layout.
 - Fixed #30: the headline "in-scope mandated artifacts" aggregate applies the same
   unusable-history guard its counterfactual sibling always had - a shallow-history repo's
   mandates no longer pad the denominator while contributing nothing to the numerator. No
