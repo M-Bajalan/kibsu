@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-08-15
+
+The 2026-08-07 review's confirmed-findings ledger, closed: every high and medium shipped
+across five PRs plus the project's first outside code contribution (#40, merged from
+@Partharsid; #36's fix from @HeaTTap follows when its Windows test fixture lands). The
+scorer is untouched - still 0.6.0 - so NO published figure moves in this release; every
+change below is behavioral. Minor version, not patch: three changes are observable to
+consumers - discover's JSON gains a machine-readable `scripts` map, the installed
+pre-commit template changed (it now chains a carried pre-existing hook), and the gate's
+identity acceptance is a multiset (a surplus occurrence of an accepted violation now
+blocks, as the docstring always promised).
 
 - Fixed #39: every scan-path read carries a 5 MB per-file ceiling (MAX_READ_BYTES) checked
   before the read - a scanned repo git-tracking a multi-gigabyte markdown file no longer
