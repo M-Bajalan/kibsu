@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Fixed #29 structurally: the README's "count it yourself" paragraph is now enforced by
+  the suite - `tests/test_readme_counts.py` runs the paragraph's own commands (same glob,
+  same splitlines, same discovery count that `unittest discover` prints) and fails while
+  the prose disagrees. The counts had drifted a FOURTH time in the nine days after #29 was
+  filed, while every other finding was being fixed - the class does not die by diligence,
+  only by machine. Refreshed to the enforced truth: 5,216 / 4,616 / 172.
+
 ## 0.4.0 - 2026-08-15
 
 The 2026-08-07 review's confirmed-findings ledger, closed: every high and medium shipped
