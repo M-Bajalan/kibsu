@@ -72,6 +72,10 @@ Check out the pinned SHA and point every local ref at it (delete other branches,
 and the remote) before measuring — that reproduces the state the original measurement ran
 in, when the pin *was* the tip.
 
+---
+
+## 2026-07-31 — five scorer bugs (kibsu 0.2.0, scorer 0.5.0)
+
 An audit of this project's own measurement core (three review agents, nine adversarial
 verifiers, a thirteen-seat design council; every finding verified against source before
 being believed) confirmed five defects in `audit.py`, the scorer behind every number this
