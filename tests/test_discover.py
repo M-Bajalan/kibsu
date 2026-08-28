@@ -71,5 +71,60 @@ class DiscoverTests(unittest.TestCase):
         assert_repo_untouched(repo)
 
 
+    def test_a_different_script_whose_name_contains_the_gate_does_not_enforce_it(self):
+        """The gate classifier used bare substring containment, so any CI line mentioning a
+        LONGER filename marked the mandated script live: "lint.py" is inside "pylint.py".
+
+        The repo below mandates `lint.py` and runs `pylint.py` - a different file, doing
+        different work. Before the fix discover reported the gate as enforced and `guide`
+        passed that on as ENFORCED, so the tool asserted an enforcement that did not exist -
+        exactly the class of unbacked claim it is built to find.
+        """
+        repo = make_repo(self.tmpdir, {
+            "lint.py": "print('the mandated gate')\n",
+            "pylint.py": "print('a different script entirely')\n",
+            "CLAUDE.md": "Before commit, run `python lint.py` to check everything.\n",
+            ".github/workflows/ci.yml": (
+                "name: CI\n"
+                "on: [push]\n"
+                "jobs:\n"
+                "  check:\n"
+                "    runs-on: ubuntu-latest\n"
+                "    steps:\n"
+                "      - run: python pylint.py\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 1,
+                         "lint.py is run by nothing - expected INERT_FOUND (1); stderr=%r" % stderr)
+        self.assertIn('"state": "INERT"', stdout)
+        assert_repo_untouched(repo)
+
+    def test_a_path_qualified_invocation_still_counts_as_enforcement(self):
+        """The complement, so the boundary rule cannot quietly become too strict: a separator
+        before the name is a normal way to invoke it, not a different file."""
+        repo = make_repo(self.tmpdir, {
+            "lint.py": "print('the mandated gate')\n",
+            "CLAUDE.md": "Before commit, run `python lint.py` to check everything.\n",
+            ".github/workflows/ci.yml": (
+                "name: CI\n"
+                "on: [push]\n"
+                "jobs:\n"
+                "  check:\n"
+                "    runs-on: ubuntu-latest\n"
+                "    steps:\n"
+                "      - run: python ./lint.py --strict\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 0, "expected OK (0); stderr=%r" % stderr)
+        self.assertNotIn('"state": "INERT"', stdout)
+        assert_repo_untouched(repo)
+
+
 if __name__ == "__main__":
     unittest.main()
