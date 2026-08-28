@@ -57,7 +57,7 @@ class GateHookTemplateTests(unittest.TestCase):
     """kibsu/gate.py's HOOK constant, rendered exactly as install() renders it."""
 
     def setUp(self):
-        self.hook = gate_mod.HOOK.format(v=gate_mod.VERSION, bin=".kibsu/bin")
+        self.hook = gate_mod.HOOK.format(v=gate_mod.VERSION, bin=".kibsu/bin", hooks=".kibsu/hooks")
 
     def test_old_naive_presence_check_is_gone(self):
         self.assertNotIn(OLD_GATE_LINE, self.hook)
