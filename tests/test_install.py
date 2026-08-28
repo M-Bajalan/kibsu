@@ -281,6 +281,48 @@ class InstallTests(unittest.TestCase):
         assert_repo_untouched(repo)
 
     # ---- --status: a read-only report, documented as always 0 ------------------------------
+    # ---- uninstall never reaches outside the repo it was pointed at -----------------------
+
+    def test_uninstall_refuses_paths_that_resolve_outside_the_repo(self):
+        """A tampered install.json must not turn `--uninstall` into an arbitrary file delete.
+
+        kibsu is pointed at repos it did NOT author - that is the whole job - so .kibsu/install.json
+        is untrusted input read off disk, not our own bookkeeping. Before the containment check,
+        uninstall built its delete list with a bare os.path.join(root, declared), which silently
+        DISCARDS root when `declared` is absolute and happily walks out of the tree on "..".
+        Both canaries below are deleted by the unfixed code.
+        """
+        repo = self._prepare_repo_with_clean_index()
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        outside = os.path.dirname(os.path.abspath(repo))
+        traversal_canary = os.path.join(outside, "traversal_canary.txt")
+        absolute_canary = os.path.join(outside, "absolute_canary.txt")
+        for c in (traversal_canary, absolute_canary):
+            with io.open(c, "w", encoding="utf-8") as fh:
+                fh.write("must survive uninstall\n")
+
+        ij_path = os.path.join(repo, ".kibsu", "install.json")
+        with io.open(ij_path, encoding="utf-8") as fh:
+            rec = json.load(fh)
+        rec["files_written"] = list(rec.get("files_written", [])) + [
+            "../traversal_canary.txt",                       # walks out with ".."
+            absolute_canary.replace("\\", "/"),              # absolute: os.path.join drops root
+        ]
+        with io.open(ij_path, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec))
+
+        exit_code, stdout, stderr = run_tool("install", repo, "--uninstall")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        self.assertTrue(os.path.isfile(traversal_canary),
+                        "uninstall deleted a file outside the repo via '..' traversal")
+        self.assertTrue(os.path.isfile(absolute_canary),
+                        "uninstall deleted a file outside the repo via an absolute path")
+        # The skip is announced, never silent - the same disclosure rule the size guard follows.
+        self.assertIn("refusing to remove", stderr)
+
     def test_status_exits_zero_and_never_writes_on_a_plain_repo(self):
         """Per install.py's EXIT CODES section, --status always returns 0 - it is a read-only
         report with nothing to fail on, even against a repo that was never installed into (no
