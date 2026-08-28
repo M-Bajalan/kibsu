@@ -488,6 +488,12 @@ META = {"readme", "contributing", "license", "licence", "changelog", "code_of_co
 INSTR_DIRS = {"skills", "agents", "subagents", "commands", "rules", "prompts", "plugins",
               ".claude", ".cursor", "categories"}
 
+# Root-level instruction files. Mirrors config.DEFAULTS["instruction_files"] rather than
+# importing it: audit.py is vendored standalone into .kibsu/bin, where there is no package
+# around it for `from . import config` to resolve (the same reason gate.py imports config
+# bare). test_audit.py asserts the two lists are identical, so the copy cannot drift quietly.
+INSTRUCTION_FILES = ("AGENTS.md", "CLAUDE.md", ".cursorrules")
+
 
 def _walk(root):
     for dp, dn, fn in os.walk(root):
@@ -505,6 +511,22 @@ def find_skills(root):
     hits = [os.path.join(dp, f) for dp, fn in _walk(root) for f in fn if ok(f) and (parts(dp) & INSTR_DIRS)]
     if hits:
         return hits, "instruction-dir/*.md"
+    # A repo whose whole agent contract is a root AGENTS.md / CLAUDE.md. This is the layout the
+    # README leads with and the one config.DEFAULTS has always declared, and it was the one
+    # layout this function could not see: with no SKILL.md and no instruction directory it fell
+    # straight to the catch-all below and was measured as "every .md in the repo", so `report`
+    # declined to measure it at all and told a repo whose only file was AGENTS.md that there was
+    # "no agent-instruction directory found. Nothing here tells agents how to work."
+    #
+    # Deliberately placed BELOW both directory modes: a repo that has a real instruction
+    # directory keeps being measured by that directory, so no existing measurement changes. At
+    # the ten pinned survey SHAs the two repos that land in the catch-all (contains-studio/agents,
+    # sanjeed5/awesome-cursor-rules-mdc) carry none of these files at root, so no published
+    # figure moves either - checked against evidence/*.json before this was written.
+    roots = [os.path.join(root, f) for f in INSTRUCTION_FILES
+             if os.path.isfile(os.path.join(root, f))]
+    if roots:
+        return roots, "instruction-files"
     return [os.path.join(dp, f) for dp, fn in _walk(root) for f in fn if ok(f)], "*.md (no instruction dir)"
 
 
