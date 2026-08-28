@@ -238,6 +238,25 @@ def split_rules(items, declared):
 
 PATHISH_RE = re.compile(r"[\w.\-/\\]+/[\w.\-/\\]+")
 
+# The path a violation is ABOUT, as opposed to any path its prose happens to mention. The
+# shared gate contract puts the subject FIRST - "file.py:120 .unsafe_call" - and everything
+# after it describes the finding. PATHISH_RE anchored at the start, with an optional ":<line>"
+# suffix consumed so "src/a.py:120" asks git about "src/a.py" and not about a path with a line
+# number glued to it (which is ignored by nothing, because it exists nowhere).
+DECLARED_PATH_RE = re.compile(r"^(" + PATHISH_RE.pattern + r")(?::\d+)?(?:[\s:]|$)")
+
+# What to do with a violation whose item text declares NO leading path. False = treat it as
+# NOT ignored, so it still counts and can block. That is the strict reading: a gate that
+# cannot tell which file a finding is about should not be the thing that waves it through.
+IGNORE_PATHLESS_VIOLATIONS = False
+
+
+def declared_path(text):
+    """The path this violation is about, or None when the item does not lead with one."""
+    m = DECLARED_PATH_RE.match(text.strip())
+    return m.group(1).replace("\\", "/") if m else None
+
+
 
 def ignored(root, texts):
     """Of the paths mentioned in these violations, which does git IGNORE?
@@ -251,10 +270,7 @@ def ignored(root, texts):
     those logs are gitignored and NONE is tracked. So the gate was refusing a commit over files
     that can never be part of one, on a schedule, forever - roughly four times a day. That is
     precisely how a gate earns its own removal."""
-    cands = []
-    for t in texts:
-        for m in PATHISH_RE.findall(t):
-            cands.append(m.replace("\\", "/"))
+    cands = [p for p in (declared_path(t) for t in texts) if p]
     if not cands:
         return set()
     # -z and BINARY pipes, deliberately. In text mode on Windows Python translates the "\n"
@@ -273,7 +289,20 @@ def ignored(root, texts):
 
 
 def is_ignored_violation(text, ign):
-    return any(m.replace("\\", "/") in ign for m in PATHISH_RE.findall(text))
+    """Is THIS violation about a gitignored file?
+
+    It used to be `any(path-shaped substring anywhere in the message is ignored)`, which is a
+    false-PASS generator: a real, new violation in a tracked file was silently dropped from the
+    count whenever its description happened to name an ignored path - "unsafe eval - compare
+    docs/examples/safe.py" vanished because docs/examples/ is gitignored. The gate then printed
+    PASS and allowed the commit. For a tool whose entire argument is that enforcement must be
+    real, a gate that can be talked out of a finding by the wording of its own message is the
+    worst defect available. Only the violation's declared subject is consulted now.
+    """
+    p = declared_path(text)
+    if p is None:
+        return IGNORE_PATHLESS_VIOLATIONS
+    return p in ign
 
 
 def _empty_gate_baseline():
