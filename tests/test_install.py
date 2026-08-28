@@ -23,6 +23,8 @@ detection itself (what check.py reports and why) is covered in test_check.py and
 black box: a hook-blocked commit here is verified by exit code and by the presence of check.py's
 own "commit blocked by ns_check" text, not by re-deriving STALE semantics.
 """
+import io
+import json
 import os
 import shutil
 import stat
@@ -204,6 +206,61 @@ class InstallTests(unittest.TestCase):
             _hooks_path(repo), before,
             "uninstall must restore the PRIOR custom hooksPath exactly, not merely unset it",
         )
+
+    def test_reinstall_force_does_not_overwrite_previous_hookspath_with_our_own(self):
+        """A second --install --force must not record kibsu's own hooks dir as what to restore.
+
+        `prev = current_hookspath(root)` answers "what is set right now", which after a first
+        install is `.kibsu/hooks`. So re-running --install --force over an existing install
+        overwrote previous_hookspath with OUR path, and --uninstall then "restored"
+        core.hooksPath to a directory whose hook it had just deleted: the user's real setting
+        lost, and no hooks running at all. Reproduced end to end before the fix - the record
+        went `.myhooks` -> `.kibsu\\hooks`, and uninstall left core.hooksPath at `.kibsu\\hooks`.
+        """
+        repo = make_repo(self.tmpdir, {"doc.md": "hello\n"})
+        os.makedirs(os.path.join(repo, "custom-hooks"), exist_ok=True)
+        rc, out, err = run_git(repo, "config", "core.hooksPath", "custom-hooks")
+        self.assertEqual(rc, 0, "git config failed: %s" % (err or out))
+
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install", "--force")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        with io.open(os.path.join(repo, ".kibsu", "install.json"), encoding="utf-8") as fh:
+            first = json.load(fh)
+        self.assertEqual(first["previous_hookspath"], "custom-hooks")
+
+        # The re-install. This is the step that used to lose the answer.
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install", "--force")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        with io.open(os.path.join(repo, ".kibsu", "install.json"), encoding="utf-8") as fh:
+            second = json.load(fh)
+        self.assertEqual(
+            second["previous_hookspath"], "custom-hooks",
+            "a forced re-install must carry the ORIGINAL previous_hookspath forward, "
+            "not re-capture kibsu's own hooks dir",
+        )
+
+        exit_code, _stdout, stderr = run_tool("install", repo, "--uninstall")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertEqual(_hooks_path(repo), "custom-hooks",
+                         "uninstall after a forced re-install must still restore the user's own path")
+
+    def test_reinstall_force_records_a_genuinely_new_hookspath_set_since_install(self):
+        """The complement: if the user pointed core.hooksPath somewhere else AFTER installing,
+        that is a real previous value and must be recorded as one - the carry-forward applies
+        only when the current value is in fact ours."""
+        repo = make_repo(self.tmpdir, {"doc.md": "hello\n"})
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        os.makedirs(os.path.join(repo, "later-hooks"), exist_ok=True)
+        rc, out, err = run_git(repo, "config", "core.hooksPath", "later-hooks")
+        self.assertEqual(rc, 0, "git config failed: %s" % (err or out))
+
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install", "--force")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        with io.open(os.path.join(repo, ".kibsu", "install.json"), encoding="utf-8") as fh:
+            rec = json.load(fh)
+        self.assertEqual(rec["previous_hookspath"], "later-hooks")
 
     # ---- refusal: an already-set core.hooksPath is never silently overwritten -------------
     def test_install_refuses_when_hookspath_already_set(self):
