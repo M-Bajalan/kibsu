@@ -29,6 +29,44 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from support import make_repo, run_tool, assert_repo_untouched
 
 
+class RootInstructionFileReportTests(unittest.TestCase):
+    """`kibsu report` on the layout the README leads with must measure, not abstain."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_report_root_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_a_root_agents_md_is_measured_not_reported_as_absent(self):
+        """Before the fallback, a repo whose ONLY file was AGENTS.md was told
+        "no agent-instruction directory found. Nothing here tells agents how to work." - at a
+        repo that plainly does. Q3 and Q4 both abstained, so the flagship first-run command
+        printed three unanswerable questions to every newcomer using the documented layout.
+        """
+        repo = make_repo(self.tmpdir, {
+            "AGENTS.md": (
+                "- Run `python -m pytest` before every commit.\n"
+                "- Create `docs/decisions.md` when you make an architectural choice.\n"
+            ),
+        })
+        exit_code, stdout, stderr = run_tool("report", repo)
+        # 3 is report's own CANNOT_RUN, earned here by Q5 alone (no index to check history
+        # against). What matters is that Q3/Q4 no longer abstain - before the fallback this
+        # same repo abstained on THREE questions, two of them for want of a directory.
+        self.assertIn(exit_code, (0, 3), "stderr=%r" % stderr)
+        self.assertNotIn("no agent-instruction directory found", stdout)
+
+        def line_for(question):
+            hits = [ln for ln in stdout.splitlines() if question in ln]
+            self.assertEqual(len(hits), 1, "expected one %r line in:\n%s" % (question, stdout))
+            return hits[0]
+
+        self.assertNotIn("COULD NOT CHECK", line_for("Prove they followed"))
+        self.assertNotIn("COULD NOT CHECK", line_for("Resume after a break"))
+        assert_repo_untouched(repo)
+
+
 class ReportTests(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_report_")
