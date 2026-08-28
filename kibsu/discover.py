@@ -100,6 +100,28 @@ def git(root, *args):
         return None
 
 
+NAME_BOUNDARY = (r"(?<![\w.\-])%s(?![\w\-])")
+
+
+def names_script(text, name):
+    """Does this runner/scheduler text actually invoke THIS script?
+
+    It used to be a bare `name in text`, and substring containment is far too loose for a
+    filename: "lint.py" is inside "pylint.py", "check.py" is inside "spellcheck.py", and a
+    commented-out "# see also other_check.py" matched too. Any of those marked a script LIVE,
+    so `discover` reported a gate as enforced when nothing ran it and `guide` passed that on
+    as ENFORCED - the tool making exactly the kind of unbacked claim it exists to find.
+
+    The name must appear as a whole path component. A path separator or quote or space before
+    it is fine and expected (tools/lint.py, "lint.py"); a word character, dot or hyphen is not,
+    because that is a DIFFERENT filename. Trailing word characters are rejected the same way,
+    so "lint.pyc" no longer answers for "lint.py".
+    """
+    if not name:
+        return False
+    return re.search(NAME_BOUNDARY % re.escape(name), text) is not None
+
+
 def capability(name, state, detail, evidence="", scripts=None):
     """`scripts`, when given, is {script: "live"|"monitored"|"unenforced"} - the
     machine-readable form of what detail/evidence say in prose. guide.py consumes THIS
@@ -290,10 +312,11 @@ def main():
     script_states = {}
     for script, where in sorted(doc_hits.items()):
         base = os.path.basename(script)
-        if base in runner_text or script in runner_text:
+        if names_script(runner_text, base) or names_script(runner_text, script):
             script_states[script] = "live"
             continue
-        if sched_text and (base in sched_text or script.replace("/", "\\") in sched_text):
+        if sched_text and (names_script(sched_text, base)
+                           or names_script(sched_text, script.replace("/", "\\"))):
             monitored.append((script, sorted(where)))
             script_states[script] = "monitored"
             continue
