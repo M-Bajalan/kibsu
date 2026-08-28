@@ -67,6 +67,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -119,6 +120,22 @@ HOOK = """#!/bin/sh
 # same fail-safe posture gate.py's own --check documents for python/module trouble.
 root=$(git rev-parse --show-toplevel) || exit 0
 gate_tool="$root/{bin}/gate.py"
+
+# A pre-commit that existed BEFORE this install is carried, not silently disabled: it runs
+# FIRST and its failure still blocks, exactly as it did before kibsu arrived. Same contract
+# install.py has honoured since issue #33 - setting core.hooksPath makes git stop reading
+# .git/hooks entirely, so without this the user's own gate simply stops firing. Exec'd
+# directly so its own shebang picks the interpreter, the way git itself ran it.
+carried="$root/{hooks}/pre-commit.carried"
+if [ -f "$carried" ]; then
+  "$carried" "$@"
+  crc=$?
+  if [ $crc -ne 0 ]; then
+    echo "kibsu gate: commit blocked by the carried pre-existing pre-commit hook (exit $crc)." 1>&2
+    echo "kibsu gate: it lives at {hooks}/pre-commit.carried - it predates kibsu and still applies." 1>&2
+    exit $crc
+  fi
+fi
 
 # Windows ships a "python"/"python3" App Execution Alias stub even on a machine with NO real
 # interpreter installed: `command -v` finds it happily, but running it only prints a Microsoft
@@ -657,6 +674,29 @@ def status(root):
 
 
 # ---------------------------------------------------------------------------- install --------
+def carried_copies(root):
+    """Files in .kibsu/hooks that this installer carried in, and may therefore remove.
+
+    gate.py writes no install record (unlike install.py's install.json), so "what did I carry"
+    has to be re-derived. A file qualifies only when it is provably a copy: either the
+    pre-commit.carried rename this installer creates, or a name that still exists in
+    .git/hooks. Anything else in that directory was put there by somebody else and is left
+    alone - uninstall removing a file it did not write would be the same class of damage this
+    carry exists to prevent.
+    """
+    hooks_abs = os.path.join(root, HOOKS_REL)
+    default_hooks = os.path.join(root, ".git", "hooks")
+    if not os.path.isdir(hooks_abs):
+        return []
+    out = []
+    for f in sorted(os.listdir(hooks_abs)):
+        if f == "pre-commit" or not os.path.isfile(os.path.join(hooks_abs, f)):
+            continue
+        if f == "pre-commit.carried" or os.path.isfile(os.path.join(default_hooks, f)):
+            out.append(f)
+    return out
+
+
 def install(root, apply_):
     hp = git(root, "config", "--get", "core.hooksPath")
     hooks_abs = os.path.join(root, HOOKS_REL)
@@ -671,10 +711,17 @@ def install(root, apply_):
         print("  REFUSED: core.hooksPath is already set to '%s'." % hp)
         print("  Overwriting it would silently disable whatever installed that. Resolve by hand.")
         return 1
-    existing = []
-    d = os.path.join(root, ".git", "hooks")
-    if os.path.isdir(d):
-        existing = [f for f in os.listdir(d) if not f.endswith(".sample")]
+    default_hooks = os.path.join(root, ".git", "hooks")
+    carry, carried_precommit = [], False
+    if os.path.isdir(default_hooks):
+        carry = [f for f in sorted(os.listdir(default_hooks))
+                 if not f.endswith(".sample")
+                 and os.path.isfile(os.path.join(default_hooks, f))]
+        # The one name this installer also writes cannot keep it - it is carried under a
+        # recorded rename and the generated hook execs it first, its failure still blocking.
+        if "pre-commit" in carry:
+            carry.remove("pre-commit")
+            carried_precommit = True
     if load_baseline(root) is None:
         print("  REFUSED: no baseline yet. Run this first, and read what it accepts:")
         print("      python -m kibsu gate --baseline")
@@ -698,9 +745,12 @@ def install(root, apply_):
     print("  vendor   %s/{%s}  (hook execs the vendored gate.py; kibsu need not be importable)"
           % (BIN_REL, ", ".join(VENDOR_FILES)))
     print("  set      core.hooksPath = %s   (currently: %s)" % (HOOKS_REL, hp or "unset"))
-    if existing:
-        print("  WARNING  core.hooksPath REPLACES .git/hooks. These stop running: %s"
-              % ", ".join(existing))
+    if carry:
+        print("  carry    existing hooks into the new dir: %s   (copies; the originals in "
+              ".git/hooks are untouched)" % ", ".join(carry))
+    if carried_precommit:
+        print("  carry    the existing pre-commit as pre-commit.carried - it runs FIRST on "
+              "every commit and its failure still blocks")
     print("  reverse  python -m kibsu gate --uninstall --apply")
     print("  " + "-" * 70)
     if not apply_:
@@ -713,8 +763,20 @@ def install(root, apply_):
         os.makedirs(bin_abs)
     for f in VENDOR_FILES:
         shutil.copy2(os.path.join(here, f), os.path.join(bin_abs, f))
+    for f in carry:
+        shutil.copy2(os.path.join(default_hooks, f), os.path.join(hooks_abs, f))
+    if carried_precommit:
+        dst = os.path.join(hooks_abs, "pre-commit.carried")
+        shutil.copy2(os.path.join(default_hooks, "pre-commit"), dst)
+        try:
+            os.chmod(dst, os.stat(dst).st_mode | stat.S_IXUSR)
+        except OSError:
+            # chmod is best-effort on Windows, where the x bit is not what makes a file
+            # runnable; the carried hook is exec'd by its shebang either way.
+            pass
     with io.open(hook_path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(HOOK.format(v=VERSION, bin=BIN_REL.replace("\\", "/")))
+        f.write(HOOK.format(v=VERSION, bin=BIN_REL.replace("\\", "/"),
+                            hooks=HOOKS_REL.replace("\\", "/")))
     try:
         # 0o700, not 0o755: the installing user IS the committing user, so nobody else
         # needs read or execute on the hook (CodeQL py/overly-permissive-file).
@@ -738,6 +800,11 @@ def uninstall(root, apply_):
     else:
         print("  unset    core.hooksPath   (was: %s)" % (hp or "unset"))
     print("  remove   %s" % os.path.join(HOOKS_REL, "pre-commit"))
+    copies = carried_copies(root)
+    if copies:
+        print("  remove   %s   (carried COPIES; the originals in .git/hooks are untouched and "
+              "start running again the moment core.hooksPath is unset)"
+              % ", ".join(HOOKS_REL.replace("\\", "/") + "/" + f for f in copies))
     if vendored_present:
         print("  remove   %s   (vendored at install, not your data)"
               % ", ".join(BIN_REL + "/" + f for f in vendored_present))
@@ -751,6 +818,10 @@ def uninstall(root, apply_):
         run(["git", "-C", root, "config", "--unset", "core.hooksPath"])
     if os.path.isfile(hook_path):
         os.remove(hook_path)
+    for f in copies:
+        cp = os.path.join(root, HOOKS_REL, f)
+        if os.path.isfile(cp):
+            os.remove(cp)
     for f in VENDOR_FILES:
         p = os.path.join(bin_abs, f)
         if os.path.isfile(p):

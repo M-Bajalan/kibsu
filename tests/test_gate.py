@@ -24,6 +24,7 @@ whether `kibsu` happens to be importable anywhere on this machine.
 """
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import unittest
@@ -82,6 +83,94 @@ def _write(repo, relpath, content):
         os.makedirs(parent)
     with open(full, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(content)
+
+
+class GateCarriedPreCommitTests(unittest.TestCase):
+    """The #33 contract, applied to the gate installer that never had it.
+
+    install.py was fixed for issue #33: setting core.hooksPath makes git stop reading
+    .git/hooks entirely, so a pre-existing pre-commit hook must be CARRIED and chained or it
+    silently stops firing. `kibsu gate --install` computed that same list of existing hooks and
+    used it for one thing only - printing "These stop running: pre-commit" - then redirected
+    core.hooksPath and left the original orphaned forever, with its logic living nowhere under
+    .kibsu/. A repo whose pre-commit blocked every commit carrying a secret would, after
+    running the documented one-liner, commit them silently.
+
+    Both tests ran RED against the pre-fix gate installer: no .carried file, and a failing old
+    hook no longer blocking anything."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_gate_carried_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _repo_with_old_precommit(self, hook_body):
+        """A gate-configured, baselined repo that ALSO has a pre-existing pre-commit hook."""
+        repo = make_repo(self.tmpdir, {
+            "gate_widgets.py": GATE_WIDGETS_SCRIPT,
+            "widgets.txt": "a\n",
+            ".kibsu.json": '{"gates": [{"name": "widgets", "cmd": ["'
+                           + sys.executable.replace("\\", "/")
+                           + '", "gate_widgets.py"]}]}\n',
+        })
+        baseline_exit, _out, baseline_err = run_tool("gate", "--baseline", "--repo", repo)
+        self.assertEqual(baseline_exit, 0, "stderr=%r" % baseline_err)
+        _commit_all(repo, "accept the pre-existing widgets violation")
+
+        hook = os.path.join(repo, ".git", "hooks", "pre-commit")
+        if not os.path.isdir(os.path.dirname(hook)):
+            os.makedirs(os.path.dirname(hook))
+        with open(hook, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(hook_body)
+        # OR-with-existing-mode, the idiom install.py uses - a bare 0o755 mask is the
+        # overly-permissive-chmod shape CodeQL rightly flags.
+        os.chmod(hook, os.stat(hook).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        return repo
+
+    def test_gate_install_carries_a_preexisting_precommit_and_it_still_runs(self):
+        repo = self._repo_with_old_precommit(
+            '#!/bin/sh\necho carried-gate-hook-ran > "$(git rev-parse --show-toplevel)/hook_evidence.txt"\nexit 0\n'
+        )
+        exit_code, stdout, stderr = run_tool("gate", "--install", "--apply", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertIn("INSTALLED", stdout)
+        self.assertTrue(
+            os.path.isfile(os.path.join(repo, ".kibsu", "hooks", "pre-commit.carried")),
+            "the old pre-commit must be carried, not merely warned about")
+
+        _commit_all(repo, "install the gate hook")
+        rc, out, err = run_git(repo, *(IDENTITY + ("commit", "--allow-empty", "-q", "-m", "both hooks")))
+        self.assertEqual(rc, 0, "commit should pass both hooks: %s %s" % (out, err))
+        self.assertTrue(os.path.isfile(os.path.join(repo, "hook_evidence.txt")),
+                        "the carried hook's own logic must actually FIRE on commit")
+
+    def test_gate_install_failing_carried_hook_still_blocks_the_commit(self):
+        repo = self._repo_with_old_precommit('#!/bin/sh\necho "old hook says no" >&2\nexit 1\n')
+        exit_code, _stdout, stderr = run_tool("gate", "--install", "--apply", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        # No setup commit here: the carried hook exits 1 unconditionally, so committing the
+        # install artifacts would itself be blocked. The hook fires on --allow-empty anyway.
+        commits_before = _commit_count(repo)
+        rc, out, err = run_git(repo, *(IDENTITY + ("commit", "--allow-empty", "-m", "should be blocked")))
+
+        combined = out + err
+        self.assertNotEqual(rc, 0, "the carried hook exits 1 - the commit must be BLOCKED:\n%s" % combined)
+        self.assertIn("carried pre-existing pre-commit hook", combined)
+        self.assertEqual(_commit_count(repo), commits_before)
+
+    def test_gate_uninstall_removes_the_carried_copy_and_leaves_the_original(self):
+        repo = self._repo_with_old_precommit('#!/bin/sh\necho "old hook says no" >&2\nexit 1\n')
+        exit_code, _stdout, stderr = run_tool("gate", "--install", "--apply", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        exit_code, stdout, stderr = run_tool("gate", "--uninstall", "--apply", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertFalse(os.path.isfile(os.path.join(repo, ".kibsu", "hooks", "pre-commit.carried")),
+                         "the carried COPY must not survive uninstall")
+        # The original was never moved, only copied - so it resumes the moment hooksPath is unset.
+        self.assertTrue(os.path.isfile(os.path.join(repo, ".git", "hooks", "pre-commit")),
+                        "the ORIGINAL hook must be untouched by install or uninstall")
 
 
 class GateTests(unittest.TestCase):
