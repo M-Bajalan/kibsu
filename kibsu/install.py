@@ -299,6 +299,27 @@ def install(root, dry, force, index_rel, baseline_rel):
     return 0
 
 
+def _inside(root, rel):
+    """Absolute path for a record-declared path, or None when it escapes the repo.
+
+    install.json is READ from the target repo, and kibsu is pointed at repos it did not
+    author - so this record is untrusted input, not our own bookkeeping. Two ways a declared
+    path leaves the tree, both silent: os.path.join() DISCARDS root entirely when the second
+    argument is absolute (join("C:/repo", "C:/Windows/x") -> "C:/Windows/x"), and a
+    "../../.." prefix simply walks out. Either one would hand uninstall's os.remove() an
+    arbitrary file on the disk. Resolve the pair, then require the result to BE root or sit
+    under it; symlinks are resolved first so a link inside the repo cannot point outside it.
+    normcase because Windows compares paths case-insensitively, so the same directory
+    can arrive spelled two ways and a raw string compare would miss the match.
+    """
+    root_r = os.path.realpath(root)
+    target = os.path.realpath(os.path.join(root_r, rel.replace("/", os.sep)))
+    root_n, target_n = os.path.normcase(root_r), os.path.normcase(target)
+    if target_n == root_n or target_n.startswith(root_n + os.sep):
+        return target
+    return None
+
+
 def uninstall(root, dry, purge=False):
     ij = os.path.join(root, INSTALL_JSON)
     if not os.path.isfile(ij):
@@ -313,9 +334,15 @@ def uninstall(root, dry, purge=False):
     print("ns_install v%s   uninstall   %s%s" % (VERSION, root, "   [DRY RUN]" if dry else ""))
     print("  restore  core.hooksPath -> %s" % (prev or "(unset)"))
     for f in rec.get("files_written", []):
-        print("  remove   %s" % f)
+        if _inside(root, f) is None:
+            print("  REFUSED  %s - resolves outside the repo; not removed." % f)
+        else:
+            print("  remove   %s" % f)
     for f in rec.get("vendored", []):
-        print("  remove   %s   (vendored at install, not your data)" % f)
+        if _inside(root, f) is None:
+            print("  REFUSED  %s - resolves outside the repo; not removed." % f)
+        else:
+            print("  remove   %s   (vendored at install, not your data)" % f)
     if rec.get("carried_hooks"):
         print("  NOTE     carried hooks (%s) were copies; the originals in .git/hooks are untouched"
               % ", ".join(rec["carried_hooks"]))
@@ -336,7 +363,11 @@ def uninstall(root, dry, purge=False):
     else:
         run(["git", "config", "--unset", "core.hooksPath"], root)
     for f in list(rec.get("files_written", [])) + list(rec.get("vendored", [])):
-        p = os.path.join(root, f.replace("/", os.sep))
+        p = _inside(root, f)
+        if p is None:
+            sys.stderr.write("kibsu install: refusing to remove %r - it resolves "
+                             "outside %s\n" % (f, root))
+            continue
         if os.path.isfile(p):
             os.remove(p)
     if purge:
