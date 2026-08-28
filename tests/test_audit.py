@@ -27,6 +27,67 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from support import make_repo, run_tool, assert_repo_untouched
 from kibsu.audit import VERSION as SCORER_VERSION
 from kibsu.audit import analyse, strip_frontmatter
+from kibsu import audit as audit_mod
+from kibsu import config as config_mod
+
+
+class RootInstructionFileDiscoveryTests(unittest.TestCase):
+    """find_skills() must see the layout the README leads with: a root AGENTS.md / CLAUDE.md."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_rootinstr_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _tree(self, files):
+        root = os.path.join(self.tmpdir, "repo")
+        for rel, content in files.items():
+            full = os.path.join(root, rel.replace("/", os.sep))
+            parent = os.path.dirname(full)
+            if parent and not os.path.isdir(parent):
+                os.makedirs(parent)
+            with open(full, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(content)
+        return root
+
+    def test_instruction_files_constant_matches_the_shared_config_default(self):
+        """audit.py mirrors config.DEFAULTS rather than importing it (it is vendored standalone
+        into .kibsu/bin, where there is no package for `from . import config` to resolve). A
+        mirrored constant drifts unless a machine watches it - so this is that machine."""
+        self.assertEqual(
+            list(audit_mod.INSTRUCTION_FILES),
+            list(config_mod.DEFAULTS["instruction_files"]),
+            "audit.INSTRUCTION_FILES has drifted from config.DEFAULTS['instruction_files']",
+        )
+
+    def test_root_agents_md_is_discovered_instead_of_falling_to_the_catch_all(self):
+        root = self._tree({
+            "AGENTS.md": "- Run `pytest` before every commit.\n",
+            "README.md": "# readme\n",
+            "docs/notes.md": "- Some unrelated note.\n",
+        })
+        files, mode = audit_mod.find_skills(root)
+        self.assertEqual(mode, "instruction-files")
+        self.assertEqual([os.path.basename(f) for f in files], ["AGENTS.md"])
+
+    def test_an_instruction_directory_still_wins_so_no_existing_measurement_moves(self):
+        """The new mode sits BELOW both directory modes on purpose: any repo that already had a
+        real instruction directory must keep being measured by that directory."""
+        root = self._tree({
+            "AGENTS.md": "- Run `pytest` before every commit.\n",
+            ".claude/skills/thing.md": "- Do the thing and write `out.md`.\n",
+        })
+        files, mode = audit_mod.find_skills(root)
+        self.assertEqual(mode, "instruction-dir/*.md")
+        self.assertEqual([os.path.basename(f) for f in files], ["thing.md"])
+
+    def test_a_repo_with_no_instruction_files_still_reaches_the_catch_all(self):
+        """The two pinned survey repos that land in the catch-all carry none of these files at
+        root; this pins that the catch-all is still reachable, so their figures cannot move."""
+        root = self._tree({"README.md": "# readme\n", "docs/notes.md": "- A note.\n"})
+        _files, mode = audit_mod.find_skills(root)
+        self.assertEqual(mode, "*.md (no instruction dir)")
 
 
 class AuditTests(unittest.TestCase):

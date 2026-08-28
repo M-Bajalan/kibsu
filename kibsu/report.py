@@ -118,6 +118,16 @@ def find_skills_dir(root, cfg=None):
     return None
 
 
+def root_instruction_files(root, cfg=None):
+    """Root-level agent-instruction files present in this repo, per cfg["instruction_files"].
+
+    Kept separate from find_skills_dir() because it answers a different question: not "which
+    directory holds the instructions" but "does this repo use the no-directory layout at all".
+    """
+    names = (cfg or {}).get("instruction_files") or config.DEFAULTS["instruction_files"]
+    return [n for n in names if os.path.isfile(os.path.join(root, n.replace("/", os.sep)))]
+
+
 def q(p):
     """Quote a path only when it needs it. These lines are meant to be pasted, and an
     unquoted C:\\My Repos\\x silently becomes two arguments."""
@@ -153,6 +163,12 @@ def main():
 
     idx = index_json(root)
     skills = a.skills or find_skills_dir(root, cfg)
+    if not skills and root_instruction_files(root, cfg):
+        # No instruction DIRECTORY, but the repo does carry the root-file layout. Hand audit the
+        # repo root: find_skills()'s instruction-files mode picks up exactly those files and
+        # nothing else, so Q3/Q4 get measured instead of printing "COULD NOT CHECK" at a repo
+        # that plainly does tell agents how to work.
+        skills = root
     sk = audit_json(skills, ["--artifacts"]) if skills else None
 
     findings, score = [], 0
