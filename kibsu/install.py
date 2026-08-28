@@ -201,6 +201,36 @@ def status(root):
     return 0
 
 
+def _is_our_hookspath(value):
+    """Is this core.hooksPath value pointing at the directory this installer writes?
+
+    Compared on both separators: git stores whatever string it was given, and HOOKS_DIR is
+    built with os.path.join, so the same directory reads as ".kibsu\\hooks" on Windows and
+    ".kibsu/hooks" everywhere else - and either spelling can already be on disk from an
+    install done on the other platform.
+    """
+    if not value:
+        return False
+    norm = value.replace("\\", "/").rstrip("/")
+    return norm == HOOKS_DIR.replace("\\", "/").rstrip("/")
+
+
+def _read_install_json(root):
+    """The existing install record, or None when there isn't one we can read."""
+    p = os.path.join(root, INSTALL_JSON)
+    if not os.path.isfile(p):
+        return None
+    try:
+        with io.open(p, encoding="utf-8") as fh:
+            rec = json.load(fh)
+        return rec if isinstance(rec, dict) else None
+    except Exception:
+        # A record we cannot parse tells us nothing about what preceded kibsu. Returning None
+        # leaves previous_hookspath unset, which uninstall treats as "unset core.hooksPath" -
+        # the safe end state, and never a claim that our own directory came first.
+        return None
+
+
 def install(root, dry, force, index_rel, baseline_rel):
     gd = git_dir(root)
     if not gd:
@@ -211,6 +241,18 @@ def install(root, dry, force, index_rel, baseline_rel):
         print("  REFUSED: already installed (%s). Use --uninstall first, or --force." % INSTALL_JSON)
         return 3
     prev = current_hookspath(root)
+    # A re-install over an ALREADY-installed kibsu must not record kibsu's own hooks dir as the
+    # thing to restore. current_hookspath() answers "what is set right now", which after a first
+    # install is `.kibsu/hooks` - so a second `--install --force` overwrote previous_hookspath
+    # with our own path, and `--uninstall` then "restored" core.hooksPath to a directory whose
+    # hook it had just deleted: the user's real setting gone, and NO hooks running at all.
+    #
+    # The prior record is the authority for what predates kibsu, but only when the current value
+    # is in fact ours. If the user pointed core.hooksPath somewhere else since the last install,
+    # that IS a genuine previous value and is recorded as one.
+    if prev and _is_our_hookspath(prev):
+        old_rec = _read_install_json(root)
+        prev = old_rec.get("previous_hookspath") if old_rec else None
     if prev and not force:
         print("  REFUSED: core.hooksPath is already set to '%s'." % prev)
         print("  Overwriting it would silently disable those hooks. Re-run with --force to")
