@@ -137,6 +137,63 @@ class GateTests(unittest.TestCase):
         self.assertIn("[R1] b", combined)
         self.assertEqual(_commit_count(repo), commits_before)
 
+    # ---- a violation is judged by ITS OWN path, not by paths its prose mentions ---------
+
+    def test_new_violation_is_not_excused_by_an_ignored_path_in_its_message(self):
+        """A finding about a TRACKED file must still block when its text names an ignored path.
+
+        `is_ignored_violation()` used to ask "is ANY path-shaped substring anywhere in this
+        message gitignored?". A perfectly ordinary see-also reference in the description -
+        "unsafe eval - compare docs/examples/safe.py" - therefore excused a real, new violation
+        in a tracked file: the item was dropped from the count, the gate printed PASS, and the
+        commit went through with the defect in it. The gate is now judged on the violation's
+        declared subject, the path the item leads with.
+        """
+        repo = self._install_with_one_accepted_violation(
+            extra_files={".gitignore": "docs/examples/\n"},
+        )
+        commits_before = _commit_count(repo)
+
+        # A NEW violation whose subject is tracked, and whose prose references an ignored path.
+        with open(os.path.join(repo, "widgets.txt"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("src/real_bug.py:2 unsafe eval - compare docs/examples/safe.py\n")
+        _write(repo, "src/real_bug.py", "def f(user_input):\n    return eval(user_input)\n")
+        rc, out, err = run_git(repo, "add", "-A")
+        self.assertEqual(rc, 0, "git add -A failed: %s" % (err or out))
+
+        rc, out, err = run_git(repo, *(IDENTITY + ("commit", "-m", "introduce a real violation")))
+
+        combined = out + err
+        self.assertNotEqual(rc, 0, "expected the commit to be BLOCKED, got:\n%s" % combined)
+        self.assertIn("COMMIT BLOCKED by kibsu gate", combined)
+        self.assertIn("src/real_bug.py", combined)
+        self.assertEqual(_commit_count(repo), commits_before)
+
+    def test_a_violation_about_an_ignored_file_is_still_skipped(self):
+        """The complement, and the reason ignored() exists at all.
+
+        gate.py's docstring records the incident this behaviour was built for: a nightly build
+        wrote build/logs/run_<stamp>.log, the rule count moved, and the gate blocked a commit
+        over files that can never be part of one. Narrowing the check to the violation's own
+        declared path must not cost that - a finding whose SUBJECT is gitignored is still
+        correctly skipped, because the subject is exactly what the leading token carries.
+        """
+        repo = self._install_with_one_accepted_violation(
+            extra_files={".gitignore": "build/logs/\n"},
+        )
+        commits_before = _commit_count(repo)
+
+        with open(os.path.join(repo, "widgets.txt"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("build/logs/run_20260726_0100.log stale nightly log\n")
+        rc, out, err = run_git(repo, "add", "-A")
+        self.assertEqual(rc, 0, "git add -A failed: %s" % (err or out))
+
+        rc, out, err = run_git(repo, *(IDENTITY + ("commit", "-m", "nightly log churn only")))
+
+        combined = out + err
+        self.assertEqual(rc, 0, "expected the commit to be ALLOWED, got:\n%s" % combined)
+        self.assertEqual(_commit_count(repo), commits_before + 1)
+
     # ---- negative: clean vs baseline allows the commit ----------------------------------
     def test_clean_against_baseline_allows_commit(self):
         repo = self._install_with_one_accepted_violation(
