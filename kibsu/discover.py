@@ -46,7 +46,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 # Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
 # git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
@@ -60,6 +60,31 @@ ABSENT, INERT, LIVE, UNKNOWN = "absent", "INERT", "live", "unknown"
 CI_GLOBS = [".github/workflows", ".gitlab-ci.yml", "azure-pipelines.yml",
             "Jenkinsfile", ".circleci/config.yml", ".travis.yml", "bitbucket-pipelines.yml"]
 AGENT_DOCS = ["CLAUDE.md", "AGENTS.md", "GEMINI.md", ".cursorrules", "CONVENTIONS.md"]
+
+# ---- K-1 / K-2 (issues #68 / #69) ---------------------------------------------------------
+# K-1: gate-removing flags an instruction can hand to an agent. These exist so a HUMAN can
+# push a known-good run through; in an agent's hands they delete exactly the gates that would
+# catch a wrong invocation. Bare "-y" is deliberately absent: it collides with ordinary prose,
+# and a check that flags a stranger's innocent text is a check that gets switched off - the
+# same cry-wolf rule the gate classifier's name-boundary fix follows.
+DANGEROUS_FLAG_RE = re.compile(r"--(?:auto-approve|skip-[\w-]+|force|yes|no-verify)\b")
+# What counts as the flag being GATED, anywhere within ADJACENCY lines of the mention: an
+# approval/confirmation rule, or a prohibition - "never run --force" is the opposite of a
+# grant and must not be flagged. Both vocabularies disclosed in the capability detail.
+APPROVAL_RE = re.compile(
+    r"(?:approv|confirm|authoris|authoriz|permission|sign-?off|marker"
+    r"|ask\s+(?:first|before|for|the\s+\w+|your\s+\w+)"
+    r"|do\s+not\b|don'?t\b|never\b|forbidden|prohibit|refuse)", re.I)
+ADJACENCY = 2  # lines before/after the mention searched for APPROVAL_RE
+
+# K-2: a data-scope default that is a hardcoded date literal - true the day it was written,
+# stale ever after, and the day an argument is omitted it silently scopes a destructive
+# operation to a months-old window. Two signatures, both cheap and low-collision: a
+# module-level assignment of a date/month string, and an argparse default= of one.
+# Environment-name defaults ("prod") are out of scope v1: that string space collides with too
+# much innocent code. Disclosed here, not silently skipped.
+ASSIGN_DATE_RE = re.compile(r"^\s*[A-Za-z_]\w*\s*=\s*[\"']\d{4}-\d{2}(?:-\d{2})?[\"']\s*(?:#.*)?$")
+DEFAULT_DATE_RE = re.compile(r"\bdefault\s*=\s*[\"']\d{4}-\d{2}(?:-\d{2})?[\"']")
 
 # A command the instructions tell you to run. Narrow on purpose: a script path with an extension,
 # optionally preceded by its interpreter. Prose like "run the tests" is not detectable and
@@ -291,13 +316,14 @@ def main():
                                "someone remembers to run them.%s" % (len(tests), unchecked)))
 
     # ---- the flagship: gates the instructions mandate but nothing invokes -----------------
-    doc_hits, docs_found = {}, []
+    doc_hits, docs_found, doc_texts = {}, [], {}
     for d in AGENT_DOCS:
         p = os.path.join(root, d)
         if not os.path.isfile(p):
             continue
         docs_found.append(d)
         text = read(p)
+        doc_texts[d] = text
         for m in GATE_RE.findall(text):
             script = m.replace("\\", "/")
             if not os.path.exists(os.path.join(root, script)):
@@ -356,6 +382,73 @@ def main():
         caps.append(capability("Mandated gates", LIVE,
                                "every script the instructions mandate is invoked by automation.",
                                scripts=script_states))
+
+    # ---- K-1: dangerous flags handed out ungated (issue #68) ------------------------------
+    # The mirror of the flagship check. Mandated-gates asks "which promised checks does
+    # nothing run?"; this asks "which instructions hand an agent destructive capability with
+    # no verification attached?". Same three states: a grant with an adjacent approval rule
+    # (or a prohibition) is LIVE gating; a grant with nothing adjacent is INERT - it reads as
+    # a priced convenience and is actually a standing free pass.
+    flag_hits, gated_count = [], 0
+    for d in docs_found:
+        lines = doc_texts.get(d, "").split("\n")
+        for i, ln in enumerate(lines):
+            m = DANGEROUS_FLAG_RE.search(ln)
+            if not m:
+                continue
+            lo, hi = max(0, i - ADJACENCY), min(len(lines), i + ADJACENCY + 1)
+            # The flag tokens are struck from the window before the approval test, because
+            # "--auto-approve" CONTAINS "approve" - without this, the most dangerous flag on
+            # the list gated itself and could never be flagged at all.
+            if any(APPROVAL_RE.search(DANGEROUS_FLAG_RE.sub("", lines[j])) for j in range(lo, hi)):
+                gated_count += 1
+            else:
+                flag_hits.append("%s:%d %s" % (d, i + 1, m.group(0)))
+    if docs_found:
+        if flag_hits:
+            caps.append(capability("Dangerous flags", INERT,
+                                   "%d instruction line(s) hand out a gate-removing flag with no "
+                                   "approval or prohibition rule within %d line(s). These flags "
+                                   "exist so a HUMAN can push a known-good run through; ungated, "
+                                   "they are a standing grant of exactly the checks they disable."
+                                   % (len(flag_hits), ADJACENCY),
+                                   "; ".join(flag_hits)))
+        elif gated_count:
+            caps.append(capability("Dangerous flags", LIVE,
+                                   "%d gate-removing flag mention(s), every one adjacent to an "
+                                   "approval or prohibition rule." % gated_count))
+        else:
+            caps.append(capability("Dangerous flags", ABSENT,
+                                   "the instruction docs mention no gate-removing flags "
+                                   "(--auto-approve / --skip-* / --force / --yes / --no-verify)."))
+
+    # ---- K-2: stale literal scope defaults in mandated entry points (issue #69) ------------
+    # Universe = the scripts the repo's own instructions mandate - the set doc_hits already
+    # built - NOT the whole tree. That keeps test fixtures and vendored code out by
+    # construction and this tool out of the repo-wide-linter business.
+    scope_hits, py_examined = [], 0
+    for script in sorted(doc_hits):
+        if not script.lower().endswith(".py"):
+            continue
+        py_examined += 1
+        for i, ln in enumerate(read(os.path.join(root, script)).split("\n")):
+            if ASSIGN_DATE_RE.match(ln) or DEFAULT_DATE_RE.search(ln):
+                scope_hits.append("%s:%d %s" % (script, i + 1, ln.strip()[:60]))
+    if py_examined:
+        if scope_hits:
+            caps.append(capability("Scope defaults", INERT,
+                                   "%d hardcoded date-literal scope default(s) in the %d python "
+                                   "entry point(s) your instructions mandate. A literal scope was "
+                                   "true the day it was written; the day an argument is omitted "
+                                   "it silently scopes the run to a stale window."
+                                   % (len(scope_hits), py_examined),
+                                   "; ".join(scope_hits)))
+        else:
+            caps.append(capability("Scope defaults", LIVE,
+                                   "no date-literal scope defaults in the %d mandated python "
+                                   "entry point(s) (module assignments and argparse defaults "
+                                   "checked; environment-name defaults are out of scope v1)."
+                                   % py_examined))
 
     inert = [c for c in caps if c["state"] == INERT]
 

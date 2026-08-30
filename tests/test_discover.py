@@ -126,5 +126,125 @@ class DiscoverTests(unittest.TestCase):
         assert_repo_untouched(repo)
 
 
+class DangerousFlagTests(unittest.TestCase):
+    """K-1 (issue #68): an instruction that hands out a gate-removing flag with no approval
+    or prohibition rule adjacent is a standing free pass, and must read INERT. The motivating
+    incident: docs granted --auto-approve --skip-dq unconditionally, an agent used them on a
+    destructive run, and every gate that would have caught the wrong scope was off by design.
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_k1_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_an_ungated_dangerous_flag_reads_inert(self):
+        repo = make_repo(self.tmpdir, {
+            "CLAUDE.md": (
+                "# Working here\n\n"
+                "When the pipeline is slow, run `python pipeline.py --auto-approve --skip-dq`\n"
+                "and move on to the next task.\n"
+            ),
+            "pipeline.py": "print('hi')\n",
+            ".github/workflows/ci.yml": (
+                "name: CI\non: [push]\njobs:\n  check:\n"
+                "    runs-on: ubuntu-latest\n    steps:\n      - run: python pipeline.py\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 1, "an ungated dangerous flag is a finding; stderr=%r" % stderr)
+        self.assertIn('"Dangerous flags"', stdout)
+        self.assertIn("CLAUDE.md:3", stdout)
+        assert_repo_untouched(repo)
+
+    def test_a_gated_mention_and_a_prohibition_are_not_findings(self):
+        """The two shapes that must NOT fire: a grant with an adjacent approval rule, and a
+        prohibition - "never run --force" is the opposite of handing the flag out."""
+        repo = make_repo(self.tmpdir, {
+            "CLAUDE.md": (
+                "# Working here\n\n"
+                "You may run `python pipeline.py --auto-approve` ONLY with a quoted,\n"
+                "dated approval marker from the owner.\n\n"
+                "Never run anything with --force in this repository.\n"
+            ),
+            "pipeline.py": "print('hi')\n",
+            ".github/workflows/ci.yml": (
+                "name: CI\non: [push]\njobs:\n  check:\n"
+                "    runs-on: ubuntu-latest\n    steps:\n      - run: python pipeline.py\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 0, "gated + prohibited mentions are healthy; stderr=%r\n%s"
+                         % (stderr, stdout))
+        self.assertIn('"Dangerous flags"', stdout)
+        self.assertIn('"live"', stdout)
+        assert_repo_untouched(repo)
+
+
+class ScopeDefaultTests(unittest.TestCase):
+    """K-2 (issue #69): a mandated entry point whose data-scope default is a hardcoded date
+    literal is a time bomb with a checkable signature - true the day it was written, stale
+    ever after, and the day an argument is omitted it silently scopes a destructive run to a
+    months-old window. Universe = doc-mandated scripts only, never the whole tree."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_k2_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_a_literal_month_default_in_a_mandated_script_reads_inert(self):
+        repo = make_repo(self.tmpdir, {
+            "CLAUDE.md": "Before shipping, run `python pipeline.py` to load the data.\n",
+            "pipeline.py": (
+                "import argparse\n"
+                "RUN_MONTH = \"2026-06\"\n"
+                "print(RUN_MONTH)\n"
+            ),
+            ".github/workflows/ci.yml": (
+                "name: CI\non: [push]\njobs:\n  check:\n"
+                "    runs-on: ubuntu-latest\n    steps:\n      - run: python pipeline.py\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 1, "a stale literal scope default is a finding; stderr=%r" % stderr)
+        self.assertIn('"Scope defaults"', stdout)
+        self.assertIn("pipeline.py:2", stdout)
+        assert_repo_untouched(repo)
+
+    def test_a_derived_scope_is_clean_and_unmandated_files_are_out_of_universe(self):
+        """The complement, twice over: a mandated script that DERIVES its scope is LIVE, and a
+        date literal in a file the instructions never mention is not this check's business -
+        the tool must not become a repo-wide linter."""
+        repo = make_repo(self.tmpdir, {
+            "CLAUDE.md": "Before shipping, run `python pipeline.py` to load the data.\n",
+            "pipeline.py": (
+                "import datetime\n"
+                "RUN_MONTH = datetime.date.today().strftime(\"%Y-%m\")\n"
+                "print(RUN_MONTH)\n"
+            ),
+            ".github/workflows/ci.yml": (
+                "name: CI\non: [push]\njobs:\n  check:\n"
+                "    runs-on: ubuntu-latest\n    steps:\n      - run: python pipeline.py\n"
+            ),
+            "unrelated_fixture.py": "FROZEN = \"2020-01\"\n",
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 0, "derived scope + out-of-universe literal; stderr=%r\n%s"
+                         % (stderr, stdout))
+        self.assertIn('"Scope defaults"', stdout)
+        self.assertNotIn("unrelated_fixture.py", stdout)
+        assert_repo_untouched(repo)
+
+
 if __name__ == "__main__":
     unittest.main()
