@@ -1,13 +1,90 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 - 2026-08-28
 
-- Fixed #29 structurally: the README's "count it yourself" paragraph is now enforced by
-  the suite - `tests/test_readme_counts.py` runs the paragraph's own commands (same glob,
-  same splitlines, same discovery count that `unittest discover` prints) and fails while
-  the prose disagrees. The counts had drifted a FOURTH time in the nine days after #29 was
-  filed, while every other finding was being fixed - the class does not die by diligence,
-  only by machine. Refreshed to the enforced truth: 5,216 / 4,616 / 172.
+An audit of this project against its own standard, and the fixes it produced. Twenty candidate
+findings went through an adversarial pass instructed to refute rather than confirm; two fell.
+Seven of the survivors ship here, every one of them a case of kibsu asserting something it could
+not back - which is the exact failure this tool exists to name in other people's repositories.
+
+The scorer is untouched - still 0.6.0 - so **NO published figure moves in this release**. The
+survey table, the median, and every number in the README were re-derived from the pinned SHAs
+before any code was written, not asserted afterwards. Minor version, not patch: four changes are
+observable to consumers - the installed gate hook now chains a carried pre-existing pre-commit,
+`discover`'s gate classifier answers differently (so `guide`'s ENFORCED/ON-YOU verdicts move),
+`report` measures a repo layout it used to abstain on, and `audit` gains an `instruction-files`
+discovery mode.
+
+Two of these are security fixes. Anyone running 0.4.0 against a repository they did not write
+should upgrade.
+
+- **SECURITY. Fixed #59-class: `install --uninstall` could delete files anywhere on the disk.**
+  The delete list was built with a bare `os.path.join(root, declared)` over paths recorded in
+  `.kibsu/install.json`. That call DISCARDS root entirely when the declared path is absolute, and
+  a `../../..` prefix simply walks out. install.json is read off the disk of the repo being
+  operated on, and kibsu is pointed at repos it did not author - the survey clones ten - so that
+  record is untrusted input. Paths are now resolved and required to sit inside the repo;
+  out-of-tree entries are skipped and named on stderr, never silently.
+
+- **SECURITY. Fixed #65-class: a scan could read files outside the repo through a symlink.**
+  `os.walk` does not descend directory links, but a symlinked FILE is followed by `open()` like
+  any other and git tracks it as mode 120000. Measured: a repo carrying `leak.md -> <outside>`
+  had that file's frontmatter copied verbatim into `idx.json` AND its key promoted into the
+  derived taxonomy - a committed artifact carrying content from outside the repository. `index`
+  and `audit` now resolve each path and skip, loudly, anything that leaves the tree. An in-repo
+  link is still read: the guard is about escaping the tree, not about links being suspicious.
+
+- **Fixed #60-class: the gate could be talked out of a finding by the wording of its own message.**
+  `is_ignored_violation()` asked whether ANY path-shaped substring anywhere in a violation's text
+  was gitignored. An ordinary see-also reference therefore excused the finding: a real, new
+  violation in a fully tracked file vanished because its description mentioned an ignored path,
+  and the gate printed `PASS` and allowed the commit. A gate that can be argued out of a finding
+  is the worst defect this project can carry. Judgement is now the violation's declared subject -
+  the path the item leads with, per the shared gate contract. The behaviour `ignored()` was built
+  for is unaffected: a finding whose SUBJECT is gitignored is still skipped, and a test pins it.
+
+- **Fixed #62-class: `gate --install` orphaned a pre-existing pre-commit hook.** Setting
+  `core.hooksPath` makes git stop reading `.git/hooks` entirely. install.py was fixed for that in
+  #33; gate.py never was - it computed the same list and used it only to print a warning. A repo
+  whose hook blocked commits carrying secrets would, after this file's own documented one-liner,
+  commit them silently. The hook is now carried as `pre-commit.carried` and exec'd first, its
+  failure still blocking. Uninstall re-derives what it carried and claims a file only when it is
+  provably a copy - an uninstall removing a file it did not write would be the same damage.
+
+- **Fixed #63-class: a forced re-install lost the hooksPath that predates kibsu.**
+  `previous_hookspath` was captured from what is set right now, which after a first install is
+  kibsu's own directory - so `--install --force` recorded ours, and `--uninstall` then "restored"
+  `core.hooksPath` to a directory whose hook it had just deleted. The user's setting was gone and
+  NO hooks ran, neither theirs nor kibsu's. The prior record is now carried forward, but only when
+  the current value is in fact ours; a path set since install is still recorded as a real one.
+
+- **Fixed #64-class: `guide` reported ENFORCED for gates that nothing runs.** The classifier used
+  bare substring containment on filenames - `lint.py` is inside `pylint.py`, `check.py` inside
+  `spellcheck.py`, and a commented-out mention matched too. This one is worse than its inverse: a
+  missed gate reads as ON YOU and you go check it, while a phantom gate reads as handled and you
+  stop looking. A script name must now appear as a whole path component.
+
+- **Fixed #61-class: the first run could not see a root `AGENTS.md`.** `find_skills_dir()` only
+  ever probed for directories, so a repo whose entire agent contract is the layout this README
+  names in its second sentence - and that `config.DEFAULTS` has always declared - was told "no
+  agent-instruction directory found. Nothing here tells agents how to work." `find_skills()` gains
+  an `instruction-files` mode, placed BELOW both directory modes so no existing measurement
+  changes; at the ten pinned SHAs the two repos that land in the catch-all carry no root
+  instruction file, checked against the git trees before the code was written.
+
+- Fixed #29 structurally: the README's "count it yourself" paragraph is now enforced by the suite -
+  `tests/test_readme_counts.py` runs the paragraph's own commands (same glob, same splitlines, the
+  same discovery count `unittest discover` prints) and fails while the prose disagrees. The counts
+  had drifted a FOURTH time in the nine days after #29 was filed, while every other finding was
+  being fixed - the class does not die by diligence, only by machine. The specific figures are
+  deliberately NOT repeated here: a changelog is history, and a number that has to track HEAD
+  belongs on the enforced surface, not in an entry that can never be re-checked.
+
+- The CORRECTIONS.md index is enforced rather than promised - a swallowed correction round now
+  fails the suite (#58) - and the 0.2.0 round got its heading back, which an earlier edit had
+  written over rather than above.
+
+- CI actions bumped across the board (#57).
 
 ## 0.4.0 - 2026-08-15
 
