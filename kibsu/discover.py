@@ -46,7 +46,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 # Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
 # git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
@@ -76,6 +76,125 @@ APPROVAL_RE = re.compile(
     r"|ask\s+(?:first|before|for|the\s+\w+|your\s+\w+)"
     r"|do\s+not\b|don'?t\b|never\b|forbidden|prohibit|refuse)", re.I)
 ADJACENCY = 2  # lines before/after the mention searched for APPROVAL_RE
+
+# ---- K-3 (issue #71): write instructions with no subsequent verification ------------------
+# The checkability thesis applied to side effects instead of promises: "run X" with no "then
+# confirm Y" is a write nobody will ever confirm happened correctly. Every vocabulary below
+# was CALIBRATED before freezing - three passes over a 250-file public instruction corpus -
+# because the first draft flagged reference tables, hard-wrapped prose continuations, and
+# read-only `run` targets, and a check that floods a doc with hits gets switched off.
+# A list marker: bullets, "1." / "1)" / "1:" / "(1)" numbering. Colon-numbering demands the
+# trailing whitespace, so a clock time ("10:30") can never read as item ten.
+K3_LEAD = r"^\s*(?:[-*+>]\s+|\d+[.:)]\s+|\(\d+\)\s+)?"
+K3_BULLET_RE = re.compile(r"^\s*(?:[-*+>]\s+|\d+[.:)]\s+|\(\d+\)\s+)")
+K3_EMPH = r"(?:\*\*|\*|__|_)?"
+# Idioms are excluded PER VERB, not by a global rule: "push back" is disagreement, "commit to
+# quality" is a value, "merge conflicts" is a noun phrase, "drop me a note" is a request,
+# "rebuild trust" and "reset expectations" are management prose - all reproduced firing on a
+# team-norms doc by the adversarial pass before this shipped. "apply" and "send" are dropped
+# from the list outright: both fired on ordinary prose in two separate calibration rounds and
+# neither names an agent write worth the noise.
+K3_MUTATION_VERBS = (r"push(?!\s+back\b)|deploy|publish|delete|remove|drop(?!\s+(?:me|him|her|them|us)\b)"
+                     r"|truncate|overwrite|merge(?!\s+conflicts?\b)|migrate|restart"
+                     r"|reset(?!\s+expectations?\b)|upload|commit(?!\s+to\b)|install|reload"
+                     r"|rebuild(?!\s+trust\b)|sync")
+# The trailing class and not bare \b: "install-mechanism" and "publish);" are prose, not
+# commands - the same whole-token lesson as the gate classifier's name boundaries. "!" "." ","
+# ";" are admitted so "- Deploy! the build" still counts. The closing emphasis marker is
+# consumed BEFORE the boundary lookahead - "**Deploy**" otherwise fails it, the same trap
+# issue #56 documents for the instruction anchor.
+K3_MUTATE_RE = re.compile(K3_LEAD + K3_EMPH + r"(?:" + K3_MUTATION_VERBS + r")" + K3_EMPH
+                          + r"(?=[\s:!.,;]|$)", re.I)
+# run/execute count only with a concrete COMMAND-ish backtick on the line (has a space, dot,
+# slash or dash - a single bare word is a name, not a command), whose target is neither a
+# read-only binary nor a test run. A command that runs tests IS a verification step.
+K3_RUN_RE = re.compile(K3_LEAD + K3_EMPH + r"(?:run|execute|invoke)" + K3_EMPH + r"(?=\s|:)", re.I)
+K3_CMDTICK_RE = re.compile(r"`([^`]*[ ./\\-][^`]*)`")
+K3_NEG_RE = re.compile(K3_LEAD + K3_EMPH + r"(?:never|do\s+not|don'?t|avoid)\b", re.I)
+K3_READONLY_FIRST = frozenset(("cat", "ls", "dir", "grep", "rg", "head", "tail", "find",
+                               "echo", "diff", "type", "which", "where"))
+K3_TESTY_RE = re.compile(r"\b(?:tests?|pytest|unittest)\b", re.I)
+# Every bare token is boundary-guarded with room for its ordinary inflections: "checklist"
+# must not verify a push through its first five letters, and neither may "expectations",
+# "invalidate", "assertive" or "inspector" - all five reproduced masking a genuinely
+# unverified write before this shipped.
+K3_VERIFY_RE = re.compile(
+    r"(?:\bverify|\bverif(?:ies|ied|ying)\b|\bconfirm(?:s|ed|ing)?\b|\bcheck(?:s|ed|ing)?\b"
+    r"|\bassert(?:s|ed|ing|ions?)?\b|\bvalidat(?:e|es|ed|ing|ion)\b|\binspect(?:s|ed|ing|ion)?\b"
+    r"|\bcompar(?:e|es|ed|ing)\b|\bdiff\b|\bre-?run\b|\bre-?test\b|test\s+again|then\s+test"
+    r"|\bexpect(?:s|ed|ing)?\b|exit\s+code|must\s+(?:pass|match|show|return)"
+    r"|should\s+(?:see|show|return|match|pass|print|now)"
+    r"|make\s+sure|look\s+for|watch\s+for|git\s+status|row\s+count)", re.I)
+K3_WINDOW = 3  # lines from the command (inclusive) searched forward for K3_VERIFY_RE
+K3_FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+K3_HEAD_RE = re.compile(r"^\s*#")
+K3_SETEXT_RE = re.compile(r"^\s*(?:-{3,}|={3,})\s*$")
+
+
+def write_instructions(text):
+    """(unverified, verified_count) for one doc - the K-3 scan as a pure function.
+
+    A command line counts only at a STRUCTURAL line start - a bullet, a numbered step, or a
+    paragraph start (blank line, heading, setext underline or fence above). Markdown
+    hard-wraps paragraphs, so a raw line beginning with "install (one drops it...)" is a
+    continuation, not an instruction; without this rule those dominated the calibration's
+    false positives. Fenced code is skipped as example material - for WRITE detection and for
+    VERIFICATION credit alike, because a "verify" inside an illustrative code block proved
+    able to launder an unverified push into LIVE. A negated line ("never push directly") is a
+    prohibition, not a command, and a setext title ("Deploy steps" over a dashed underline)
+    is a heading, not an instruction.
+
+    DELIBERATE v1 scope, disclosed rather than silently assumed: only LINE-LEADING commands
+    are in universe. "After running the tests, deploy to production." escapes - the
+    calibration showed that matching verbs mid-line re-admits the wrapped-prose noise this
+    function exists to keep out, and a conservative checker that under-counts and says so
+    beats one that floods. And the verify window deliberately crosses into the next list
+    item, because "1. Push. 2. Then verify CI is green." is the single most common way real
+    docs verify a write - the cost is that an unrelated check-ish next step can take credit.
+    """
+    lines = text.split("\n")
+    # Fence membership precomputed once, so both the write scan and the verify window agree
+    # on what is example material. The fence markers themselves count as "inside".
+    fenced = [False] * len(lines)
+    in_fence = False
+    for i, ln in enumerate(lines):
+        if K3_FENCE_RE.match(ln):
+            in_fence = not in_fence
+            fenced[i] = True
+        else:
+            fenced[i] = in_fence
+    unverified, verified = [], 0
+    for i, ln in enumerate(lines):
+        if fenced[i] or K3_NEG_RE.match(ln) or K3_SETEXT_RE.match(ln):
+            continue
+        if i + 1 < len(lines) and K3_SETEXT_RE.match(lines[i + 1]) and ln.strip():
+            continue  # a setext TITLE - it is a heading, not a command
+        prev = lines[i - 1] if i else ""
+        structural = (bool(K3_BULLET_RE.match(ln)) or not prev.strip()
+                      or bool(K3_HEAD_RE.match(prev)) or bool(K3_FENCE_RE.match(prev))
+                      or bool(K3_SETEXT_RE.match(prev)))
+        if not structural:
+            continue
+        is_write = bool(K3_MUTATE_RE.match(ln))
+        if not is_write and K3_RUN_RE.match(ln) and not K3_TESTY_RE.search(ln):
+            # EVERY command-ish backtick is consulted, not just the first: in
+            # "Run `ls -la` and `migrate.py --force`" the read-only first command must not
+            # shadow the write that follows it.
+            for m in K3_CMDTICK_RE.finditer(ln):
+                cmd = m.group(1).strip()
+                first = cmd.split()[0].split("/")[-1].lower() if cmd.split() else ""
+                if first and first not in K3_READONLY_FIRST:
+                    is_write = True
+                    break
+        if not is_write:
+            continue
+        window = [lines[j] for j in range(i, min(len(lines), i + K3_WINDOW + 1)) if not fenced[j]]
+        if any(K3_VERIFY_RE.search(x) for x in window):
+            verified += 1
+        else:
+            unverified.append((i + 1, ln.strip()))
+    return unverified, verified
+
 
 # K-2: a data-scope default that is a hardcoded date literal - true the day it was written,
 # stale ever after, and the day an argument is omitted it silently scopes a destructive
@@ -449,6 +568,35 @@ def main():
                                    "entry point(s) (module assignments and argparse defaults "
                                    "checked; environment-name defaults are out of scope v1)."
                                    % py_examined))
+
+    # ---- K-3: write instructions with no subsequent verification (issue #71) ---------------
+    # The third face of the same question. K-1 asks who may remove the gates; K-2 asks what a
+    # forgotten argument silently scopes; this asks which commanded writes nobody will ever
+    # confirm. The incident behind all three: the instruction said "run the pipeline" and
+    # never said "then verify the months outside your window did not move" - the repair that
+    # worked asserted against pre-named invariants, the wound-maker asserted nothing.
+    k3_unverified, k3_verified = [], 0
+    for d in docs_found:
+        u, v = write_instructions(doc_texts.get(d, ""))
+        k3_verified += v
+        k3_unverified.extend("%s:%d %s" % (d, n, t[:60]) for n, t in u)
+    if docs_found:
+        if k3_unverified:
+            caps.append(capability("Writes verified", INERT,
+                                   "%d write-command(s) with no verification instruction within "
+                                   "%d line(s) after them. A write nobody confirms is a write "
+                                   "whose failure is discovered by the next reader."
+                                   % (len(k3_unverified), K3_WINDOW),
+                                   "; ".join(k3_unverified)))
+        elif k3_verified:
+            caps.append(capability("Writes verified", LIVE,
+                                   "%d write-command(s), every one followed by a verification "
+                                   "instruction within %d line(s)." % (k3_verified, K3_WINDOW)))
+        else:
+            caps.append(capability("Writes verified", ABSENT,
+                                   "the instruction docs command no state-changing actions "
+                                   "(mutation verbs and backtick-command run/execute lines "
+                                   "checked; fenced code and prohibitions excluded)."))
 
     inert = [c for c in caps if c["state"] == INERT]
 

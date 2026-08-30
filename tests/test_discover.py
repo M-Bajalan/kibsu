@@ -246,5 +246,142 @@ class ScopeDefaultTests(unittest.TestCase):
         assert_repo_untouched(repo)
 
 
+class WritesVerifiedTests(unittest.TestCase):
+    """K-3 (issue #71): a write-command with no subsequent verification instruction reads
+    INERT. The incident behind it: the instruction said "run the pipeline" and never said
+    "then verify the months outside your window did not move" - the repair that worked
+    asserted against pre-named invariants; the wound-maker asserted nothing."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_k3_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_an_unverified_write_command_reads_inert(self):
+        repo = make_repo(self.tmpdir, {
+            "AGENTS.md": (
+                "# Shipping\n\n"
+                "1. Merge the release branch to main.\n"
+                "2. Move on to the next ticket.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 1, "an unverified write is a finding; stderr=%r" % stderr)
+        self.assertIn('"Writes verified"', stdout)
+        self.assertIn("AGENTS.md:3", stdout)
+        assert_repo_untouched(repo)
+
+    def test_a_verified_write_command_is_live(self):
+        repo = make_repo(self.tmpdir, {
+            "AGENTS.md": (
+                "# Shipping\n\n"
+                "1. Push the branch to origin.\n"
+                "2. Then verify CI is green before continuing.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 0, "a verified write is healthy; stderr=%r\n%s"
+                         % (stderr, stdout))
+        self.assertIn('"Writes verified"', stdout)
+        self.assertIn('"live"', stdout)
+        assert_repo_untouched(repo)
+
+    def test_the_calibrated_non_fires_stay_quiet(self):
+        """Every noise class the calibration killed, in one doc: a prohibition, a reference
+        table row, a read-only run, a test run (which IS verification), fenced example code,
+        and a hard-wrap continuation starting with a verb. None may fire."""
+        repo = make_repo(self.tmpdir, {
+            "AGENTS.md": (
+                "# Working here\n\n"
+                "Never push directly to main.\n\n"
+                "| Push a change | use the deploy tool |\n\n"
+                "Run `cat docs/notes.md` to get oriented.\n\n"
+                "Run the suite with `npm test` when you finish.\n\n"
+                "```\n"
+                "delete everything  # example of what NOT to do\n"
+                "```\n\n"
+                "the setup wizard is what performs the\n"
+                "install (one screen, no options).\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool("discover", repo, "--json")
+
+        self.assertEqual(exit_code, 0, "none of the calibrated noise classes may fire; "
+                         "stderr=%r\n%s" % (stderr, stdout))
+        self.assertIn('"Writes verified"', stdout)
+        self.assertIn("command no state-changing actions", stdout)
+        assert_repo_untouched(repo)
+
+
+class WritesVerifiedAdversarialRegressions(unittest.TestCase):
+    """Every case an adversarial pass reproduced against the first draft, pinned. Each of
+    these produced a WRONG VERDICT end-to-end before the fix it names; none may come back.
+    Unit-level on the pure function - the CLI plumbing is covered by WritesVerifiedTests."""
+
+    def _scan(self, text):
+        from kibsu.discover import write_instructions
+        return write_instructions(text)
+
+    def test_idiomatic_verb_openers_are_not_writes(self):
+        """A team-norms doc read INERT with three findings: "Commit to quality", "Merge
+        conflicts should be...", "Rebuild trust". Idioms are excluded per verb."""
+        u, v = self._scan("# Team norms\n\n- Commit to quality over speed.\n"
+                          "- Merge conflicts should be resolved carefully.\n"
+                          "- Rebuild trust after any incident.\n"
+                          "- Drop me a note when ready.\n- Reset expectations early.\n")
+        self.assertEqual((len(u), v), (0, 0))
+
+    def test_a_verify_substring_inside_another_word_does_not_credit(self):
+        """"checklist" laundered an unverified push into LIVE through its first five
+        letters; so did "expectations" via "expect". Boundary-guarded now."""
+        u, v = self._scan("1. Push the release branch to origin.\n"
+                          "2. Update the checklist for stakeholders.\n")
+        self.assertEqual((len(u), v), (1, 0), "checklist is not a verification")
+        u, v = self._scan("1. Push the release branch.\n"
+                          "2. Manage expectations with the team.\n")
+        self.assertEqual((len(u), v), (1, 0), "expectations is not a verification")
+
+    def test_a_verify_inside_a_fence_does_not_credit(self):
+        """A "verify" in an illustrative code block marked the push above it LIVE. The
+        fence exclusion now applies to the verification window too."""
+        u, v = self._scan("- Push the branch to origin.\n```\n"
+                          "# example only: verify nothing here\n```\n")
+        self.assertEqual((len(u), v), (1, 0))
+
+    def test_a_setext_title_is_a_heading_not_a_command(self):
+        """"Deploy steps" over a dashed underline was flagged as the write, while the real
+        command beneath the underline was never examined at all."""
+        u, v = self._scan("# Shipping\n\nDeploy steps\n------------\n"
+                          "Push the branch to origin.\n")
+        self.assertEqual(len(u), 1)
+        self.assertIn("Push the branch", u[0][1])
+
+    def test_a_readonly_first_backtick_does_not_shadow_a_later_write(self):
+        """"Run `ls -la` and `migrate.py --force`" was invisible: the read-only first
+        command ended the scan. Every command-ish backtick is consulted now."""
+        u, v = self._scan("Run `ls -la` and `migrate.py --force` to ship it.\n")
+        self.assertEqual((len(u), v), (1, 0))
+
+    def test_colon_and_paren_numbering_are_list_markers(self):
+        u, v = self._scan("1: Push the branch to origin.\n2: Merge the release branch.\n")
+        self.assertEqual((len(u), v), (2, 0))
+        u, v = self._scan("(1) Push the branch to origin.\n(2) done\n")
+        self.assertEqual((len(u), v), (1, 0))
+
+    def test_the_canonical_next_step_verification_still_credits(self):
+        """The guard on all the tightening above: "1. Push. 2. Then verify CI is green." is
+        how real docs verify a write, and the window must keep crossing into that next item.
+        The accepted cost - an unrelated check-ish next step taking credit - is documented in
+        write_instructions' docstring as deliberate."""
+        u, v = self._scan("1. Push the branch.\n2. Then verify CI is green.\n")
+        self.assertEqual((len(u), v), (0, 1))
+
+
 if __name__ == "__main__":
     unittest.main()
