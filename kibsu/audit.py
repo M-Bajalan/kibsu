@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-kibsu audit v0.8.0 - how much of an agent instruction set can actually be checked?
+kibsu audit v0.9.0 - how much of an agent instruction set can actually be checked?
 
 An instruction is CHECKABLE if a reviewer could tell from the repo alone whether it happened: it
 runs a command, produces or edits a named file, or is a tick-box. It is CLAIMABLE if the only
 evidence is the agent saying so.
+
+v0.9.0 makes the existence check BYTE-EXACT (issue #78): glob_re() no longer matches
+case-insensitively, so the phantom verdict is the answer git itself would give. Detection
+of mandates stays case-insensitive - two different questions, deliberately split. One
+pinned-corpus mandate flips to phantom; the re-measure is indexed in CORRECTIONS.md.
 
 v0.8.0 is the MANDATE RULE (issue #77): a unit that mandates artifacts or carries runnable
 fences cannot be DETECTED as doctrine - doctrine produces judgement, not files, by this
@@ -108,7 +113,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-VERSION = "0.8.0"
+VERSION = "0.9.0"
 
 # Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
 # git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
@@ -734,7 +739,17 @@ def glob_re(tok):
     segments = PLACEHOLDER_RE.split(tok)
     escaped = [re.escape(seg).replace(r"\*", "[^/]*").replace(r"\?", ".") for seg in segments]
     esc = "[^/]*".join(escaped)
-    return re.compile(r"(^|/)" + esc + r"$", re.I)
+    # Byte-exact since scorer 0.9.0 (issue #78). Git paths ARE byte strings: a mandate for
+    # `notes.md` where the repo tracks `Notes.md` is an instruction a Linux `cat` fails, and
+    # crediting it was the tool telling case-insensitive filesystems' users a comfortable
+    # story that CI would contradict. DETECTION stays case-insensitive on purpose - reading
+    # a mandate is a different question from checking its existence, and FILE_TOKEN's
+    # "NOTES.MD is the same mandate as notes.md" ruling stands - but the EXISTENCE answer is
+    # now the one git would give. Measured before shipping: of 367 distinct mandated tokens
+    # across the pinned corpus and both experiment workspaces, exactly one flips to phantom
+    # (a `summary.md` mandate whose only instances are SUMMARY.md benchmark files) and seven
+    # lose surplus matches without changing verdict.
+    return re.compile(r"(^|/)" + esc + r"$")
 
 
 def check_artifacts(root, rows):
