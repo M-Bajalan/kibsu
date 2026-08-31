@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.6.0 - 2026-08-31
+
+The K-check trio and the scorer 0.7.0 round: the incident checks born from a real production
+morning ship as product features, and the instrument corrects the biggest flattery bias it
+has ever carried. Minor version: discover gains three capability rows and its verdicts move;
+the scorer's published figures move with a full CORRECTIONS round. Package and scorer
+version independently, as always - this package carries scorer 0.7.0.
+
+- **SCORER 0.7.0 (#79, #80; CORRECTIONS 2026-08-31): four blind spots closed, every
+  published figure re-measured at the pinned SHAs.** The imperative anchor reads through
+  markdown emphasis (#56 - an experiment cycle had moved its own numbers by DE-BOLDING
+  verbs); the verb vocabulary grew by 55 census-approved entries while noun-heavy candidates
+  were rejected on the same evidence (#74 - `import` alone would have added 1,625 false
+  instructions); artifact extraction accepts the optional delimiters checkability always did
+  (#75 - "Create config.yml" was checkable yet could never be phantom); and every mention of
+  a mandate counts toward its scope, uncapped (#76). Instruction counts grew 31.6% and 97%
+  of the growth is claimable: the blind spots overwhelmingly hid unverifiable instructions,
+  so every earlier table flattered every repo it measured. Median procedure-only 9.4% ->
+  7.7%; phantoms 69/159 -> 95/230; PREREGISTRATION carries its third appended note with both
+  workspaces re-baselined and pin authentication done by digit-for-digit reproduction of the
+  old column first. Deferred with reasons on the record: #77 (genre vote), #78 (glob case).
+- **discover gains "Dangerous flags" (#68): instructions that hand an agent gate-removing
+  flags** (--auto-approve / --skip-* / --force / --yes / --no-verify) with no approval or
+  prohibition rule within two lines read INERT, exit 1, file:line named. A prohibition
+  ("never run --force") is the opposite of a grant and does not fire; bare "-y" is out of
+  scope by the cry-wolf rule. One bug the fail-first discipline caught is worth retelling:
+  the approval vocabulary contained "approv" and --auto-approve CONTAINS "approve" - the
+  most dangerous flag on the list gated itself until the flag tokens were struck from the
+  window before the approval test.
+- **discover gains "Scope defaults" (#69): a doc-mandated python entry point whose
+  data-scope default is a hardcoded date literal** (module assignment or argparse default=)
+  reads INERT. A literal scope was true the day it was written; the day an argument is
+  omitted it silently scopes the run to a stale window. The scan universe is exactly the
+  scripts the instructions mandate - never the whole tree.
+- **discover gains "Writes verified" (#71): a commanded state-changing action with no
+  verification instruction within three lines** reads INERT. Calibrated over a 250-file
+  public corpus before freezing, then attacked by adversarial agents that reproduced nine
+  wrong verdicts - six fixed and pinned, two disclosed as deliberate v1 scope (line-leading
+  commands only; the verify window crosses into the next list item because "1. Push.
+  2. Then verify CI is green." is how real docs verify), one rejected with a pinning test.
+- **tooling: the README's count-it-yourself paragraph is produced, not authored (#67).**
+  `tools/refresh_readme_counts.py` imports the #29 guard's own measure() - asserted by
+  IDENTITY in a test, because a second implementation of a measurement is the drift class
+  itself - and rewrites only the four numbers, byte-identical everywhere else. Born from
+  seven forced re-syncs in one merge day; on the pre-PR checklist now. It promptly rejected
+  its own round's PR when a test re-pin followed the refresh, which is the system working.
+
 ## 0.5.0 - 2026-08-28
 
 An audit of this project against its own standard, and the fixes it produced. Twenty candidate
