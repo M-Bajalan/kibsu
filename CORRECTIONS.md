@@ -7,6 +7,91 @@ expects to keep finding errors in its own instrument; the alternative is not fin
 
 ---
 
+## 2026-08-31 — the scorer read past emphasis, half a vocabulary, and one delimiter style (scorer 0.7.0)
+
+The 2026-08-28 audit of this repository (seven finder agents by dimension, adversarial
+verifiers instructed to refute, two refuters attacking the fixes again before they shipped)
+confirmed four more blind spots in the scorer, fixed in
+[#79](https://github.com/M-Bajalan/kibsu/pull/79) as issues
+[#56](https://github.com/M-Bajalan/kibsu/issues/56),
+[#74](https://github.com/M-Bajalan/kibsu/issues/74),
+[#75](https://github.com/M-Bajalan/kibsu/issues/75),
+[#76](https://github.com/M-Bajalan/kibsu/issues/76). The survey was re-run at the **same
+pinned SHAs** and `evidence/` regenerated. The headline moved again: **the published median
+was 9.4%; the corrected instrument reads 7.7%.**
+
+The four, each with the direction it biased the published numbers:
+
+1. **The imperative anchor could not see markdown emphasis** (#56). `**Create** the gate
+   file` — ordinary instruction style — was counted as no instruction at all, and a cycle
+   of this project's own skill experiment moved its numbers by **de-bolding verbs**. The
+   fix consumes the closing marker as a backreference to the opener with a marker-aware
+   boundary: the issue's own fix sketch failed on the underscore variants it was written
+   for (`_` is a word character), and a first draft here was defeated by regex backtracking
+   (`**Test**ing` matched by giving the closer back) until the round's adversarial pass
+   caught it. A backtick is deliberately not an emphasis marker — a code span names, it
+   does not command.
+2. **The verb vocabulary held 136 entries and missed ~112 ordinary imperatives** (#74),
+   `gather` — the live specimen in #56 — included. 55 verbs were added, each earning its
+   place in a per-verb census over these ten pinned repos plus a 1,660-file plugin corpus;
+   the biggest candidates were **rejected on the same evidence** ("Import maps for
+   JavaScript" is a noun phrase, and `import` alone would have added 1,625 false
+   instructions).
+3. **Artifact extraction required backticks while checkability never did** (#75). `Create
+   config.yml` counted as checkable *because it names a file*, while that file could never
+   be reported phantom. Delimiters unified — backtick, quote, or bare — with URLs and
+   markdown links normalized first: the adversarial pass caught `[README.md](./README.md)`
+   minting a bracket-corrupted phantom next to the real record, fifteen of which would
+   have shipped into this very table. One residue is disclosed rather than guessed at: a
+   bare token that is really a domain (`raycast.md` — .md is a live ccTLD) is
+   indistinguishable from a file mandate by shape alone.
+4. **Mandate dedup kept only the first-seen mention line** (#76), so document order — not
+   the specification — decided an artifact's scope. Every mention now counts toward the
+   scope verdict, computed **uncapped** after the adversarial pass showed a display cap
+   quietly re-creating the bug at mention nine.
+
+Together the four biased instruction counts **down** about 31% across every collection —
+and 97% of what they hid is claimable, so every published percentage was biased **up**:
+the truth about checkability is worse than every previous table said, this project's own
+lab included (which is the one place the new instrument found nothing to correct — its
+rewrites already carried their verbs unemphasized and their mandates backticked).
+
+One procedural note that improved on the last round's caveat: the first re-measurement run
+here used freshly cloned pins whose refs still reached **post-pin history**, and the
+`git log --all` phantom walk saw the future — three of davila7's mandated files exist only
+in commits newer than the pin, and phantoms read 92 instead of 95. The published numbers
+come from ref-scrubbed clones per the 0.6.0 round's own caveat; the 3-artifact delta is
+recorded here as the measured cost of skipping that step.
+
+Deferred out of this round, with issues and reasons on the record:
+[#77](https://github.com/M-Bajalan/kibsu/issues/77) (the whole-file genre vote — genre is
+the backbone of PREREGISTRATION.md's experiment and deserves an isolated instrument round)
+and [#78](https://github.com/M-Bajalan/kibsu/issues/78) (glob case posture).
+
+**What moved** (survey at the same pinned SHAs, scorer 0.6.0 → 0.7.0):
+
+| figure | 0.6.0 published | 0.7.0 re-measured |
+|---|---|---|
+| median procedure-only checkability (8 ranked collections) | 9.4% | **7.7%** |
+| total instructions, 8 ranked collections | 20,286 | **26,698 (+31.6%)** |
+| in-scope mandated artifacts | 159 distinct | **230 distinct** |
+| phantom artifacts | 69 (43%) | **95 (41%)** |
+| kibsu-lab baseline, procedure-only / doctrine | 42.4% / 0.0% | **42.4% / 0.0% (unmoved)** |
+| origin workspace baseline, procedure-only / doctrine | 27.1% / 0.0% | **24.0% / 0.0%** |
+
+Both PREREGISTRATION baselines — and, for the first time, the post-cycle-2 state — were
+re-measured at their pinned states with the new instrument (its appended note carries the
+full columns). Doctrine checkability is a hard 0.0% at every stage under every instrument
+this project has shipped, so the pre-registered disqualification clause is untouched, and
+both cycles' improvements survive re-instrumentation (24.0% → 25.9% → 26.7% under 0.7.0;
+the 0.6.0 instrument read the same two moves as 27.1% → 29.3% → 29.9%).
+
+Reproduce both sides: the old numbers with `pip install kibsu==0.5.0` at the pinned SHAs,
+the new with this repository at `main` — ref-scrubbed pinned clones both times, per the
+caveat above and in the 0.6.0 entry.
+
+---
+
 ## 2026-08-07 — the scorer could not see Title-case directives (scorer 0.6.0)
 
 A full review of this repository (six review agents by dimension, one adversarial verifier
