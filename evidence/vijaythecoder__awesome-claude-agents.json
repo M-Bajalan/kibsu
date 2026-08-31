@@ -3,7 +3,7 @@
   "sha": "2050f3c60fcfea497f7b6b3ec6566cc316367a7e",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.8.0",
+    "version": "0.9.0",
     "root": "<clone of vijaythecoder/awesome-claude-agents at 2050f3c60fcf>",
     "mode": "instruction-dir/*.md",
     "all": {

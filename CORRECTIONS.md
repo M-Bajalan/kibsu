@@ -7,6 +7,38 @@ expects to keep finding errors in its own instrument; the alternative is not fin
 
 ---
 
+## 2026-08-31 — the existence check matched case-insensitively; git never did (scorer 0.9.0)
+
+The case round ([#78](https://github.com/M-Bajalan/kibsu/issues/78), fixed in
+[#85](https://github.com/M-Bajalan/kibsu/pull/85)). `glob_re()` compiled every artifact
+matcher with `re.I`, so a mandate for `notes.md` was satisfied by a tracked `Notes.md` -
+an answer git, which compares paths byte-exactly, would never give, and an instruction a
+Linux `cat` fails. The check now answers the way git would. Detection of mandates stays
+case-insensitive, deliberately: reading a mandate is a different question from checking
+its existence, and the earlier "NOTES.MD is the same mandate as notes.md" ruling stands -
+the two postures are now split on purpose rather than conflated by accident.
+
+Ablated before shipping, per the issue's own bar: **367 distinct mandated tokens** across
+the ten pinned repos and both experiment workspaces. Exactly **one** flips to phantom -
+davila7's `summary.md` mandate, whose only six instances are `SUMMARY.md` benchmark
+files - and seven lose surplus matches without changing verdict. Neither experiment
+workspace is touched.
+
+**What moved** (survey at the same pinned SHAs, scorer 0.8.0 → 0.9.0):
+
+| figure | 0.8.0 published | 0.9.0 re-measured |
+|---|---|---|
+| median procedure-only checkability (8 ranked collections) | 7.7% | **7.7% (unmoved)** |
+| phantom artifacts | 95 of 230 (41%) | **96 of 230 (42%)** |
+| davila7/claude-code-templates phantoms | 72/172 | **73/172** |
+| both preregistration workspaces, every figure | — | **identical to the digit** |
+
+The direction is the honest one: the tool credits less, not more. Reproduce both sides:
+`pip install kibsu==0.7.0` versus this repository at `main`, ref-scrubbed pinned clones
+per the 0.6.0 entry's caveat.
+
+---
+
 ## 2026-08-31 — a doctrine label could sit on a unit that mandates files (scorer 0.8.0)
 
 The genre round, deferred out of 0.7.0 by design ([#77](https://github.com/M-Bajalan/kibsu/issues/77))

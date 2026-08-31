@@ -286,3 +286,13 @@ doctrine pool this experiment's clause 3 watches is now harder to join by accide
 mandating unit cannot drift into it through detection — which makes the disqualification
 test stricter than the one originally pre-registered, in the direction that favours the
 reader over the author.
+
+
+## Appended note — 2026-08-31 (third): the existence check went byte-exact, and nothing here moved
+
+The standing clause fired for scorer 0.9.0 (the case round - see
+[CORRECTIONS.md](CORRECTIONS.md), third 2026-08-31 entry). Both workspaces were re-measured
+at every pinned state: **every figure in the previous notes' tables reproduces under 0.9.0
+to the digit** - no mandate in either workspace depends on a case-insensitive match. One
+public-survey phantom count moved by one; the columns future cycles compare against are
+unchanged. Recorded because the clause demands it.

@@ -3,7 +3,7 @@
   "sha": "b29e7cf65e5cb78a5ac33d582270551bc74a14eb",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.8.0",
+    "version": "0.9.0",
     "root": "<clone of anthropics/skills at b29e7cf65e5c>",
     "mode": "SKILL.md",
     "all": {
