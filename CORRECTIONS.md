@@ -7,6 +7,60 @@ expects to keep finding errors in its own instrument; the alternative is not fin
 
 ---
 
+## 2026-08-31 — a doctrine label could sit on a unit that mandates files (scorer 0.8.0)
+
+The genre round, deferred out of 0.7.0 by design ([#77](https://github.com/M-Bajalan/kibsu/issues/77))
+because genre is the backbone of the pre-registered experiment and a detector change
+deserves a release where genre movement is the only variable. Fixed in
+[#82](https://github.com/M-Bajalan/kibsu/pull/82); survey re-run at the **same pinned
+SHAs**, ref-scrubbed clones as always.
+
+The defect: `classify()` votes once for a whole file, and density on a short file lets a
+four-sentence doctrine-flavoured preamble outvote a five-step procedure mandating four real
+files (doctrine 147.7 vs procedure 19.2 in the audited repro) — the whole unit, checkable
+steps included, left the headline procedure pool. The rule that closes it is derived from
+this project's own v0.3.0 definition rather than invented: doctrine produces judgement, not
+files, so **a unit that mandates artifacts or carries runnable fences cannot be DETECTED as
+doctrine** — it is making checkable promises, and the 0%-by-construction exemption cannot
+apply to it. Detection only; a declared genre still beats detection in both directions.
+
+Three candidate designs were calibrated over 1,561 pinned-corpus units before one was
+frozen; the two rejected ones (an executable-evidence floor, a region split) each failed to
+fix the audited repro. The mandate rule flips **8 units, every one a visible
+misclassification**, each demoting to the genre its own next-best score already indicated:
+
+| unit | was | now |
+|---|---|---|
+| anthropics/skills · xlsx | doctrine | reference |
+| davila7 · distributed-training-deepspeed | doctrine | procedure |
+| davila7 · distributed-training-pytorch-fsdp | doctrine | procedure |
+| davila7 · context-architecture | doctrine | reference |
+| davila7 · swarmvault | doctrine | procedure |
+| davila7 · sveltekit | doctrine | procedure |
+| obra/superpowers · requesting-code-review | doctrine | procedure |
+| wshobson/agents · grpo-rlvr-training | doctrine | reference |
+
+**What moved** (survey at the same pinned SHAs, scorer 0.7.0 → 0.8.0):
+
+| figure | 0.7.0 published | 0.8.0 re-measured |
+|---|---|---|
+| median procedure-only checkability (8 ranked collections) | 7.7% | **7.7% (unmoved)** |
+| in-scope mandated artifacts / phantoms | 230 / 95 (41%) | **230 / 95 (unmoved)** |
+| genre census, doctrine units | 23 | **15** |
+| davila7 procedure-only | 16.5% | **16.6%** |
+| obra/superpowers procedure-only | 13.5% | **13.1%** |
+| both preregistration workspaces, every figure | — | **identical to the digit** |
+
+A round that moves almost nothing is a result, not a disappointment: the misfiled units
+were few, the bias direction was mixed (obra's pool gained a low-checkability procedure and
+its figure went DOWN; davila7's went up), and the experiment's doctrine floor — hard 0.0%
+at every stage — now stands on a pool that a mandating unit cannot quietly join, which
+makes clause 3's disqualification test STRICTER, not looser. Reproduce both sides:
+`pip install kibsu==0.6.0` versus this repository at `main`, ref-scrubbed pinned clones per
+the 0.6.0 entry's caveat.
+
+---
+
 ## 2026-08-31 — the scorer read past emphasis, half a vocabulary, and one delimiter style (scorer 0.7.0)
 
 The 2026-08-28 audit of this repository (seven finder agents by dimension, adversarial

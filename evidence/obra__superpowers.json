@@ -3,7 +3,7 @@
   "sha": "3dcbd5c4b48e02263fbf4a3c01e3fe4f81d584d9",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.7.0",
+    "version": "0.8.0",
     "root": "<clone of obra/superpowers at 3dcbd5c4b48e>",
     "mode": "SKILL.md",
     "all": {
@@ -18,38 +18,27 @@
       "zero": 7
     },
     "procedure_only": {
-      "lines": 2517,
-      "instructions": 370,
+      "lines": 2610,
+      "instructions": 382,
       "checkable": 50,
-      "claimable": 320,
-      "runnable_fences": 22,
+      "claimable": 332,
+      "runnable_fences": 23,
       "checkboxes": 35,
-      "units": 9,
-      "pct": 13.513513513513514,
-      "zero": 3
+      "units": 10,
+      "pct": 13.089005235602095,
+      "zero": 4
     },
     "by_genre": {
       "procedure": {
-        "lines": 2517,
-        "instructions": 370,
+        "lines": 2610,
+        "instructions": 382,
         "checkable": 50,
-        "claimable": 320,
-        "runnable_fences": 22,
+        "claimable": 332,
+        "runnable_fences": 23,
         "checkboxes": 35,
-        "units": 9,
-        "pct": 13.513513513513514,
-        "zero": 3
-      },
-      "doctrine": {
-        "lines": 93,
-        "instructions": 12,
-        "checkable": 0,
-        "claimable": 12,
-        "runnable_fences": 1,
-        "checkboxes": 0,
-        "units": 1,
-        "pct": 0.0,
-        "zero": 1
+        "units": 10,
+        "pct": 13.089005235602095,
+        "zero": 4
       },
       "reference": {
         "lines": 381,
@@ -285,10 +274,11 @@
           "reference": 3.01,
           "doctrine": 3.44
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "procedure",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "procedure",
         "skill": "skills/requesting-code-review"
       },
       {

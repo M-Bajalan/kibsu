@@ -3,7 +3,7 @@
   "sha": "b29e7cf65e5cb78a5ac33d582270551bc74a14eb",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.7.0",
+    "version": "0.8.0",
     "root": "<clone of anthropics/skills at b29e7cf65e5c>",
     "mode": "SKILL.md",
     "all": {
@@ -41,25 +41,25 @@
         "zero": 5
       },
       "doctrine": {
-        "lines": 148,
-        "instructions": 28,
-        "checkable": 7,
-        "claimable": 21,
-        "runnable_fences": 1,
+        "lines": 52,
+        "instructions": 9,
+        "checkable": 2,
+        "claimable": 7,
+        "runnable_fences": 0,
         "checkboxes": 0,
-        "units": 2,
-        "pct": 25.0,
+        "units": 1,
+        "pct": 22.22222222222222,
         "zero": 0
       },
       "reference": {
-        "lines": 775,
-        "instructions": 129,
-        "checkable": 39,
-        "claimable": 90,
-        "runnable_fences": 8,
+        "lines": 871,
+        "instructions": 148,
+        "checkable": 44,
+        "claimable": 104,
+        "runnable_fences": 9,
         "checkboxes": 0,
-        "units": 2,
-        "pct": 30.232558139534884,
+        "units": 3,
+        "pct": 29.72972972972973,
         "zero": 0
       },
       "mixed": {
@@ -1582,10 +1582,11 @@
           "reference": 4.38,
           "doctrine": 5.0
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "reference",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "reference",
         "skill": "skills/xlsx"
       },
       {
