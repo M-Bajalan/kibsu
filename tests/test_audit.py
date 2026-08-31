@@ -90,6 +90,111 @@ class RootInstructionFileDiscoveryTests(unittest.TestCase):
         self.assertEqual(mode, "*.md (no instruction dir)")
 
 
+class Scorer070Tests(unittest.TestCase):
+    """The 0.7.0 round's four corrections, each pinned by the shape that exposed it.
+
+    All four widen what the scorer can SEE, none change how it judges - the same split
+    every round since 0.5.0 has stated. Every test here FAILED against scorer 0.6.0."""
+
+    def test_emphasised_imperatives_are_instructions(self):
+        """Issue #56. Bold/italic markers around the leading verb are ordinary authoring
+        style, and cycle 2 of the skill experiment proved the blindness live: six numbered
+        gather-steps with real artifact referents were never counted, and de-bolding the
+        verbs ALONE moved the unit's counts."""
+        text = ("**Create** the gate file at `query/gates/_gate.md`.\n"
+                "1. **Gather Audit Info**: read the audit from `_gate_x.md`.\n"
+                "_Update_ the docs afterwards.\n"
+                "__Verify__ the output matches.\n")
+        o = analyse(text)
+        self.assertEqual(o["instructions"], 4)
+
+    def test_a_backtick_code_span_is_not_an_instruction(self):
+        """The counter-shape #56's fix must NOT admit: a line-leading backtick opens a code
+        span - a NAME, not a command. `run_daily.py` mentions a file; nobody is being told
+        to do anything."""
+        o = analyse("`run_daily.py` is the entry point.\n`create` is a keyword here.\n")
+        self.assertEqual(o["instructions"], 0)
+
+    def test_census_approved_verbs_count_and_rejected_nouns_do_not(self):
+        """Issue #74. gather is the incident's own verb; provide/avoid/monitor entered on
+        census evidence. import/query/release were REJECTED on the same evidence - in
+        instruction docs they open noun phrases ("Import maps for JavaScript"), and
+        admitting them would manufacture claimable instructions out of reference bullets."""
+        o = analyse("Gather the requirements first.\n"
+                    "- Provide clear error messages.\n"
+                    "- Avoid stateful tests.\n"
+                    "- Monitor application performance.\n")
+        self.assertEqual(o["instructions"], 4)
+        o = analyse("- Import maps for JavaScript\n"
+                    "- Query optimization and indexing strategies\n"
+                    "- Release notes and changelog\n")
+        self.assertEqual(o["instructions"], 0)
+
+    def test_backtracking_cannot_manufacture_instructions_from_bold_prefixes(self):
+        """Adversarial finding: with an independent optional closer, the engine BACKTRACKED -
+        "**Test**ing framework overview" matched by giving the closer back and letting the
+        bare "*" satisfy a plain boundary. The closer is a backreference to the opener now,
+        and the boundary excludes the marker characters themselves."""
+        o = analyse("**Test**ing is a discipline, not a phase.\n"
+                    "**set**up the project\n"
+                    "*set*up something\n"
+                    "**Build**ing the pipeline\n")
+        self.assertEqual(o["instructions"], 0)
+
+    def test_a_markdown_link_is_one_mention_not_a_corrupted_pair(self):
+        """Adversarial finding: "[README.md](./README.md)" minted a bracket-corrupted
+        `[README.md` token - a path that can never exist, a fabricated phantom - NEXT TO the
+        real one. Links are flattened to text + target before scanning, and the two coats
+        dedup to one record."""
+        o = analyse("You MUST update [README.md](./README.md) before merging.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], ["README.md"])
+
+    def test_www_references_are_pages_not_mandates(self):
+        o = analyse("Create output.py; see www.example.com/readme.md for the site.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], ["output.py"])
+
+    def test_the_display_cap_never_decides_scope(self):
+        """Adversarial finding: with the scope verdict computed from the capped display list,
+        a token whose ONLY clean mention was the ninth distinct line flipped out-of-scope -
+        the exact bug this round fixed, reappearing at mention nine. The verdict is computed
+        over every mention now, unconditionally; the cap only bounds display, and dropping a
+        line for it sets mentions_truncated instead of staying silent."""
+        dirty = "".join("Generate cap.md into the user's %s directory.\n" % w
+                        for w in ("alpha", "beta", "gamma", "delta", "epsilon", "zeta",
+                                  "eta", "theta"))
+        text = dirty + "Write cap.md after every run.\n"
+        o = analyse(text)
+        rec = [m for m in o["mandated"] if m["tok"] == "cap.md"][0]
+        self.assertTrue(rec["any_clean"], "the ninth, clean mention must set the verdict")
+        self.assertTrue(rec["mentions_truncated"], "a dropped display line is disclosed")
+        self.assertEqual(len(rec["lines"]), 8)
+
+    def test_bare_and_quoted_mandates_reach_the_artifact_records(self):
+        """Issue #75. PATHY counted 'Create config.yml' as checkable BECAUSE it names a
+        file, while FILE_TOKEN's backtick requirement kept that same file out of the
+        mandated-artifact records forever - checkable, yet unfalsifiable."""
+        o = analyse("Create config.yml with the settings.\n"
+                    'Write "docs/plan.md" before starting.\n')
+        toks = sorted(m["tok"] for m in o["mandated"])
+        self.assertEqual(toks, ["config.yml", "docs/plan.md"])
+
+    def test_a_url_is_a_page_not_a_mandate(self):
+        o = analyse("Create the doc per https://example.com/guide.md today.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], [])
+
+    def test_every_mention_line_is_kept_and_any_clean_one_sets_scope(self):
+        """Issue #76. Dedup used to keep only the FIRST mention line, and the scope filter
+        judged from it - document order, not the specification, decided scope. A token
+        whose first mention reads user-scope but whose second plainly mandates it in-repo
+        must stay in the phantom population."""
+        text = ("Generate out/report.md into the user's project.\n"
+                "Write out/report.md after every run.\n")
+        o = analyse(text)
+        recs = [m for m in o["mandated"] if m["tok"] == "out/report.md"]
+        self.assertEqual(len(recs), 1, "one deduped record")
+        self.assertEqual(len(recs[0]["lines"]), 2, "both mention lines carried")
+
+
 class AuditTests(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_audit_")
