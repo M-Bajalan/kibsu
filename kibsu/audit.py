@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-kibsu audit v0.6.0 - how much of an agent instruction set can actually be checked?
+kibsu audit v0.7.0 - how much of an agent instruction set can actually be checked?
 
 An instruction is CHECKABLE if a reviewer could tell from the repo alone whether it happened: it
 runs a command, produces or edits a named file, or is a tick-box. It is CLAIMABLE if the only
 evidence is the agent saying so.
+
+v0.7.0 is four more corrections to what the scorer can SEE, none to how it judges - the same
+split as 0.6.0, found by the 2026-08-28 audit and its adversarial verifiers (#56, #74, #75,
+#76): the imperative anchor reads through markdown emphasis (a bolded verb was invisible, and
+an experiment cycle moved its own numbers by DE-BOLDING); the verb vocabulary grew by 55
+census-approved entries while the census's noun-heavy candidates (import, query, reference...)
+were rejected on the same evidence; FILE_TOKEN accepts the same optional delimiters PATHY
+always did, so a bare "Create config.yml" mandate finally reaches the phantom check it was
+always checkable under; and mandated-token dedup keeps every mention line, so document order
+no longer decides an artifact's scope. Instruction counts GROW under all four - the blind
+spots leaned claimable, so published checkable ratios come DOWN; the re-measure is indexed in
+CORRECTIONS.md like every round before it.
 
 v0.6.0 is three corrections to what the scorer can SEE, none to how it judges (#26/#27/#28):
 MODALS is case-insensitive ("- Must run the tests." was counted as no instruction at all -
@@ -89,7 +101,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 
 # Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
 # git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
@@ -116,17 +128,36 @@ EXITY = re.compile(r"\b(exit code|exit 0|exit 1|non-zero|returns? 0|must pass|pa
                    r"assert|verify that|diff|git status|git log|numstat)\b", re.I)
 MODALS = re.compile(r"\b(MUST|SHOULD|ALWAYS|NEVER|REQUIRED|DO NOT|DON'T|MANDATORY|"
                     r"ENSURE|MAKE SURE)\b", re.I)
-VERBS = (r"add|append|apply|archive|ask|assert|bump|build|call|change|check|clean|clear|close|commit|"
-         r"compare|confirm|copy|create|declare|delete|deploy|describe|do|document|edit|enable|ensure|"
-         r"enumerate|execute|explain|export|extract|fetch|fill|find|finish|fix|follow|generate|get|give|"
-         r"go|grep|handle|identify|implement|include|insert|inspect|install|invoke|keep|list|load|log|"
-         r"look|maintain|make|mark|measure|merge|move|name|note|open|output|parse|pass|perform|pick|"
-         r"place|prefer|prepare|print|produce|prove|pull|push|put|read|record|refresh|regenerate|"
-         r"register|remove|rename|render|repeat|replace|report|require|reset|resolve|restate|restore|"
-         r"return|review|rewrite|run|save|scan|search|select|send|set|show|skip|sort|split|stamp|start|"
-         r"state|stop|store|summarise|summarize|surface|sweep|switch|sync|tag|take|tell|test|track|"
-         r"translate|treat|trigger|update|upgrade|use|validate|verify|walk|write")
-IMPERATIVE = re.compile(r"^\s*(?:[-*+>]\s+|\d+[.)]\s+|\|\s*)?(?:" + VERBS + r")\b", re.I)
+# Widened in scorer 0.7.0 (issue #74) - and every addition EARNED its place in a per-verb
+# census over the ten pinned survey repos plus one plugin corpus (1,660 unit files): a
+# candidate entered only when its sample lines read as imperatives. The biggest candidates
+# were REJECTED on the same evidence, because in instruction docs they open noun phrases,
+# not commands - "Import maps for JavaScript" (import, 1,625 hits), "Query optimization
+# strategies" (query, 431), "Reference resolver design", "Format consistency", "Order
+# management systems", "Link-time optimization", "Wait statistics analysis", "Release notes"
+# - plus the code keywords raise/yield/continue/match, whose hits were mostly fenced
+# examples. A verb list that admits those manufactures claimable instructions out of
+# reference bullets, which is measurement error in the OPPOSITE direction of the blind spot
+# this widening repairs. gather is the one the incident demanded: issue #56's live specimen
+# ("1. **Gather Audit Info**:") failed on the bold marker AND on the missing verb.
+VERBS = (r"add|align|announce|append|apply|archive|ask|assert|audit|avoid|build|bump|call|capture|change|check|cite|clean|clear|close|collect|commit|compare|complete|confirm|consider|copy|create|declare|define|delete|deploy|describe|detect|determine|do|document|draft|edit|enable|enforce|ensure|enumerate|establish|evaluate|execute|expand|explain|export|extract|fetch|fill|find|finish|fix|follow|gather|generate|get|give|go|grep|handle|identify|implement|improve|include|inform|initialise|initialize|insert|inspect|install|invoke|iterate|keep|list|load|log|look|maintain|make|map|mark|measure|merge|minimise|minimize|monitor|move|name|normalise|normalize|note|open|optimise|optimize|organise|organize|output|parse|pass|perform|pick|place|plan|prefer|prepare|preserve|prevent|print|prioritise|prioritize|produce|propose|prove|provide|pull|push|put|quote|read|recommend|record|reduce|refactor|refresh|regenerate|register|remove|rename|render|repeat|replace|report|require|reset|resolve|respect|respond|restate|restore|return|review|rewrite|run|save|scan|schedule|search|select|send|separate|set|share|show|skip|sort|specify|split|stamp|start|state|stop|store|structure|submit|suggest|summarise|summarize|surface|sweep|switch|sync|tag|take|tell|test|trace|track|translate|treat|trigger|update|upgrade|upload|use|validate|verify|walk|write")
+# Markdown EMPHASIS around the leading verb is ordinary instruction style - "**Create** the
+# gate file", "1. **Gather Audit Info**:" - and it was invisible to this anchor until scorer
+# 0.7.0 (issue #56): the optional prefix knew bullets, numbers and table pipes, but not
+# `**`/`*`/`__`/`_`. Cycle 2 of the skill experiment hit this live - six numbered gather-steps
+# with real artifact referents were never counted at all, and DE-BOLDING the verbs alone moved
+# the unit's counts (the cycle record calls the movement "format visibility, not conversion").
+# Three lessons are load-bearing in the shape below:
+#   - the CLOSING marker is consumed before the boundary, because "_" is a word character:
+#     "_create_" has no \b after the verb, which is why issue #56's own fix sketch failed on
+#     the underscore variants it was written to fix;
+#   - the boundary is (?![\w]) and not \b, because a consumed "**" leaves the cursor between
+#     two NON-word characters ("**create**" + space), where \b is false by definition;
+#   - a BACKTICK is deliberately not an emphasis marker here: a line-leading backtick opens a
+#     code span - `run_daily.py` names a file, it does not command anyone - and admitting one
+#     manufactured instructions out of inline code mentions during calibration.
+IMPERATIVE = re.compile(r"^\s*(?:[-*+>]\s+|\d+[.)]\s+|\|\s*)?(?:\*\*|\*|__|_)?"
+                        r"(?:" + VERBS + r")(?:\*\*|\*|__|_)?(?![\w])", re.I)
 
 # ---- genre signals -------------------------------------------------------------------------
 PERSONA_RE = [re.compile(p, re.I) for p in (
@@ -170,13 +201,34 @@ ARTIFACT_VERB = re.compile(
     # (see SCAFFOLD_SKILL / USER_SCOPE_LINE) had nothing to apply to in the one case it exists
     # to catch.
     r"stamp|bump|export|scaffold)\w*\b", re.I)
+# The extraction delimiters were unified with PATHY's in scorer 0.7.0 (issue #75). PATHY -
+# which decides whether a line counts as CHECKABLE at all - always accepted an optional
+# delimiter, so "Create config.yml" was checkable BECAUSE it names a file; FILE_TOKEN
+# hard-required backticks, so that same file never became a mandated artifact and could never
+# be reported phantom, however many skills mandated it. The two regexes answering "is this a
+# file mention" differently was the audit's highest-severity scorer finding. Three delimiter
+# forms are accepted now - backtick, quote, bare - with URL text stripped from the line first
+# (file_tokens() below): "see https://x.io/guide.md" mentions a page, not a mandate. tsx/jsx
+# and re.I both carried from earlier rounds; `NOTES.MD` is still the same mandate as
+# `notes.md`, deliberately (the existence check's case posture is issue #78, not this one).
+_FT_CORE = r"[\w./\\*\[\]{}-]*[\w*\[\]{}-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv)"
 FILE_TOKEN = re.compile(
-    # tsx/jsx added to the extension list - previously missing here even though PATHY (above)
-    # already recognised them for checkability. A mandate naming a `.tsx`/`.jsx` file - exactly
-    # the shape a React/Angular scaffolding skill mandates - silently never became an "artifact"
-    # at all before this, regardless of any scope rule. re.I carried from the
-    # case-insensitivity fix: `NOTES.MD` is the same mandate as `notes.md`.
-    r"`([^`\s]*?[\w*\[\]{}-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv))`", re.I)
+    r"`(" + _FT_CORE + r")`"
+    r"|\"(" + _FT_CORE + r")\""
+    r"|'(" + _FT_CORE + r")'"
+    r"|(?<![\w./\\-])(" + _FT_CORE + r")(?![\w-])", re.I)
+_URLISH = re.compile(r"https?://\S+", re.I)
+
+
+def file_tokens(line):
+    """Every mandated-file token on this line, delimiter-agnostic, URLs excluded."""
+    out = []
+    for groups in FILE_TOKEN.findall(_URLISH.sub(" ", line)):
+        tok = next((g for g in groups if g), "")
+        if tok:
+            out.append(tok)
+    return out
+
 
 # --- phantom-scope filters (fix for the false-positive class) --------------------------------
 # A mandated artifact only counts as a PHANTOM if the skill claims it is produced INSIDE the repo
@@ -442,7 +494,7 @@ def analyse(text):
                      or bool(PATHY.search(ln)) or bool(EXITY.search(ln)))
         o["checkable" if checkable else "claimable"] += 1
         if ARTIFACT_VERB.search(ln):
-            for m in FILE_TOKEN.findall(ln):
+            for m in file_tokens(ln):
                 # Strip a leading "./" as a PREFIX. lstrip("./\\") takes a character SET and
                 # eats the dot of ".agents/skills/x", turning a real path into one that resolves
                 # nowhere - so the artifact is silently dropped and reads as "not mandated".
@@ -451,7 +503,8 @@ def analyse(text):
                 while tok.startswith("./"):
                     tok = tok[2:]
                 if tok and len(tok) < 90:
-                    o["mandated"].append({"tok": tok, "line": ln.strip()[:200]})
+                    o["mandated"].append({"tok": tok, "line": ln.strip()[:200],
+                                          "lines": [ln.strip()[:200]]})
                 elif tok:
                     # LENGTH-CAP: a token this long never becomes an "artifact" record at all -
                     # it is dropped here, before check_artifacts() ever sees it, so it cannot
@@ -459,11 +512,21 @@ def analyse(text):
                     # that don't exist. Counted here instead, and summed across all rows in
                     # main(), so this exclusion class is disclosed too, not just silently gone.
                     o["length_cap_dropped"] += 1
-    seen = set()
+    # Dedup by token, but keep EVERY mention line (issue #76, scorer 0.7.0): the record's
+    # "line" stays the first mention for display, and "lines" carries the rest, because the
+    # scope filter in check_artifacts() judges from these - and judging from the first line
+    # alone meant DOCUMENT ORDER, not the specification, decided an artifact's scope. Capped
+    # at 8 distinct lines: past that, more mentions add no new scope information worth the
+    # memory, and the cap is disclosed here rather than silent.
+    by_tok = {}
     uniq = []
     for m in o["mandated"]:
-        if m["tok"] not in seen:
-            seen.add(m["tok"]); uniq.append(m)  # noqa: E702 -- mandated-token dedup; out of scope for lint-wiring
+        prev = by_tok.get(m["tok"])
+        if prev is None:
+            by_tok[m["tok"]] = m
+            uniq.append(m)
+        elif m["line"] not in prev["lines"] and len(prev["lines"]) < 8:
+            prev["lines"].append(m["line"])
     o["mandated"] = uniq
     detected, o["genre_scores"] = classify(o, o["lines"])
     # DECLARATION BEATS DETECTION. Auto-detecting "doctrine" reliably proved beyond this tool:
@@ -650,12 +713,25 @@ def check_artifacts(root, rows):
                 reason_class = "declared-scope"
             else:
                 if declared_scope != "repo":
-                    sreason = scaffold_scope_reason(line)
-                    if sreason:
-                        reason, reason_class = sreason, "scaffold-scope"
-                    elif USER_SCOPE_LINE.search(line):
-                        reason = "line refers to the user's project, not this repo"
-                        reason_class = "user-scope"
+                    # Issue #76: the line-level heuristic runs over EVERY mention of this
+                    # token, and one clean mention keeps the artifact in scope - a mandate
+                    # that is in-repo anywhere is in-repo. The reported reason, when every
+                    # mention reads out-of-scope, is the FIRST line's, matching what "line"
+                    # displays. Declared scope (both directions) and the token-level
+                    # path-prefix check below are untouched by this.
+                    per_line = []
+                    for mention in (m.get("lines") or [line]):
+                        sreason = scaffold_scope_reason(mention)
+                        if sreason:
+                            per_line.append((sreason, "scaffold-scope"))
+                        elif USER_SCOPE_LINE.search(mention):
+                            per_line.append(("line refers to the user's project, not this "
+                                             "repo", "user-scope"))
+                        else:
+                            per_line = None  # one clean mention -> in scope
+                            break
+                    if per_line:
+                        reason, reason_class = per_line[0]
                 if reason is None:
                     pre = os.path.dirname(tok.replace("\\", "/"))
                     if pre:
