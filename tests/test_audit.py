@@ -90,6 +90,52 @@ class RootInstructionFileDiscoveryTests(unittest.TestCase):
         self.assertEqual(mode, "*.md (no instruction dir)")
 
 
+class MandateRuleTests(unittest.TestCase):
+    """Scorer 0.8.0, issue #77: a unit that mandates artifacts cannot be DETECTED doctrine.
+
+    Derived from the tool's own definition - doctrine produces judgement, not files - so a
+    unit promising files is making checkable promises and cannot claim the
+    0%-by-construction exemption. Detection only; declaration still beats it both ways.
+    All three tests FAILED against scorer 0.7.0."""
+
+    DOCTRINE_PREAMBLE = ("Resist the temptation to patch the symptom. Question the hidden\n"
+                         "assumption, and ask yourself what failure mode the counter missed.\n"
+                         "It is not enough to close the ticket; when in doubt, treat every\n"
+                         "red flag as a judgement call.\n\n")
+
+    def test_a_mandating_unit_is_not_doctrine(self):
+        """The audited repro: a four-sentence doctrine preamble outvoted a five-step
+        procedure mandating real files (147.7 vs 19.2 on a short file) and pulled the whole
+        unit out of the headline."""
+        text = (self.DOCTRINE_PREAMBLE
+                + "1. Create `incident_timeline.md` from the alert log.\n"
+                  "2. Write `postmortem.md` with the five whys.\n"
+                  "3. Update `STATUS.md`.\n")
+        o = analyse(text)
+        self.assertEqual(o["genre_detected"], "procedure")
+        self.assertEqual(o.get("genre_demoted_from"), "doctrine")
+
+    def test_pure_doctrine_stays_doctrine(self):
+        """The rule must not touch what doctrine actually is: judgement-shaped guidance
+        that promises no files - the genre the tool exists to protect from defamation."""
+        o = analyse(self.DOCTRINE_PREAMBLE)
+        self.assertEqual(o["genre_detected"], "doctrine")
+        self.assertNotIn("genre_demoted_from", o)
+
+    def test_a_declared_doctrine_keeps_its_declaration_and_the_conflict_flag(self):
+        """Declaration beats detection in both directions, unchanged: an author who insists
+        a mandating unit is doctrine keeps that ruling, and the disagreement is flagged
+        rather than silently swallowed."""
+        text = ("---\ngenre: doctrine\n---\n" + self.DOCTRINE_PREAMBLE
+                + "1. Create `incident_timeline.md` from the alert log.\n"
+                  "2. Write `postmortem.md`.\n"
+                  "3. Update `STATUS.md`.\n")
+        o = analyse(text)
+        self.assertEqual(o["genre"], "doctrine")
+        self.assertEqual(o["genre_source"], "declared")
+        self.assertTrue(o["genre_conflict"])
+
+
 class Scorer070Tests(unittest.TestCase):
     """The 0.7.0 round's four corrections, each pinned by the shape that exposed it.
 

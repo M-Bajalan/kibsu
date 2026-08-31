@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-kibsu audit v0.7.0 - how much of an agent instruction set can actually be checked?
+kibsu audit v0.8.0 - how much of an agent instruction set can actually be checked?
 
 An instruction is CHECKABLE if a reviewer could tell from the repo alone whether it happened: it
 runs a command, produces or edits a named file, or is a tick-box. It is CLAIMABLE if the only
 evidence is the agent saying so.
+
+v0.8.0 is the MANDATE RULE (issue #77): a unit that mandates artifacts or carries runnable
+fences cannot be DETECTED as doctrine - doctrine produces judgement, not files, by this
+file's own definition, so a unit promising files is making checkable promises and cannot
+claim the 0%-by-construction exemption. Detection only; a declared genre still wins both
+ways. 8 of 1,561 pinned-corpus units reclassify, all visibly misfiled; the re-measure is
+indexed in CORRECTIONS.md like every round before it.
 
 v0.7.0 is four more corrections to what the scorer can SEE, none to how it judges - the same
 split as 0.6.0, found by the 2026-08-28 audit and its adversarial verifiers (#56, #74, #75,
@@ -101,7 +108,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 
 # Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
 # git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
@@ -567,6 +574,26 @@ def analyse(text):
                     prev["mentions_truncated"] = True
     o["mandated"] = uniq
     detected, o["genre_scores"] = classify(o, o["lines"])
+    # THE MANDATE RULE (scorer 0.8.0, issue #77): a unit that MANDATES ARTIFACTS or carries
+    # runnable fences cannot be detected as doctrine. Derived from this tool's own founding
+    # definition, not a new heuristic: "a DOCTRINE produces better judgement, not a file"
+    # (v0.3.0 docstring) - and a unit promising files is making checkable promises, so
+    # doctrine's 0%-by-construction exemption cannot apply to it. Fixes the audited defect
+    # where a four-sentence doctrine-flavoured preamble outvoted a five-step procedure
+    # mandating four real files (density on a short file amplified the preamble to 147.7 vs
+    # 19.2) and pulled the whole unit out of the headline. Calibrated before freezing: 8 of
+    # 1,561 pinned-corpus units flip, every one a visible misclassification (an Excel
+    # manipulation skill, two distributed-training guides, a code-review procedure); zero
+    # flips in either preregistration workspace. Demotion goes to the NEXT-BEST genre - a
+    # reference-shaped unit becomes reference, not force-marched into procedure - and falls
+    # to "mixed" below the same 0.8 floor classify() has always used. DECLARED genre still
+    # beats detection in both directions, so an author who insists a mandating unit is
+    # doctrine keeps that ruling (and the conflict flag).
+    if detected == "doctrine" and (o["mandated"] or o["runnable_fences"] > 0):
+        o["genre_demoted_from"] = "doctrine"
+        rest = {g: v for g, v in o["genre_scores"].items() if g != "doctrine"}
+        best = max(rest, key=rest.get)
+        detected = best if rest[best] >= 0.8 else "mixed"
     # DECLARATION BEATS DETECTION. Auto-detecting "doctrine" reliably proved beyond this tool:
     # ten numbered PRINCIPLES are structurally identical to ten numbered STEPS, and every
     # heuristic tried was really the author's prior belief in regex form. So the skill author
