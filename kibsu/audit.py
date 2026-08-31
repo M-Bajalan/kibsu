@@ -156,8 +156,14 @@ VERBS = (r"add|align|announce|append|apply|archive|ask|assert|audit|avoid|build|
 #   - a BACKTICK is deliberately not an emphasis marker here: a line-leading backtick opens a
 #     code span - `run_daily.py` names a file, it does not command anyone - and admitting one
 #     manufactured instructions out of inline code mentions during calibration.
-IMPERATIVE = re.compile(r"^\s*(?:[-*+>]\s+|\d+[.)]\s+|\|\s*)?(?:\*\*|\*|__|_)?"
-                        r"(?:" + VERBS + r")(?:\*\*|\*|__|_)?(?![\w])", re.I)
+#   - the closing marker is a BACKREFERENCE to the opener, and the boundary excludes the
+#     marker characters themselves: with an independent optional closer, the regex engine
+#     BACKTRACKS - "**Test**ing" matched by giving back the closer and letting the bare "*"
+#     satisfy a plain (?![\w]), manufacturing an instruction out of "**Test**ing framework
+#     overview". Symmetric open/close plus (?![\w*_]) closes both escape routes; found by
+#     the round's adversarial pass, with the repro pinned in Scorer070Tests.
+IMPERATIVE = re.compile(r"^\s*(?:[-*+>]\s+|\d+[.)]\s+|\|\s*)?(?:(\*\*|\*|__|_))?"
+                        r"(?:" + VERBS + r")(?:\1)?(?![\w*_])", re.I)
 
 # ---- genre signals -------------------------------------------------------------------------
 PERSONA_RE = [re.compile(p, re.I) for p in (
@@ -217,12 +223,27 @@ FILE_TOKEN = re.compile(
     r"|\"(" + _FT_CORE + r")\""
     r"|'(" + _FT_CORE + r")'"
     r"|(?<![\w./\\-])(" + _FT_CORE + r")(?![\w-])", re.I)
-_URLISH = re.compile(r"https?://\S+", re.I)
+_URLISH = re.compile(r"(?:https?://|www\.)\S+", re.I)
+# A markdown link is ONE mention wearing two coats: "[README.md](./README.md)" used to yield
+# a bracket-corrupted `[README.md` token (a path that can never exist -> a fabricated
+# phantom) NEXT TO the real one. Links are flattened to "text target" before token scanning,
+# so both coats resolve to the same token and dedup to one record. `pages/[id].md`-style
+# template brackets are untouched - this only fires on the full ](... link shape. Both
+# repros from the round's adversarial pass, pinned in Scorer070Tests.
+_MDLINK = re.compile(r"\[([^\]]*)\]\(([^)]*)\)")
 
 
 def file_tokens(line):
-    """Every mandated-file token on this line, delimiter-agnostic, URLs excluded."""
+    """Every mandated-file token on this line, delimiter-agnostic, URLs excluded.
+
+    Honest limit, disclosed here because no regex can fix it: a bare single-segment token
+    that is really a DOMAIN ("see raycast.md for the tool's site" - .md is a live ccTLD)
+    is indistinguishable from a bare file mandate by shape alone and will be extracted.
+    Scheme-prefixed and www. references are stripped; the naked-domain residue is accepted
+    and counted like any other mandate rather than special-cased by a guessing heuristic.
+    """
     out = []
+    line = _MDLINK.sub(lambda m: " %s %s " % (m.group(1), m.group(2)), line)
     for groups in FILE_TOKEN.findall(_URLISH.sub(" ", line)):
         tok = next((g for g in groups if g), "")
         if tok:
@@ -419,6 +440,13 @@ def classify(sig, lines):
     return "mixed", scores
 
 
+def _mention_clean(mention):
+    """One mention line's own scope verdict: True when the line-level heuristic finds no
+    scaffold-scope and no user-scope language. The SAME two checks check_artifacts() applies;
+    computed here so the verdict covers every mention, including ones the display cap drops."""
+    return scaffold_scope_reason(mention) is None and not USER_SCOPE_LINE.search(mention)
+
+
 def analyse(text):
     body, fm = strip_frontmatter(text)
     m = re.search(r"^\s*genre\s*:\s*([A-Za-z]+)\s*(?:#.*)?$", fm, re.M)
@@ -503,8 +531,10 @@ def analyse(text):
                 while tok.startswith("./"):
                     tok = tok[2:]
                 if tok and len(tok) < 90:
-                    o["mandated"].append({"tok": tok, "line": ln.strip()[:200],
-                                          "lines": [ln.strip()[:200]]})
+                    mention = ln.strip()[:200]
+                    o["mandated"].append({"tok": tok, "line": mention, "lines": [mention],
+                                          "any_clean": _mention_clean(mention),
+                                          "mentions_truncated": False})
                 elif tok:
                     # LENGTH-CAP: a token this long never becomes an "artifact" record at all -
                     # it is dropped here, before check_artifacts() ever sees it, so it cannot
@@ -525,8 +555,16 @@ def analyse(text):
         if prev is None:
             by_tok[m["tok"]] = m
             uniq.append(m)
-        elif m["line"] not in prev["lines"] and len(prev["lines"]) < 8:
-            prev["lines"].append(m["line"])
+        else:
+            # The SCOPE verdict is computed over EVERY mention, unconditionally - the display
+            # cap below must never decide scope, or the exact bug this round fixed (position
+            # deciding scope) reappears at mention nine. Found by the adversarial pass.
+            prev["any_clean"] = prev["any_clean"] or m["any_clean"]
+            if m["line"] not in prev["lines"]:
+                if len(prev["lines"]) < 8:
+                    prev["lines"].append(m["line"])
+                else:
+                    prev["mentions_truncated"] = True
     o["mandated"] = uniq
     detected, o["genre_scores"] = classify(o, o["lines"])
     # DECLARATION BEATS DETECTION. Auto-detecting "doctrine" reliably proved beyond this tool:
@@ -696,6 +734,7 @@ def check_artifacts(root, rows):
             # runs the pattern against it. That silent drop-for-the-wrong-reason was issue #14's
             # second bug, hiding behind the first.
             templated = bool(TEMPLATED_RE.search(tok))
+            mentions_truncated = bool(m.get("mentions_truncated"))
 
             # --- scope filter: is this artifact claimed to live in THIS repo? ---
             # v0.5.0: DECLARED SCOPE (a `scope: user-project` / `scope: repo` key in the unit's
@@ -713,25 +752,18 @@ def check_artifacts(root, rows):
                 reason_class = "declared-scope"
             else:
                 if declared_scope != "repo":
-                    # Issue #76: the line-level heuristic runs over EVERY mention of this
-                    # token, and one clean mention keeps the artifact in scope - a mandate
-                    # that is in-repo anywhere is in-repo. The reported reason, when every
-                    # mention reads out-of-scope, is the FIRST line's, matching what "line"
-                    # displays. Declared scope (both directions) and the token-level
-                    # path-prefix check below are untouched by this.
-                    per_line = []
-                    for mention in (m.get("lines") or [line]):
-                        sreason = scaffold_scope_reason(mention)
+# Issue #76: one clean mention anywhere keeps the artifact in scope - a
+                    # mandate that is in-repo anywhere is in-repo. The verdict comes from
+                    # analyse()'s per-mention any_clean flag, which is computed over EVERY
+                    # mention including ones past the display cap. When no mention is clean,
+                    # the reported reason is the FIRST line's, matching what "line" displays.
+                    if not m.get("any_clean"):
+                        sreason = scaffold_scope_reason(line)
                         if sreason:
-                            per_line.append((sreason, "scaffold-scope"))
-                        elif USER_SCOPE_LINE.search(mention):
-                            per_line.append(("line refers to the user's project, not this "
-                                             "repo", "user-scope"))
+                            reason, reason_class = sreason, "scaffold-scope"
                         else:
-                            per_line = None  # one clean mention -> in scope
-                            break
-                    if per_line:
-                        reason, reason_class = per_line[0]
+                            reason = "line refers to the user's project, not this repo"
+                            reason_class = "user-scope"
                 if reason is None:
                     pre = os.path.dirname(tok.replace("\\", "/"))
                     if pre:
@@ -786,7 +818,7 @@ def check_artifacts(root, rows):
                 in_scope=in_scope, out_of_scope_reason=reason, out_of_scope_class=reason_class,
                 templated=templated, match_count=match_count,
                 unverifiable_pattern=unverifiable, unverifiable_reason=unverifiable_reason,
-                phantom=phantom,
+                phantom=phantom, mentions_truncated=mentions_truncated,
             ))
     return res, shallow, bool(gr), len(tree | hist)
 

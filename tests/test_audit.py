@@ -130,6 +130,45 @@ class Scorer070Tests(unittest.TestCase):
                     "- Release notes and changelog\n")
         self.assertEqual(o["instructions"], 0)
 
+    def test_backtracking_cannot_manufacture_instructions_from_bold_prefixes(self):
+        """Adversarial finding: with an independent optional closer, the engine BACKTRACKED -
+        "**Test**ing framework overview" matched by giving the closer back and letting the
+        bare "*" satisfy a plain boundary. The closer is a backreference to the opener now,
+        and the boundary excludes the marker characters themselves."""
+        o = analyse("**Test**ing is a discipline, not a phase.\n"
+                    "**set**up the project\n"
+                    "*set*up something\n"
+                    "**Build**ing the pipeline\n")
+        self.assertEqual(o["instructions"], 0)
+
+    def test_a_markdown_link_is_one_mention_not_a_corrupted_pair(self):
+        """Adversarial finding: "[README.md](./README.md)" minted a bracket-corrupted
+        `[README.md` token - a path that can never exist, a fabricated phantom - NEXT TO the
+        real one. Links are flattened to text + target before scanning, and the two coats
+        dedup to one record."""
+        o = analyse("You MUST update [README.md](./README.md) before merging.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], ["README.md"])
+
+    def test_www_references_are_pages_not_mandates(self):
+        o = analyse("Create output.py; see www.example.com/readme.md for the site.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], ["output.py"])
+
+    def test_the_display_cap_never_decides_scope(self):
+        """Adversarial finding: with the scope verdict computed from the capped display list,
+        a token whose ONLY clean mention was the ninth distinct line flipped out-of-scope -
+        the exact bug this round fixed, reappearing at mention nine. The verdict is computed
+        over every mention now, unconditionally; the cap only bounds display, and dropping a
+        line for it sets mentions_truncated instead of staying silent."""
+        dirty = "".join("Generate cap.md into the user's %s directory.\n" % w
+                        for w in ("alpha", "beta", "gamma", "delta", "epsilon", "zeta",
+                                  "eta", "theta"))
+        text = dirty + "Write cap.md after every run.\n"
+        o = analyse(text)
+        rec = [m for m in o["mandated"] if m["tok"] == "cap.md"][0]
+        self.assertTrue(rec["any_clean"], "the ninth, clean mention must set the verdict")
+        self.assertTrue(rec["mentions_truncated"], "a dropped display line is disclosed")
+        self.assertEqual(len(rec["lines"]), 8)
+
     def test_bare_and_quoted_mandates_reach_the_artifact_records(self):
         """Issue #75. PATHY counted 'Create config.yml' as checkable BECAUSE it names a
         file, while FILE_TOKEN's backtick requirement kept that same file out of the
