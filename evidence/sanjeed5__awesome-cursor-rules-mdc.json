@@ -3,48 +3,48 @@
   "sha": "8fbf26908531c127a6076be0e55fbe17b57fb2d8",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.6.0",
+    "version": "0.7.0",
     "root": "<clone of sanjeed5/awesome-cursor-rules-mdc at 8fbf26908531>",
     "mode": "*.md (no instruction dir)",
     "all": {
       "lines": 1296,
-      "instructions": 149,
-      "checkable": 11,
-      "claimable": 138,
+      "instructions": 210,
+      "checkable": 13,
+      "claimable": 197,
       "runnable_fences": 6,
       "checkboxes": 0,
       "units": 5,
-      "pct": 7.382550335570469,
-      "zero": 1
+      "pct": 6.190476190476191,
+      "zero": 0
     },
     "procedure_only": {
       "lines": 1296,
-      "instructions": 149,
-      "checkable": 11,
-      "claimable": 138,
+      "instructions": 210,
+      "checkable": 13,
+      "claimable": 197,
       "runnable_fences": 6,
       "checkboxes": 0,
       "units": 5,
-      "pct": 7.382550335570469,
-      "zero": 1
+      "pct": 6.190476190476191,
+      "zero": 0
     },
     "by_genre": {
       "procedure": {
         "lines": 1296,
-        "instructions": 149,
-        "checkable": 11,
-        "claimable": 138,
+        "instructions": 210,
+        "checkable": 13,
+        "claimable": 197,
         "runnable_fences": 6,
         "checkboxes": 0,
         "units": 5,
-        "pct": 7.382550335570469,
-        "zero": 1
+        "pct": 6.190476190476191,
+        "zero": 0
       }
     },
     "artifacts": [
       {
         "skill": "cursor-rules-docs.md",
-        "artifact": "@reactiveStorageService.tsx",
+        "artifact": "reactiveStorageService.tsx",
         "in_tree": false,
         "in_history": false,
         "in_scope": true,
@@ -54,11 +54,12 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
       },
       {
         "skill": "cursor-rules-reference.md",
-        "artifact": "@reactiveStorageService.tsx",
+        "artifact": "reactiveStorageService.tsx",
         "in_tree": false,
         "in_history": false,
         "in_scope": true,
@@ -68,7 +69,23 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "src/plan.md",
+        "artifact": "convert_to_mdc.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 3,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
       }
     ],
     "history_shallow": false,
@@ -79,21 +96,26 @@
         "fences": 8,
         "runnable_fences": 3,
         "checkboxes": 0,
-        "instructions": 33,
+        "instructions": 38,
         "checkable": 2,
-        "claimable": 31,
+        "claimable": 36,
         "inline_cmds": 1,
         "steps": 10,
         "seq": 1,
         "tables": 6,
         "persona_hits": 0,
         "doctrine_hits": 0,
-        "epistemic": 0,
-        "action": 33,
+        "epistemic": 1,
+        "action": 37,
         "mandated": [
           {
-            "tok": "@reactiveStorageService.tsx",
-            "line": "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`."
+            "tok": "reactiveStorageService.tsx",
+            "line": "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`.",
+            "lines": [
+              "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           }
         ],
         "length_cap_dropped": 0,
@@ -115,21 +137,26 @@
         "fences": 8,
         "runnable_fences": 3,
         "checkboxes": 0,
-        "instructions": 33,
+        "instructions": 38,
         "checkable": 2,
-        "claimable": 31,
+        "claimable": 36,
         "inline_cmds": 1,
         "steps": 10,
         "seq": 1,
         "tables": 6,
         "persona_hits": 0,
         "doctrine_hits": 0,
-        "epistemic": 0,
-        "action": 33,
+        "epistemic": 1,
+        "action": 37,
         "mandated": [
           {
-            "tok": "@reactiveStorageService.tsx",
-            "line": "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`."
+            "tok": "reactiveStorageService.tsx",
+            "line": "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`.",
+            "lines": [
+              "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           }
         ],
         "length_cap_dropped": 0,
@@ -151,17 +178,17 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 52,
-        "checkable": 4,
-        "claimable": 48,
+        "instructions": 69,
+        "checkable": 5,
+        "claimable": 64,
         "inline_cmds": 5,
         "steps": 7,
         "seq": 0,
         "tables": 0,
         "persona_hits": 0,
         "doctrine_hits": 2,
-        "epistemic": 1,
-        "action": 51,
+        "epistemic": 5,
+        "action": 64,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -182,9 +209,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 13,
-        "checkable": 0,
-        "claimable": 13,
+        "instructions": 39,
+        "checkable": 1,
+        "claimable": 38,
         "inline_cmds": 0,
         "steps": 7,
         "seq": 0,
@@ -192,7 +219,7 @@
         "persona_hits": 0,
         "doctrine_hits": 1,
         "epistemic": 0,
-        "action": 13,
+        "action": 39,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -213,9 +240,9 @@
         "fences": 1,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 18,
+        "instructions": 26,
         "checkable": 3,
-        "claimable": 15,
+        "claimable": 23,
         "inline_cmds": 0,
         "steps": 12,
         "seq": 0,
@@ -223,8 +250,18 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 1,
-        "action": 17,
-        "mandated": [],
+        "action": 25,
+        "mandated": [
+          {
+            "tok": "convert_to_mdc.py",
+            "line": "3. Create MDC generation function based on convert_to_mdc.py",
+            "lines": [
+              "3. Create MDC generation function based on convert_to_mdc.py"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          }
+        ],
         "length_cap_dropped": 0,
         "declared_scope": null,
         "genre_scores": {
@@ -242,10 +279,10 @@
     ],
     "exclusion_ledger": {},
     "phantom_counterfactual": {
-      "in_scope_pct": 100.0,
-      "in_scope_n": 2,
-      "all_pct": 100.0,
-      "all_n": 2
+      "in_scope_pct": 66.7,
+      "in_scope_n": 3,
+      "all_pct": 66.7,
+      "all_n": 3
     }
   }
 }

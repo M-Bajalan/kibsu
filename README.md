@@ -197,26 +197,28 @@ SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 
 | repo | sha | units | instr | all% | **proc%** | phantom |
 |---|---|---:|---:|---:|---:|---:|
-| davila7/claude-code-templates | `91d14a7` | 891 | 14,447 | 19.4% | **20.9%** | 52/117 (44%) |
-| obra/superpowers | `3dcbd5c` | 14 | 339 | 13.9% | **15.6%** | 1/1 |
-| contains-studio/agents | `a5a480c` | 37 | 598 | 11.7% | **12.0%** | — |
-| wshobson/agents | `c4b82b0` | 180 | 1,196 | 7.7% | **10.1%** | 4/7 (57%) |
-| anthropics/skills | `b29e7cf` | 18 | 405 | 15.6% | **8.6%** | 11/33 (33%) |
-| sanjeed5/awesome-cursor-rules-mdc | `8fbf269` | 5 | 149 | 7.4% | **7.4%** | 1/1 |
-| vijaythecoder/awesome-claude-agents | `2050f3c` | 33 | 217 | 9.2% | **7.1%** | — |
-| VoltAgent/awesome-claude-code-subagents | `947b44c` | 154 | 2,935 | 2.0% | **2.1%** | — |
+| davila7/claude-code-templates | `91d14a7` | 891 | 18,888 | 15.7% | **16.5%** | 72/172 (42%) |
+| obra/superpowers | `3dcbd5c` | 14 | 419 | 12.2% | **13.5%** | 1/1 |
+| contains-studio/agents | `a5a480c` | 37 | 738 | 9.5% | **9.7%** | — |
+| wshobson/agents | `c4b82b0` | 180 | 1,922 | 6.2% | **7.8%** | 8/14 (57%) |
+| anthropics/skills | `b29e7cf` | 18 | 501 | 14.4% | **7.6%** | 12/39 (31%) |
+| vijaythecoder/awesome-claude-agents | `2050f3c` | 33 | 290 | 8.6% | **6.8%** | — |
+| sanjeed5/awesome-cursor-rules-mdc | `8fbf269` | 5 | 210 | 6.2% | **6.2%** | 1/2 (50%) |
+| VoltAgent/awesome-claude-code-subagents | `947b44c` | 154 | 3,730 | 1.7% | **1.8%** | 1/1 |
 
-**median procedure-only: 9.4%** · min 2.1% · max 20.9%
-**in-scope mandated artifacts: 159 distinct, 69 never existed in any commit (43%)**
+**median procedure-only: 7.7%** · min 1.8% · max 16.5%
+**in-scope mandated artifacts: 230 distinct, 95 never existed in any commit (41%)**
 
-> **These figures were re-measured 2026-08-07 with scorer 0.6.0, at the same pinned SHAs.**
-> This round the median itself moved (was 11.1%): one fix — the scorer now counts
-> Title-case directives it used to skip entirely — grew instruction counts about 17%
-> across every collection, and the percentages computed on the larger, truer denominators
-> came down almost everywhere. The other two 0.6.0 fixes were each ablated against this
-> corpus and moved zero numbers — real bugs with nothing to bite here, like 0.5.0's
-> tilde-fence fix before them. Every correction round, with its bias direction and the
-> commands to reproduce both sides, is indexed in [CORRECTIONS.md](CORRECTIONS.md).
+> **These figures were re-measured 2026-08-31 with scorer 0.7.0, at the same pinned SHAs.**
+> The median moved again (9.4% → 7.7%) and every collection's percentage came down: four
+> blind spots closed at once — the anchor now reads through markdown emphasis, the verb
+> vocabulary grew by 55 census-approved entries, artifact extraction accepts the same
+> optional delimiters checkability always did, and every mention of a mandate now counts
+> toward its scope. Of the ~6,700 newly visible instructions, **97% are claimable** — the
+> blind spots overwhelmingly hid unverifiable instructions, so the older tables flattered
+> every repo they measured, this project's own included. Every correction round, with its
+> bias direction and the commands to reproduce both sides, is indexed in
+> [CORRECTIONS.md](CORRECTIONS.md).
 
 ### One number moved, and that is the point of the SHA column
 
@@ -280,7 +282,7 @@ to work in PowerShell too — a "verify it yourself" section that only verifies 
 is half a claim.
 
 **It is small enough to actually read.** 5,844 lines across 14 files in `kibsu/`, plus
-5,780 lines of tests running 227 cases. That is an evening, not a quarter. Count it
+5,785 lines of tests running 227 cases. That is an evening, not a quarter. Count it
 yourself rather than believing this paragraph — this is the third revision of these
 numbers to ship after the code had already grown past them ([#29](https://github.com/M-Bajalan/kibsu/issues/29)
 indexes the incident), so the commands below outrank the prose above them - and as of #29's fix the test

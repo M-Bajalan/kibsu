@@ -3,52 +3,52 @@
   "sha": "f7df2c3e7395d163ad52d0793bac8fa7ce0d776a",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.6.0",
+    "version": "0.7.0",
     "root": "<clone of iannuttall/claude-agents at f7df2c3e7395>",
     "mode": "instruction-dir/*.md",
     "all": {
       "lines": 727,
-      "instructions": 113,
-      "checkable": 12,
-      "claimable": 101,
+      "instructions": 132,
+      "checkable": 13,
+      "claimable": 119,
       "runnable_fences": 0,
       "checkboxes": 9,
       "units": 7,
-      "pct": 10.619469026548673,
-      "zero": 5
+      "pct": 9.848484848484848,
+      "zero": 4
     },
     "procedure_only": {
       "lines": 419,
-      "instructions": 66,
-      "checkable": 10,
-      "claimable": 56,
+      "instructions": 76,
+      "checkable": 11,
+      "claimable": 65,
       "runnable_fences": 0,
       "checkboxes": 9,
       "units": 4,
-      "pct": 15.151515151515152,
-      "zero": 3
+      "pct": 14.473684210526315,
+      "zero": 2
     },
     "by_genre": {
       "procedure": {
         "lines": 419,
-        "instructions": 66,
-        "checkable": 10,
-        "claimable": 56,
+        "instructions": 76,
+        "checkable": 11,
+        "claimable": 65,
         "runnable_fences": 0,
         "checkboxes": 9,
         "units": 4,
-        "pct": 15.151515151515152,
-        "zero": 3
+        "pct": 14.473684210526315,
+        "zero": 2
       },
       "persona": {
         "lines": 308,
-        "instructions": 47,
+        "instructions": 56,
         "checkable": 2,
-        "claimable": 45,
+        "claimable": 54,
         "runnable_fences": 0,
         "checkboxes": 0,
         "units": 3,
-        "pct": 4.25531914893617,
+        "pct": 3.5714285714285716,
         "zero": 2
       }
     },
@@ -65,7 +65,8 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "agents/frontend-designer.md",
@@ -79,7 +80,8 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
       },
       {
         "skill": "agents/security-auditor.md",
@@ -93,7 +95,8 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
       }
     ],
     "history_shallow": false,
@@ -104,17 +107,17 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 13,
-        "checkable": 0,
-        "claimable": 13,
+        "instructions": 19,
+        "checkable": 1,
+        "claimable": 18,
         "inline_cmds": 0,
         "steps": 6,
         "seq": 0,
         "tables": 0,
         "persona_hits": 1,
         "doctrine_hits": 1,
-        "epistemic": 0,
-        "action": 13,
+        "epistemic": 1,
+        "action": 18,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -135,21 +138,26 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 22,
+        "instructions": 24,
         "checkable": 0,
-        "claimable": 22,
+        "claimable": 24,
         "inline_cmds": 0,
         "steps": 2,
         "seq": 0,
         "tables": 0,
         "persona_hits": 1,
         "doctrine_hits": 0,
-        "epistemic": 1,
-        "action": 21,
+        "epistemic": 2,
+        "action": 22,
         "mandated": [
           {
             "tok": ".content/{slug}.md",
-            "line": "- Save as Markdown in specified folder (default: `.content/{slug}.md`)"
+            "line": "- Save as Markdown in specified folder (default: `.content/{slug}.md`)",
+            "lines": [
+              "- Save as Markdown in specified folder (default: `.content/{slug}.md`)"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           }
         ],
         "length_cap_dropped": 0,
@@ -171,9 +179,9 @@
         "fences": 4,
         "runnable_fences": 0,
         "checkboxes": 9,
-        "instructions": 23,
+        "instructions": 26,
         "checkable": 10,
-        "claimable": 13,
+        "claimable": 16,
         "inline_cmds": 0,
         "steps": 12,
         "seq": 0,
@@ -181,11 +189,16 @@
         "persona_hits": 1,
         "doctrine_hits": 0,
         "epistemic": 2,
-        "action": 21,
+        "action": 24,
         "mandated": [
           {
             "tok": "frontend-design-spec.md",
-            "line": "Generate `frontend-design-spec.md` in the user-specified location (ask for confirmation on location, suggest `/docs/design/` if not specified):"
+            "line": "Generate `frontend-design-spec.md` in the user-specified location (ask for confirmation on location, suggest `/docs/design/` if not specified):",
+            "lines": [
+              "Generate `frontend-design-spec.md` in the user-specified location (ask for confirmation on location, suggest `/docs/design/` if not specified):"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           }
         ],
         "length_cap_dropped": 0,
@@ -207,9 +220,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 17,
+        "instructions": 18,
         "checkable": 0,
-        "claimable": 17,
+        "claimable": 18,
         "inline_cmds": 0,
         "steps": 8,
         "seq": 0,
@@ -217,7 +230,7 @@
         "persona_hits": 1,
         "doctrine_hits": 1,
         "epistemic": 0,
-        "action": 17,
+        "action": 18,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -269,21 +282,26 @@
         "fences": 1,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 7,
+        "instructions": 11,
         "checkable": 2,
-        "claimable": 5,
+        "claimable": 9,
         "inline_cmds": 0,
         "steps": 2,
         "seq": 0,
         "tables": 0,
         "persona_hits": 1,
         "doctrine_hits": 0,
-        "epistemic": 0,
-        "action": 7,
+        "epistemic": 2,
+        "action": 9,
         "mandated": [
           {
             "tok": "security-report.md",
-            "line": "2. Generate a comprehensive security report named `security-report.md` in the location specified by the user. If no location is provided, suggest an appropriate location first (such as the project roo"
+            "line": "2. Generate a comprehensive security report named `security-report.md` in the location specified by the user. If no location is provided, suggest an appropriate location first (such as the project roo",
+            "lines": [
+              "2. Generate a comprehensive security report named `security-report.md` in the location specified by the user. If no location is provided, suggest an appropriate location first (such as the project roo"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           }
         ],
         "length_cap_dropped": 0,
@@ -305,9 +323,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 18,
+        "instructions": 21,
         "checkable": 0,
-        "claimable": 18,
+        "claimable": 21,
         "inline_cmds": 0,
         "steps": 5,
         "seq": 0,
@@ -315,7 +333,7 @@
         "persona_hits": 2,
         "doctrine_hits": 3,
         "epistemic": 1,
-        "action": 17,
+        "action": 20,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,

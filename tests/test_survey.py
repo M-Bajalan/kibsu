@@ -876,10 +876,15 @@ class RealEvidenceReconciliationTests(unittest.TestCase):
 
         to = sum(r["out"] for r in rows)
         te = sum(r["excluded_distinct"] for r in rows)
-        self.assertEqual(to, 27, "bracket (excluded outright) on committed evidence")
-        self.assertEqual(te, 30, "distinct artifacts across exclusion records")
-        self.assertEqual(te - to, 3, "davila7's .mcp.json, progress.md, task_plan.md - each "
-                                      "in scope under one skill, excluded under another")
+        # Constants re-pinned for the scorer 0.7.0 evidence (CORRECTIONS 2026-08-31): the
+        # widened FILE_TOKEN pulls bare/quoted mandates into the population, so the
+        # exclusion brackets grow with it - 27 -> 31 outright, 30 -> 33 distinct. The
+        # RECONCILIATION INVARIANT (te - to == the also-in-scope-elsewhere overlap) is the
+        # load-bearing assertion and still holds at the historical 3.
+        self.assertEqual(to, 31, "bracket (excluded outright) on committed evidence")
+        self.assertEqual(te, 33, "distinct artifacts across exclusion records")
+        self.assertEqual(te - to, 2, "artifacts in scope under one skill, excluded under "
+                                     "another - see the survey's own ledger line")
 
 
 if __name__ == "__main__":
