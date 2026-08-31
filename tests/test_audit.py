@@ -90,6 +90,32 @@ class RootInstructionFileDiscoveryTests(unittest.TestCase):
         self.assertEqual(mode, "*.md (no instruction dir)")
 
 
+class ByteExactExistenceTests(unittest.TestCase):
+    """Scorer 0.9.0, issue #78: the existence check answers the way git would.
+
+    Detection stays case-insensitive (a mandate is a mandate however it is cased - the
+    NOTES.MD ruling stands); existence is byte-exact, because repo paths are byte strings
+    and a mandate a Linux `cat` fails should not read as satisfied. Both directions pinned;
+    the first two FAILED against scorer 0.8.0."""
+
+    def test_a_differently_cased_file_no_longer_satisfies_a_mandate(self):
+        from kibsu.audit import glob_re
+        rx = glob_re("notes.md")
+        self.assertIsNone(rx.search("docs/Notes.md"))
+        self.assertIsNone(rx.search("NOTES.MD"))
+
+    def test_detection_stays_case_insensitive(self):
+        """The split posture, asserted from both sides: NOTES.MD is still EXTRACTED as a
+        mandate even though its existence must now match byte-exactly."""
+        o = analyse("Create NOTES.MD before starting.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], ["NOTES.MD"])
+
+    def test_exact_case_still_matches_including_templates(self):
+        from kibsu.audit import glob_re
+        self.assertIsNotNone(glob_re("notes.md").search("docs/notes.md"))
+        self.assertIsNotNone(glob_re("logs/report_{date}.md").search("logs/report_2026-08-31.md"))
+
+
 class MandateRuleTests(unittest.TestCase):
     """Scorer 0.8.0, issue #77: a unit that mandates artifacts cannot be DETECTED doctrine.
 
