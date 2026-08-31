@@ -3,7 +3,7 @@
   "sha": "c4b82b0ad771190355eb8e204b1329732a18449a",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.7.0",
+    "version": "0.8.0",
     "root": "<clone of wshobson/agents at c4b82b0ad771>",
     "mode": "SKILL.md",
     "all": {
@@ -41,26 +41,26 @@
         "zero": 89
       },
       "doctrine": {
-        "lines": 512,
-        "instructions": 37,
+        "lines": 309,
+        "instructions": 23,
         "checkable": 0,
-        "claimable": 37,
-        "runnable_fences": 1,
+        "claimable": 23,
+        "runnable_fences": 0,
         "checkboxes": 0,
-        "units": 4,
+        "units": 3,
         "pct": 0.0,
-        "zero": 4
+        "zero": 3
       },
       "reference": {
-        "lines": 5858,
-        "instructions": 458,
+        "lines": 6061,
+        "instructions": 472,
         "checkable": 10,
-        "claimable": 448,
-        "runnable_fences": 20,
+        "claimable": 462,
+        "runnable_fences": 21,
         "checkboxes": 0,
-        "units": 46,
-        "pct": 2.183406113537118,
-        "zero": 41
+        "units": 47,
+        "pct": 2.1186440677966103,
+        "zero": 42
       },
       "mixed": {
         "lines": 771,
@@ -3675,10 +3675,11 @@
           "reference": 1.72,
           "doctrine": 3.94
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "reference",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "reference",
         "skill": "plugins/llm-finetuning/skills/grpo-rlvr-training"
       },
       {

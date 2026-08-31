@@ -3,7 +3,7 @@
   "sha": "947b44ca0c58d606b084e9cb1a2389335b49278b",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.7.0",
+    "version": "0.8.0",
     "root": "<clone of VoltAgent/awesome-claude-code-subagents at 947b44ca0c58>",
     "mode": "instruction-dir/*.md",
     "all": {

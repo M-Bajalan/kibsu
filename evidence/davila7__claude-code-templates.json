@@ -3,7 +3,7 @@
   "sha": "91d14a7249884ea722c08518d2c8492e49ce188e",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.7.0",
+    "version": "0.8.0",
     "root": "<clone of davila7/claude-code-templates at 91d14a724988>",
     "mode": "SKILL.md",
     "all": {
@@ -18,37 +18,37 @@
       "zero": 481
     },
     "procedure_only": {
-      "lines": 230684,
-      "instructions": 16714,
-      "checkable": 2764,
-      "claimable": 13950,
-      "runnable_fences": 5352,
+      "lines": 231296,
+      "instructions": 16782,
+      "checkable": 2778,
+      "claimable": 14004,
+      "runnable_fences": 5354,
       "checkboxes": 1968,
-      "units": 695,
-      "pct": 16.537034821108055,
+      "units": 699,
+      "pct": 16.553450125134074,
       "zero": 362
     },
     "by_genre": {
       "procedure": {
-        "lines": 230684,
-        "instructions": 16714,
-        "checkable": 2764,
-        "claimable": 13950,
-        "runnable_fences": 5352,
+        "lines": 231296,
+        "instructions": 16782,
+        "checkable": 2778,
+        "claimable": 14004,
+        "runnable_fences": 5354,
         "checkboxes": 1968,
-        "units": 695,
-        "pct": 16.537034821108055,
+        "units": 699,
+        "pct": 16.553450125134074,
         "zero": 362
       },
       "doctrine": {
-        "lines": 2072,
-        "instructions": 282,
-        "checkable": 24,
-        "claimable": 258,
-        "runnable_fences": 2,
+        "lines": 1128,
+        "instructions": 175,
+        "checkable": 7,
+        "claimable": 168,
+        "runnable_fences": 0,
         "checkboxes": 0,
-        "units": 12,
-        "pct": 8.51063829787234,
+        "units": 7,
+        "pct": 4.0,
         "zero": 4
       },
       "persona": {
@@ -63,14 +63,14 @@
         "zero": 11
       },
       "reference": {
-        "lines": 26233,
-        "instructions": 1492,
-        "checkable": 149,
-        "claimable": 1343,
+        "lines": 26565,
+        "instructions": 1531,
+        "checkable": 152,
+        "claimable": 1379,
         "runnable_fences": 128,
         "checkboxes": 65,
-        "units": 128,
-        "pct": 9.986595174262735,
+        "units": 129,
+        "pct": 9.928151534944481,
         "zero": 86
       },
       "mixed": {
@@ -4859,10 +4859,11 @@
           "reference": 0.0,
           "doctrine": 10.75
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "procedure",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "procedure",
         "skill": "cli-tool/components/skills/ai-research/distributed-training-deepspeed"
       },
       {
@@ -4931,10 +4932,11 @@
           "reference": 0.0,
           "doctrine": 12.1
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "procedure",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "procedure",
         "skill": "cli-tool/components/skills/ai-research/distributed-training-pytorch-fsdp"
       },
       {
@@ -14350,10 +14352,11 @@
           "reference": 1.27,
           "doctrine": 2.89
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "reference",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "reference",
         "skill": "cli-tool/components/skills/development/context-architecture"
       },
       {
@@ -19389,10 +19392,11 @@
           "reference": 0.0,
           "doctrine": 9.76
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "procedure",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "procedure",
         "skill": "cli-tool/components/skills/development/swarmvault"
       },
       {
@@ -32708,10 +32712,11 @@
           "reference": 0.0,
           "doctrine": 1.16
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "procedure",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "procedure",
         "skill": "cli-tool/components/skills/web-development/sveltekit"
       },
       {

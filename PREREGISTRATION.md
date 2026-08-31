@@ -271,3 +271,18 @@ these tables was mechanical, not asserted: the 0.6.0 instrument was re-run first
 pinned state and required to reproduce the previous column digit-for-digit before the
 0.7.0 column was trusted. Per this file's own rule, nothing above the earlier notes has
 been edited.
+
+
+## Appended note — 2026-08-31 (second): the genre detector changed, and nothing here moved
+
+The standing clause fired for scorer 0.8.0 — the mandate rule: a unit that mandates
+artifacts cannot be *detected* as doctrine (see [CORRECTIONS.md](CORRECTIONS.md), second
+2026-08-31 entry). Both workspaces were re-measured at every pinned state. **Every figure in
+both tables of the previous note reproduces under 0.8.0 to the digit** — no unit in either
+workspace mandates files while reading as doctrine, so no membership changed and no number
+moved. The note exists because the clause demands it, and a null result recorded is worth
+more than a null result assumed. One consequence worth stating for future cycles: the
+doctrine pool this experiment's clause 3 watches is now harder to join by accident — a
+mandating unit cannot drift into it through detection — which makes the disqualification
+test stricter than the one originally pre-registered, in the direction that favours the
+reader over the author.
