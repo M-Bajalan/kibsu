@@ -197,7 +197,7 @@ SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 
 | repo | sha | units | instr | all% | **proc%** | phantom |
 |---|---|---:|---:|---:|---:|---:|
-| davila7/claude-code-templates | `91d14a7` | 891 | 18,888 | 15.7% | **16.6%** | 72/172 (42%) |
+| davila7/claude-code-templates | `91d14a7` | 891 | 18,888 | 15.7% | **16.6%** | 73/172 (42%) |
 | obra/superpowers | `3dcbd5c` | 14 | 419 | 12.2% | **13.1%** | 1/1 |
 | contains-studio/agents | `a5a480c` | 37 | 738 | 9.5% | **9.7%** | — |
 | wshobson/agents | `c4b82b0` | 180 | 1,922 | 6.2% | **7.8%** | 8/14 (57%) |
@@ -207,9 +207,12 @@ SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 | VoltAgent/awesome-claude-code-subagents | `947b44c` | 154 | 3,730 | 1.7% | **1.8%** | 1/1 |
 
 **median procedure-only: 7.7%** · min 1.8% · max 16.6%
-**in-scope mandated artifacts: 230 distinct, 95 never existed in any commit (41%)**
+**in-scope mandated artifacts: 230 distinct, 96 never existed in any commit (42%)**
 
-> **These figures were re-measured 2026-08-31 with scorer 0.8.0, at the same pinned SHAs.**
+> **These figures were re-measured 2026-08-31 with scorer 0.9.0, at the same pinned SHAs.**
+> The 0.9.0 case round moved exactly one number: the existence check is byte-exact now
+> - the answer git itself would give - and one mandate whose only instances differ by
+> case became the phantom a Linux `cat` always said it was (95 -> 96). Before it,
 > The 0.8.0 genre round moved almost nothing, and that is a published result, not a
 > disappointment: the mandate rule reclassified 8 of 1,561 units (a doctrine label
 > cannot sit on a unit that mandates files), two cells above shifted by a tenth of a

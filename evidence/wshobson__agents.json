@@ -3,7 +3,7 @@
   "sha": "c4b82b0ad771190355eb8e204b1329732a18449a",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.8.0",
+    "version": "0.9.0",
     "root": "<clone of wshobson/agents at c4b82b0ad771>",
     "mode": "SKILL.md",
     "all": {
@@ -294,7 +294,7 @@
         "out_of_scope_reason": null,
         "out_of_scope_class": null,
         "templated": false,
-        "match_count": 2,
+        "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
         "phantom": false,

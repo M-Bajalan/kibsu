@@ -3,7 +3,7 @@
   "sha": "8fbf26908531c127a6076be0e55fbe17b57fb2d8",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.8.0",
+    "version": "0.9.0",
     "root": "<clone of sanjeed5/awesome-cursor-rules-mdc at 8fbf26908531>",
     "mode": "*.md (no instruction dir)",
     "all": {

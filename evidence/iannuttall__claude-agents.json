@@ -3,7 +3,7 @@
   "sha": "f7df2c3e7395d163ad52d0793bac8fa7ce0d776a",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.8.0",
+    "version": "0.9.0",
     "root": "<clone of iannuttall/claude-agents at f7df2c3e7395>",
     "mode": "instruction-dir/*.md",
     "all": {

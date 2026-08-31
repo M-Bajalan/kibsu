@@ -3,7 +3,7 @@
   "sha": "a5a480c324cac64b9c569bca0b2f297d517240cb",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.8.0",
+    "version": "0.9.0",
     "root": "<clone of contains-studio/agents at a5a480c324ca>",
     "mode": "*.md (no instruction dir)",
     "all": {

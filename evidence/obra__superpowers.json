@@ -3,7 +3,7 @@
   "sha": "3dcbd5c4b48e02263fbf4a3c01e3fe4f81d584d9",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.8.0",
+    "version": "0.9.0",
     "root": "<clone of obra/superpowers at 3dcbd5c4b48e>",
     "mode": "SKILL.md",
     "all": {
