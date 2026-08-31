@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.0 - 2026-08-31
+
+The genre round, alone by design. Scorer 0.8.0's mandate rule is the only change: a unit
+that mandates artifacts or carries runnable fences cannot be DETECTED as doctrine - derived
+from this project's own v0.3.0 definition (doctrine produces judgement, not files), so a
+unit promising files cannot claim the 0%-by-construction exemption. Declared genre still
+beats detection in both directions. Minor version: the genre census and two survey cells
+move; package and scorer version independently - this package carries scorer 0.8.0.
+
+- Calibrated over 1,561 pinned-corpus units before freezing: three candidate designs, the
+  two heuristic ones rejected for failing the audited repro, the definition-derived one
+  shipped with 8 flips (0.5%) - every one a visible misclassification, each demoting to the
+  genre its own next-best score already indicated. The full flip list is published in
+  CORRECTIONS.md (second 2026-08-31 entry).
+- Re-measured at the same pinned SHAs: median procedure-only 7.7% UNMOVED, phantoms 95/230
+  UNMOVED, two cells shift a tenth of a point in mixed directions, and both preregistration
+  workspaces reproduce to the digit - the fourth appended note is a recorded null. Clause
+  3's doctrine floor is now stricter than pre-registered: a mandating unit cannot drift
+  into the watched pool by detection.
+
 ## 0.6.0 - 2026-08-31
 
 The K-check trio and the scorer 0.7.0 round: the incident checks born from a real production
