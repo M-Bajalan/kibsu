@@ -97,12 +97,15 @@ class SdistContentsTests(unittest.TestCase):
         dist = os.path.join(self.tmpdir, "dist")
         os.makedirs(dist)
         with tarfile.open(os.path.join(dist, "kibsu-9.9.9.tar.gz"), "w:gz") as tf:
-            info = tarfile.TarInfo("kibsu-9.9.9/kibsu/__init__.py"); info.size = 1
+            info = tarfile.TarInfo("kibsu-9.9.9/kibsu/__init__.py")
+            info.size = 1
             tf.addfile(info, io.BytesIO(b"x"))
         with zipfile.ZipFile(os.path.join(dist, "kibsu-9.9.9-py3-none-any.whl"), "w") as zf:
             zf.writestr("kibsu/__init__.py", "x")
-        self.assertEqual(main([dist, "--sdist-contents"], env={}), 1)
-        self.assertEqual(main([dist], env={}), 0)
+        # main() prints its verdict; captured so a passing suite stays readable.
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(main([dist, "--sdist-contents"], env={}), 1)
+            self.assertEqual(main([dist], env={}), 0)
 
 
 class AssertDistRoundtripTests(unittest.TestCase):
