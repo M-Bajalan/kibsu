@@ -90,6 +90,77 @@ class RootInstructionFileDiscoveryTests(unittest.TestCase):
         self.assertEqual(mode, "*.md (no instruction dir)")
 
 
+class Scorer0100RefinementTests(unittest.TestCase):
+    """Scorer 0.10.0: three refinements from the pre-release adversarial pass. All FAILED
+    against scorer 0.9.0."""
+
+    def test_the_prefix_scope_check_is_case_insensitive_while_the_file_check_is_exact(self):
+        """0.9.0 shared one byte-exact matcher between two different questions. Whether a
+        mandate's ancestor DIRECTORY is this repo's business is a scope fact - `Skills/` and
+        `skills/` are the same business - while whether the FILE exists is git's byte-exact
+        question. Conflated, a case-differing mandate fell into prefix-missing and was never
+        phantom-checked: not credited, not counted, invisible to the round's own ablation."""
+        from kibsu.audit import glob_re
+        self.assertIsNotNone(glob_re("Skills", case_sensitive=False).search("skills"))
+        self.assertIsNone(glob_re("notes.md").search("Notes.md"))
+
+    def test_a_case_differing_mandate_is_phantom_not_out_of_scope(self):
+        """End to end through check_artifacts(): tracked skills/foo.md, mandate `Skills/foo.md`.
+        The right answer is PHANTOM (in scope, zero byte-exact matches) - the answer a Linux
+        `cat Skills/foo.md` gives - not "prefix missing"."""
+        from kibsu.audit import analyse, check_artifacts
+        repo = make_repo(self.tmpdir, {"skills/foo.md": "hello\n", "doc.md": "x\n"})
+        rows = [dict(analyse("Create `Skills/foo.md` in the repo.\n"), skill="doc.md")]
+        res = check_artifacts(repo, rows)
+        arts = res[0] if isinstance(res, tuple) else res
+        art = [x for x in arts if x["artifact"] == "Skills/foo.md"][0]
+        self.assertTrue(art["in_scope"], art)
+        self.assertTrue(art["phantom"], art)
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_0100_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_a_user_scope_placeholder_does_not_demote_doctrine(self):
+        """The mandate rule's own justification - "a unit promising files is making checkable
+        promises" - does not hold for a mention check_artifacts() would exclude as user-scope.
+        Gated on any_clean now; a pure doctrine unit with one "save `{name}.md` into YOUR
+        project" line stays doctrine, and a declared doctrine no longer earns a false
+        genre_conflict flag."""
+        text = ("Resist the temptation to act. Question the hidden assumption. When in doubt,\n"
+                "ask yourself what the failure mode is.\n"
+                "Save `{name}.md` into your project's notes directory once satisfied.\n")
+        o = analyse(text)
+        self.assertEqual(o["genre_detected"], "doctrine")
+        self.assertNotIn("genre_demoted_from", o)
+        o2 = analyse("---\ngenre: doctrine\n---\n" + text)
+        self.assertFalse(o2["genre_conflict"])
+
+    def test_a_real_mandate_still_demotes(self):
+        o = analyse("Resist the temptation to act. Question the hidden assumption. When in doubt,\n"
+                    "ask yourself what the failure mode is.\n1. Create `postmortem.md`.\n")
+        self.assertEqual(o.get("genre_demoted_from"), "doctrine")
+
+    def test_noun_openers_are_not_instructions_but_the_imperatives_still_are(self):
+        """"Note:" callouts and "List of ..." headers opened as instructions through five
+        verb/noun-ambiguous vocabulary entries the 0.7.0 census never re-examined. 20 of 5,930
+        counted lines on a 250-file corpus were this class, every one a false positive."""
+        for ln in ("Note: this only applies to Windows.", "**Note:** results may vary.",
+                   "> Note that caching is on by default.", "List of supported languages: Go.",
+                   "State of the pipeline after step 3."):
+            self.assertEqual(analyse(ln + "\n")["instructions"], 0, ln)
+        # Disclosed residual, not a target: a noun-noun opener ("Record types are defined...")
+        # is still counted. The rule covers the contexts the corpus actually produced (colon,
+        # that/of/is/are/was directly after the verb); widening it to reach one synthetic probe
+        # would be the author's prior belief in regex form, which this file warns against.
+        self.assertEqual(analyse("Record types are defined in the schema.\n")["instructions"], 1)
+        for ln in ("List the files in `docs/`.", "Record the exit code in `run.log`.",
+                   "Note the exit code.", "Track the change in `CHANGELOG.md`."):
+            self.assertEqual(analyse(ln + "\n")["instructions"], 1, ln)
+
+
 class ByteExactExistenceTests(unittest.TestCase):
     """Scorer 0.9.0, issue #78: the existence check answers the way git would.
 
