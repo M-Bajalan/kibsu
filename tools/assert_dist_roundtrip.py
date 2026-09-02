@@ -160,6 +160,30 @@ def check_sdist_contents(sdist):
             for need in SDIST_REQUIRED if need not in have]
 
 
+def safe_extract(tf, dest):
+    """Extract every member of `tf` under `dest`, or return the first member that must not be.
+
+    tarfile.extractall() writes wherever a member's name points, and an sdist is untrusted
+    input here - this tool runs against whatever arrived from the artifact store. A member
+    named `../../.ssh/authorized_keys`, or a symlink into the host filesystem, would be written
+    or followed. CodeQL py/tarslip named this on the first push of this check; the same class
+    this repository closed for install.json paths (#59) and symlinked mandates (#65). Python
+    3.12's `filter="data"` does this for free; the 3.8 floor does not have it, so the check is
+    explicit: resolve each destination, require it to sit under the resolved root, refuse links
+    and devices outright, then extract one member at a time.
+    """
+    root = os.path.realpath(dest)
+    for m in tf.getmembers():
+        if m.issym() or m.islnk() or m.isdev():
+            return m.name
+        target = os.path.realpath(os.path.join(root, m.name))
+        if target != root and not target.startswith(root + os.sep):
+            return m.name
+    for m in tf.getmembers():
+        tf.extract(m, dest)
+    return None
+
+
 def check_sdist_suite(sdist):
     """Extract the sdist and run its test suite exactly as CONTRIBUTING tells a reader to.
 
@@ -176,7 +200,10 @@ def check_sdist_suite(sdist):
     tmp = tempfile.mkdtemp(prefix="kibsu_sdist_suite_")
     try:
         with tarfile.open(str(sdist)) as tf:
-            tf.extractall(tmp)
+            bad = safe_extract(tf, tmp)
+            if bad:
+                return ["sdist refused: member %r would extract outside the target directory "
+                        "(or is a link) - a tarball this tool cannot trust to unpack" % bad]
         roots = [d for d in pathlib.Path(tmp).iterdir() if d.is_dir()]
         if len(roots) != 1:
             return ["sdist did not extract to exactly one top-level directory: %s"

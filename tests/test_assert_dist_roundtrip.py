@@ -90,6 +90,33 @@ class SdistContentsTests(unittest.TestCase):
         self.assertEqual(len(failures), 1, failures)
         self.assertIn("tests/support.py", failures[0])
 
+    def test_a_traversing_member_is_refused_before_anything_is_written(self):
+        """TarSlip negative control: a member named ../escape.txt must be reported, not
+        extracted. Asserted two ways - the failure names the member, and the sibling of the
+        temp directory the member aimed at does not exist afterwards."""
+        from assert_dist_roundtrip import check_sdist_suite
+        path = os.path.join(self.tmpdir, "evil-0.0.0.tar.gz")
+        with tarfile.open(path, "w:gz") as tf:
+            info = tarfile.TarInfo("evil-0.0.0/../../escape.txt")
+            info.size = 1
+            tf.addfile(info, io.BytesIO(b"x"))
+        failures = check_sdist_suite(path)
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("escape.txt", failures[0])
+        self.assertIn("outside the target directory", failures[0])
+
+    def test_a_symlink_member_is_refused(self):
+        from assert_dist_roundtrip import check_sdist_suite
+        path = os.path.join(self.tmpdir, "linky-0.0.0.tar.gz")
+        with tarfile.open(path, "w:gz") as tf:
+            info = tarfile.TarInfo("linky-0.0.0/notes.md")
+            info.type = tarfile.SYMTYPE
+            info.linkname = "/etc/passwd"
+            tf.addfile(info)
+        failures = check_sdist_suite(path)
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("notes.md", failures[0])
+
     def test_the_flag_reaches_main_and_the_usage_shape_survives(self):
         """--sdist-contents is stripped before the one-positional check, so a dist dir plus the
         flag is accepted, and a fixture dir whose sdist lacks support.py fails through main()."""
