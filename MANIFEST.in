@@ -1,0 +1,14 @@
+# What the source distribution carries beyond the package itself.
+#
+# Without this file setuptools falls back to its legacy sdist finder: the package plus files
+# matching the literal glob tests/test*.py. That silently dropped tests/support.py (imported by
+# 18 of 21 test modules), tests/__init__.py, and all of tools/ - so anyone who did what a
+# distro packager or a reproducibility auditor does, `pip download --no-binary :all:` then
+# `python -m unittest discover -s tests`, got 18 ModuleNotFoundErrors from a project whose
+# README says "clone and run, zero build step". Found by the pre-release adversarial pass
+# against the live 0.7.0 sdist; the wheel was never affected. tools/assert_dist_roundtrip.py
+# now extracts the built sdist and runs its suite, so this cannot regress unnoticed.
+include README.md CHANGELOG.md CORRECTIONS.md PREREGISTRATION.md PROVENANCE.md CONTRIBUTING.md SECURITY.md LICENSE
+recursive-include tests *.py
+recursive-include tools *.py
+recursive-include evidence *.json
