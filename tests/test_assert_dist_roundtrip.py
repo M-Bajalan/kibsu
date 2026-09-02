@@ -54,6 +54,57 @@ def _make_wheel(path):
     return adr.sha256(path)
 
 
+class SdistContentsTests(unittest.TestCase):
+    """The sdist must carry its own test suite. The live 0.7.0 tarball did not - setuptools'
+    legacy finder takes only tests/test*.py - and CONTRIBUTING's documented command produced
+    18 ModuleNotFoundErrors from it. Positive case + a negative control shaped exactly like
+    that tarball (rule 4)."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_sdist_contents_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _sdist(self, members):
+        path = os.path.join(self.tmpdir, "kibsu-9.9.9.tar.gz")
+        with tarfile.open(path, "w:gz") as tf:
+            for rel in members:
+                data = b"# stub\n"
+                info = tarfile.TarInfo("kibsu-9.9.9/" + rel)
+                info.size = len(data)
+                tf.addfile(info, io.BytesIO(data))
+        return path
+
+    def test_an_sdist_carrying_the_suite_passes(self):
+        from assert_dist_roundtrip import SDIST_REQUIRED, check_sdist_contents
+        path = self._sdist(list(SDIST_REQUIRED) + ["kibsu/__init__.py", "tests/test_x.py"])
+        self.assertEqual(check_sdist_contents(path), [])
+
+    def test_an_sdist_missing_support_py_fails_and_names_it(self):
+        """Exactly the 0.7.0 tarball's shape: test modules present, their shared helper absent."""
+        from assert_dist_roundtrip import check_sdist_contents
+        path = self._sdist(["kibsu/__init__.py", "tests/test_x.py", "tests/__init__.py",
+                            "tools/refresh_readme_counts.py", "tools/assert_dist_roundtrip.py"])
+        failures = check_sdist_contents(path)
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("tests/support.py", failures[0])
+
+    def test_the_flag_reaches_main_and_the_usage_shape_survives(self):
+        """--sdist-contents is stripped before the one-positional check, so a dist dir plus the
+        flag is accepted, and a fixture dir whose sdist lacks support.py fails through main()."""
+        from assert_dist_roundtrip import main
+        dist = os.path.join(self.tmpdir, "dist")
+        os.makedirs(dist)
+        with tarfile.open(os.path.join(dist, "kibsu-9.9.9.tar.gz"), "w:gz") as tf:
+            info = tarfile.TarInfo("kibsu-9.9.9/kibsu/__init__.py"); info.size = 1
+            tf.addfile(info, io.BytesIO(b"x"))
+        with zipfile.ZipFile(os.path.join(dist, "kibsu-9.9.9-py3-none-any.whl"), "w") as zf:
+            zf.writestr("kibsu/__init__.py", "x")
+        self.assertEqual(main([dist, "--sdist-contents"], env={}), 1)
+        self.assertEqual(main([dist], env={}), 0)
+
+
 class AssertDistRoundtripTests(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
