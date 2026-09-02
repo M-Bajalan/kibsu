@@ -126,17 +126,127 @@ def check(dist_dir, expect_sdist=None, expect_wheel=None):
     return failures
 
 
+# Files the sdist must carry for the documented "clone and run" promise to hold when the clone
+# is the tarball. tests/support.py is imported by 18 of 21 test modules; tools/ holds the
+# checkers the pre-PR checklist tells a contributor to run. The live 0.7.0 sdist shipped
+# without any of them - setuptools' legacy finder takes only tests/test*.py - and
+# `python -m unittest discover -s tests` inside it produced 18 ModuleNotFoundErrors. Found by
+# the pre-release adversarial pass; the wheel was never affected. MANIFEST.in (#90) states the
+# contents; these checks make sure the statement stays true.
+SDIST_REQUIRED = (
+    "tests/support.py",
+    "tests/__init__.py",
+    "tools/refresh_readme_counts.py",
+    "tools/assert_dist_roundtrip.py",
+)
+
+
+def sdist_members(sdist):
+    """Member paths inside the sdist with the leading `<name>-<version>/` directory stripped."""
+    with tarfile.open(str(sdist)) as tf:
+        out = set()
+        for m in tf.getnames():
+            parts = m.split("/", 1)
+            out.add(parts[1] if len(parts) == 2 else parts[0])
+        return out
+
+
+def check_sdist_contents(sdist):
+    """Return failure strings for every required file the sdist does not carry."""
+    if not tarfile.is_tarfile(str(sdist)):
+        return ["%s is not a tar archive; cannot check its contents" % pathlib.Path(sdist).name]
+    have = sdist_members(sdist)
+    return ["sdist is missing %s - its own test suite cannot run from source" % need
+            for need in SDIST_REQUIRED if need not in have]
+
+
+def safe_extract(tf, dest):
+    """Extract every member of `tf` under `dest`, or return the first member that must not be.
+
+    tarfile.extractall() writes wherever a member's name points, and an sdist is untrusted
+    input here - this tool runs against whatever arrived from the artifact store. A member
+    named `../../.ssh/authorized_keys`, or a symlink into the host filesystem, would be written
+    or followed. CodeQL py/tarslip named this on the first push of this check; the same class
+    this repository closed for install.json paths (#59) and symlinked mandates (#65). Python
+    3.12's `filter="data"` does this for free; the 3.8 floor does not have it, so the check is
+    explicit: resolve each destination, require it to sit under the resolved root, refuse links
+    and devices outright, then extract one member at a time.
+    """
+    root = os.path.realpath(dest)
+    for m in tf.getmembers():
+        if m.issym() or m.islnk() or m.isdev():
+            return m.name
+        target = os.path.realpath(os.path.join(root, m.name))
+        if target != root and not target.startswith(root + os.sep):
+            return m.name
+    for m in tf.getmembers():
+        tf.extract(m, dest)
+    return None
+
+
+def check_sdist_suite(sdist):
+    """Extract the sdist and run its test suite exactly as CONTRIBUTING tells a reader to.
+
+    This is the check that would have caught the 0.7.0 sdist: a tarball that is a valid
+    archive, byte-identical across the round trip, and still cannot pass its own tests. It
+    takes as long as the suite does, so it sits behind its own flag and CI runs it on the real
+    built artifact; the unit tests cover check_sdist_contents() with fixture tarballs and are
+    deliberately not asked to run a suite inside a fake one - that is disclosed here rather
+    than hidden behind a test that could not fail.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="kibsu_sdist_suite_")
+    try:
+        with tarfile.open(str(sdist)) as tf:
+            bad = safe_extract(tf, tmp)
+            if bad:
+                return ["sdist refused: member %r would extract outside the target directory "
+                        "(or is a link) - a tarball this tool cannot trust to unpack" % bad]
+        roots = [d for d in pathlib.Path(tmp).iterdir() if d.is_dir()]
+        if len(roots) != 1:
+            return ["sdist did not extract to exactly one top-level directory: %s"
+                    % [r.name for r in roots]]
+        proc = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"],
+                              cwd=str(roots[0]), capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
+        if proc.returncode != 0:
+            tail = "\n".join((proc.stderr or proc.stdout).splitlines()[-12:])
+            return ["the sdist's own test suite FAILED (exit %d):\n%s" % (proc.returncode, tail)]
+        return []
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main(argv=None, env=None):
     """CLI entry point. Returns an exit code rather than calling sys.exit, so tests can drive it."""
     argv = list(sys.argv[1:] if argv is None else argv)
     env = os.environ if env is None else env
 
+    # Two opt-in flags, stripped before the positional check so the usage contract stays the
+    # same one-argument shape it has always had. Opt-in, because the unit tests drive check()
+    # against deliberately fake fixture tarballs that must never trigger a suite run.
+    want_contents = "--sdist-contents" in argv
+    want_suite = "--sdist-suite" in argv
+    argv = [a for a in argv if a not in ("--sdist-contents", "--sdist-suite")]
+
     if len(argv) != 1:
-        print("usage: assert_dist_roundtrip.py <dist-dir>")
+        print("usage: assert_dist_roundtrip.py <dist-dir> [--sdist-contents] [--sdist-suite]")
         return 2
 
     target = argv[0]
     failures = check(target, env.get("EXPECT_SDIST"), env.get("EXPECT_WHEEL"))
+
+    if want_contents or want_suite:
+        sdists = sorted(pathlib.Path(target).glob("*.tar.gz")) if pathlib.Path(target).is_dir() else []
+        if len(sdists) != 1:
+            failures.append("cannot check sdist contents: expected one *.tar.gz, found %d" % len(sdists))
+        else:
+            if want_contents:
+                failures += check_sdist_contents(sdists[0])
+            if want_suite and not failures:
+                failures += check_sdist_suite(sdists[0])
 
     directory = pathlib.Path(target)
     if directory.is_dir():

@@ -103,7 +103,11 @@ jobs:
           EXPECT_WHEEL: ${{ needs.build-and-upload.outputs.sha_wheel }}
         run: |
           set -euo pipefail
-          python tools/assert_dist_roundtrip.py dist
+          # --sdist-contents: the tarball carries its own suite and tools/ (a byte-identical
+          # round trip of an sdist that cannot run its tests is not a publish contract).
+          # --sdist-suite: extract it and run that suite, exactly as CONTRIBUTING tells a
+          # reader to - the check that would have caught the live 0.7.0 sdist.
+          python tools/assert_dist_roundtrip.py dist --sdist-contents --sdist-suite
       - name: Negative control · the assertion must be able to fail
         env:
           EXPECT_SDIST: ${{ needs.build-and-upload.outputs.sha_sdist }}
