@@ -334,6 +334,14 @@ METRIC DEFINITIONS (contest them - that is the point)
                imperative verb, or carries a modal (must / should / always / never / required /
                do not / mandatory / ensure / make sure - any capitalisation; "Must run the
                tests" counts the same as "MUST run the tests").
+               As of scorer 0.7.0 (issues #56, #74): the opening verb is read THROUGH markdown
+               emphasis - `**Create** the file`, `_Create_ the file` and `1. **Gather** the
+               audit` all count; a leading backtick does not (it opens a code span, a name) -
+               and the verb vocabulary carries 191 entries, grown by census of a public corpus:
+               a verb entered only if the lines it would newly admit were overwhelmingly
+               imperatives, and was refused when they were noun-heavy (`import` alone would
+               have added 1,625 "Import maps"-style topic bullets). Print the list:
+               `python -c "from kibsu.audit import VERBS; print(VERBS)"`.
 
   CHECKABLE    a reviewer could confirm it happened from the repo alone:
                  tick-box | runnable command | names a concrete file | exit code / diff / assertion
@@ -349,6 +357,13 @@ METRIC DEFINITIONS (contest them - that is the point)
                mixed     - no signal dominates.
                NOTE: procedure is weighted toward EXECUTABLE signals (commands, checkboxes), not
                merely numbered ones - ten numbered principles are not a ten-step procedure.
+               MANDATE RULE (scorer 0.8.0, issue #77): a unit that mandates artifacts, or carries
+               a runnable code fence, cannot be DETECTED as doctrine - it demotes to its next-best
+               genre (or mixed). This follows from the definition above, not from a new
+               heuristic: doctrine produces judgement, not files, so a unit promising files is
+               making checkable promises and the "0% is the genre working" reading cannot apply
+               to it. Detection only - a declared `genre:` still wins in both directions, and
+               the disagreement is flagged as genre_conflict rather than swallowed.
 
   phantom      an artifact a skill mandates with ZERO matching instances anywhere - working tree
                OR git history, counted together as match_count. Requires full history; a shallow
@@ -356,6 +371,13 @@ METRIC DEFINITIONS (contest them - that is the point)
                (`CHANGELOG.md`) and a templated one (`logs/report_{date}.md`): a templated
                mandate that matches something is not phantom, and a templated mandate that
                matches nothing is STILL phantom - braces do not launder a mandate nobody served.
+               Existence is BYTE-EXACT as of scorer 0.9.0 (issue #78): a mandate for `notes.md`
+               is NOT satisfied by a tracked `Notes.md`, because git compares paths byte-for-byte
+               and a Linux `cat notes.md` fails. Reading a mandate stays case-insensitive - a
+               different question - so `NOTES.MD` is still extracted as a mandate; it just has
+               to exist as written. As of 0.7.0 the mandated filename may be wrapped in
+               backticks, double or single quotes, or nothing at all (issue #75), and every
+               mention of a mandate counts toward its scope, not only the first (issue #76).
 
   templated    the mandated token contains a wildcard (`*`, `?`) or a `{...}` placeholder
                segment, either of which expands to "any run of non-slash characters" when
