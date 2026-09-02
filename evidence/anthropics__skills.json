@@ -3,41 +3,41 @@
   "sha": "b29e7cf65e5cb78a5ac33d582270551bc74a14eb",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.9.0",
+    "version": "0.10.0",
     "root": "<clone of anthropics/skills at b29e7cf65e5c>",
     "mode": "SKILL.md",
     "all": {
       "lines": 3510,
-      "instructions": 501,
-      "checkable": 72,
-      "claimable": 429,
+      "instructions": 498,
+      "checkable": 70,
+      "claimable": 428,
       "runnable_fences": 53,
       "checkboxes": 0,
       "units": 18,
-      "pct": 14.37125748502994,
+      "pct": 14.056224899598394,
       "zero": 6
     },
     "procedure_only": {
       "lines": 2513,
-      "instructions": 342,
-      "checkable": 26,
-      "claimable": 316,
+      "instructions": 340,
+      "checkable": 25,
+      "claimable": 315,
       "runnable_fences": 44,
       "checkboxes": 0,
       "units": 12,
-      "pct": 7.60233918128655,
+      "pct": 7.352941176470588,
       "zero": 5
     },
     "by_genre": {
       "procedure": {
         "lines": 2513,
-        "instructions": 342,
-        "checkable": 26,
-        "claimable": 316,
+        "instructions": 340,
+        "checkable": 25,
+        "claimable": 315,
         "runnable_fences": 44,
         "checkboxes": 0,
         "units": 12,
-        "pct": 7.60233918128655,
+        "pct": 7.352941176470588,
         "zero": 5
       },
       "doctrine": {
@@ -53,13 +53,13 @@
       },
       "reference": {
         "lines": 871,
-        "instructions": 148,
-        "checkable": 44,
+        "instructions": 147,
+        "checkable": 43,
         "claimable": 104,
         "runnable_fences": 9,
         "checkboxes": 0,
         "units": 3,
-        "pct": 29.72972972972973,
+        "pct": 29.25170068027211,
         "zero": 0
       },
       "mixed": {
@@ -108,21 +108,6 @@
       {
         "skill": "skills/claude-api",
         "artifact": "shared/live-sources.md",
-        "in_tree": true,
-        "in_history": true,
-        "in_scope": true,
-        "out_of_scope_reason": null,
-        "out_of_scope_class": null,
-        "templated": false,
-        "match_count": 1,
-        "unverifiable_pattern": false,
-        "unverifiable_reason": null,
-        "phantom": false,
-        "mentions_truncated": false
-      },
-      {
-        "skill": "skills/claude-api",
-        "artifact": "shared/tool-use-concepts.md",
         "in_tree": true,
         "in_history": true,
         "in_scope": true,
@@ -572,21 +557,6 @@
       },
       {
         "skill": "skills/skill-creator",
-        "artifact": "generate_review.py",
-        "in_tree": true,
-        "in_history": true,
-        "in_scope": true,
-        "out_of_scope_reason": null,
-        "out_of_scope_class": null,
-        "templated": false,
-        "match_count": 1,
-        "unverifiable_pattern": false,
-        "unverifiable_reason": null,
-        "phantom": false,
-        "mentions_truncated": false
-      },
-      {
-        "skill": "skills/skill-creator",
         "artifact": "create_docx.py",
         "in_tree": false,
         "in_history": false,
@@ -613,6 +583,21 @@
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
         "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "generate_review.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 1,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
         "mentions_truncated": false
       },
       {
@@ -777,8 +762,8 @@
         "fences": 3,
         "runnable_fences": 3,
         "checkboxes": 0,
-        "instructions": 76,
-        "checkable": 31,
+        "instructions": 75,
+        "checkable": 30,
         "claimable": 45,
         "inline_cmds": 20,
         "steps": 7,
@@ -787,7 +772,7 @@
         "persona_hits": 0,
         "doctrine_hits": 13,
         "epistemic": 0,
-        "action": 76,
+        "action": 75,
         "mandated": [
           {
             "tok": "agent-openai.py",
@@ -813,15 +798,6 @@
             "lines": [
               "**Never guess SDK usage.** Function names, class names, namespaces, method signatures, and import paths must come from explicit documentation \u2014 either the `{lang}/` files in this skill or the official",
               "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
-            ],
-            "any_clean": true,
-            "mentions_truncated": false
-          },
-          {
-            "tok": "shared/tool-use-concepts.md",
-            "line": "> **Note:** Managed Agents is the right choice when you want Anthropic to run the agent loop *and* host the container where tools execute \u2014 file ops, bash, code execution all run in the per-session wo",
-            "lines": [
-              "> **Note:** Managed Agents is the right choice when you want Anthropic to run the agent loop *and* host the container where tools execute \u2014 file ops, bash, code execution all run in the per-session wo"
             ],
             "any_clean": true,
             "mentions_truncated": false
@@ -1281,8 +1257,8 @@
         "fences": 15,
         "runnable_fences": 5,
         "checkboxes": 0,
-        "instructions": 68,
-        "checkable": 15,
+        "instructions": 67,
+        "checkable": 14,
         "claimable": 53,
         "inline_cmds": 0,
         "steps": 26,
@@ -1291,7 +1267,7 @@
         "persona_hits": 0,
         "doctrine_hits": 13,
         "epistemic": 1,
-        "action": 67,
+        "action": 66,
         "mandated": [
           {
             "tok": "eval-viewer/generate_review.py",
@@ -1354,16 +1330,6 @@
             "mentions_truncated": false
           },
           {
-            "tok": "generate_review.py",
-            "line": "Note: please use generate_review.py to create the viewer; there's no need to write custom HTML.",
-            "lines": [
-              "Note: please use generate_review.py to create the viewer; there's no need to write custom HTML.",
-              "- For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after runn"
-            ],
-            "any_clean": true,
-            "mentions_truncated": false
-          },
-          {
             "tok": "create_docx.py",
             "line": "4. **Look for repeated work across test cases.** Read the transcripts from the test runs and notice if the subagents all independently wrote similar helper scripts or took the same multi-step approach",
             "lines": [
@@ -1377,6 +1343,15 @@
             "line": "4. **Look for repeated work across test cases.** Read the transcripts from the test runs and notice if the subagents all independently wrote similar helper scripts or took the same multi-step approach",
             "lines": [
               "4. **Look for repeated work across test cases.** Read the transcripts from the test runs and notice if the subagents all independently wrote similar helper scripts or took the same multi-step approach"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "generate_review.py",
+            "line": "- For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after runn",
+            "lines": [
+              "- For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after runn"
             ],
             "any_clean": true,
             "mentions_truncated": false
@@ -1490,9 +1465,9 @@
         "fences": 2,
         "runnable_fences": 2,
         "checkboxes": 0,
-        "instructions": 4,
+        "instructions": 3,
         "checkable": 1,
-        "claimable": 3,
+        "claimable": 2,
         "inline_cmds": 1,
         "steps": 5,
         "seq": 1,
@@ -1500,7 +1475,7 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 4,
+        "action": 3,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -1625,10 +1600,10 @@
       "prefix-missing": 1
     },
     "phantom_counterfactual": {
-      "in_scope_pct": 30.8,
-      "in_scope_n": 39,
-      "all_pct": 32.5,
-      "all_n": 40
+      "in_scope_pct": 31.6,
+      "in_scope_n": 38,
+      "all_pct": 33.3,
+      "all_n": 39
     }
   }
 }

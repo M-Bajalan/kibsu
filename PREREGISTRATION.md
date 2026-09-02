@@ -296,3 +296,67 @@ at every pinned state: **every figure in the previous notes' tables reproduces u
 to the digit** - no mandate in either workspace depends on a case-insensitive match. One
 public-survey phantom count moved by one; the columns future cycles compare against are
 unchanged. Recorded because the clause demands it.
+
+
+## Appended note — 2026-09-01: two cells in the 2026-08-07 table were copies of the row above
+
+Found by a pre-release audit that recomputed every appended table against the pinned
+states. In the 2026-08-07 note's origin-workspace table, the **post-cycle-1, doctrine** row
+reads `0.0% — 0/34, 3 units` under scorer 0.5.0 and `0.0% — 0/37, 3 units` under scorer
+0.6.0. Both numbers are the *baseline* doctrine row's, copied down. Re-run at the pinned
+post-cycle-1 state with each instrument reconstructed from its own tag:
+
+| pinned state | scorer 0.5.0 (`v0.2.1`) | scorer 0.6.0 (`v0.3.0`) |
+|---|---|---|
+| post-cycle-1, doctrine — as published 2026-08-07 | 0/34 | 0/37 |
+| post-cycle-1, doctrine — **actual** | **0/40** | **0/44** |
+
+The procedure-only cells in the same row (251/800 → 283/967) reproduce exactly, and the
+2026-08-31 note's "scorer 0.6.0 (previous column)" of `0/44` — which appeared to break the
+chain — was the correct figure all along; the break was upstream of it. No conclusion moves:
+doctrine checkability was 0.0% at every state under every instrument, and clause 3 was never
+triggered. The original 2026-08-07 text stays as written above, per this file's own rule:
+corrections to errors of fact get an appended, dated note.
+
+One process consequence, applied from this note on: the chaining check ("each note's
+previous column must equal the prior note's re-measured column") is now run mechanically
+before an appended note is committed, not read by eye - the two slips survived four
+subsequent notes because nobody ran it.
+
+
+## Appended note — 2026-09-01: scorer 0.10.0, three refinements, two instructions fewer per state
+
+The standing clause fired for scorer 0.10.0 (see [CORRECTIONS.md](CORRECTIONS.md),
+2026-09-01 entry). Of its three refinements, two are measured nulls everywhere - the
+directory-prefix scope check and the mandate rule's scope gate touch no unit in either
+workspace or the public corpus - and one moves instruction counts: five verb/noun-ambiguous
+vocabulary entries no longer count `Note: ...` / `Note that ...` / `List of ...` /
+`State of ...` lines as instructions. Both workspaces re-measured at every pinned state:
+
+**Re-measurement, origin workspace (1a), same pinned states:**
+
+| pinned state | scorer 0.9.0 (previous column) | scorer 0.10.0 (re-measured) |
+|---|---|---|
+| baseline, procedure-only | 24.0% — 249/1,036, 36 units | **24.0% — 248/1,034, 36 units** |
+| baseline, doctrine | 0.0% — 0/45, 3 units | **0.0% — 0/45, 3 units** |
+| post-cycle-1, procedure-only | 25.9% — 295/1,141, 39 units | **25.8% — 294/1,139, 39 units** |
+| post-cycle-1, doctrine | 0.0% — 0/53, 3 units | **0.0% — 0/53, 3 units** |
+| post-cycle-2, procedure-only | 26.7% — 306/1,147, 39 units | **26.6% — 305/1,145, 39 units** |
+| post-cycle-2, doctrine | 0.0% — 0/53, 3 units | **0.0% — 0/53, 3 units** |
+
+**Re-measurement, kibsu-lab (1b) and the public survey:**
+
+| | scorer 0.9.0 (previous column) | scorer 0.10.0 (re-measured) |
+|---|---|---|
+| 1b kibsu-lab @ `8bec5ee`, procedure-only | 42.4% (14/33, 3 units) | **42.4% (14/33, 3 units) — unmoved** |
+| 1b kibsu-lab @ `8bec5ee`, doctrine | 0.0% (0/9, 1 unit) | **0.0% (0/9, 1 unit) — unmoved** |
+| public median (procedure-only), 8 ranked collections | 7.7% | **7.5%** |
+
+Exactly two instructions leave every origin state - the same two `Note:` callout lines,
+present in all three pins - and one of them was counted checkable, so the checkable numerator
+drops by one alongside. The experiment's reading is unchanged: the doctrine floor is a hard
+0.0% at every state under every instrument this project has shipped, clause 3 was never
+triggered, and the cycle-over-cycle procedure trend (24.0 → 25.8 → 26.6) is the same shape it
+was under 0.9.0. The previous columns above were verified against the 2026-08-31 (third)
+note's re-measured column before this table was written - the mechanical chaining check this
+file's 2026-09-01 correction note introduced.
