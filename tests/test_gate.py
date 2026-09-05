@@ -24,6 +24,7 @@ whether `kibsu` happens to be importable anywhere on this machine.
 """
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import unittest
@@ -84,6 +85,94 @@ def _write(repo, relpath, content):
         fh.write(content)
 
 
+class GateCarriedPreCommitTests(unittest.TestCase):
+    """The #33 contract, applied to the gate installer that never had it.
+
+    install.py was fixed for issue #33: setting core.hooksPath makes git stop reading
+    .git/hooks entirely, so a pre-existing pre-commit hook must be CARRIED and chained or it
+    silently stops firing. `kibsu gate --install` computed that same list of existing hooks and
+    used it for one thing only - printing "These stop running: pre-commit" - then redirected
+    core.hooksPath and left the original orphaned forever, with its logic living nowhere under
+    .kibsu/. A repo whose pre-commit blocked every commit carrying a secret would, after
+    running the documented one-liner, commit them silently.
+
+    Both tests ran RED against the pre-fix gate installer: no .carried file, and a failing old
+    hook no longer blocking anything."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_gate_carried_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _repo_with_old_precommit(self, hook_body):
+        """A gate-configured, baselined repo that ALSO has a pre-existing pre-commit hook."""
+        repo = make_repo(self.tmpdir, {
+            "gate_widgets.py": GATE_WIDGETS_SCRIPT,
+            "widgets.txt": "a\n",
+            ".kibsu.json": '{"gates": [{"name": "widgets", "cmd": ["'
+                           + sys.executable.replace("\\", "/")
+                           + '", "gate_widgets.py"]}]}\n',
+        })
+        baseline_exit, _out, baseline_err = run_tool("gate", "--baseline", "--repo", repo)
+        self.assertEqual(baseline_exit, 0, "stderr=%r" % baseline_err)
+        _commit_all(repo, "accept the pre-existing widgets violation")
+
+        hook = os.path.join(repo, ".git", "hooks", "pre-commit")
+        if not os.path.isdir(os.path.dirname(hook)):
+            os.makedirs(os.path.dirname(hook))
+        with open(hook, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(hook_body)
+        # OR-with-existing-mode, the idiom install.py uses - a bare 0o755 mask is the
+        # overly-permissive-chmod shape CodeQL rightly flags.
+        os.chmod(hook, os.stat(hook).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        return repo
+
+    def test_gate_install_carries_a_preexisting_precommit_and_it_still_runs(self):
+        repo = self._repo_with_old_precommit(
+            '#!/bin/sh\necho carried-gate-hook-ran > "$(git rev-parse --show-toplevel)/hook_evidence.txt"\nexit 0\n'
+        )
+        exit_code, stdout, stderr = run_tool("gate", "--install", "--apply", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertIn("INSTALLED", stdout)
+        self.assertTrue(
+            os.path.isfile(os.path.join(repo, ".kibsu", "hooks", "pre-commit.carried")),
+            "the old pre-commit must be carried, not merely warned about")
+
+        _commit_all(repo, "install the gate hook")
+        rc, out, err = run_git(repo, *(IDENTITY + ("commit", "--allow-empty", "-q", "-m", "both hooks")))
+        self.assertEqual(rc, 0, "commit should pass both hooks: %s %s" % (out, err))
+        self.assertTrue(os.path.isfile(os.path.join(repo, "hook_evidence.txt")),
+                        "the carried hook's own logic must actually FIRE on commit")
+
+    def test_gate_install_failing_carried_hook_still_blocks_the_commit(self):
+        repo = self._repo_with_old_precommit('#!/bin/sh\necho "old hook says no" >&2\nexit 1\n')
+        exit_code, _stdout, stderr = run_tool("gate", "--install", "--apply", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        # No setup commit here: the carried hook exits 1 unconditionally, so committing the
+        # install artifacts would itself be blocked. The hook fires on --allow-empty anyway.
+        commits_before = _commit_count(repo)
+        rc, out, err = run_git(repo, *(IDENTITY + ("commit", "--allow-empty", "-m", "should be blocked")))
+
+        combined = out + err
+        self.assertNotEqual(rc, 0, "the carried hook exits 1 - the commit must be BLOCKED:\n%s" % combined)
+        self.assertIn("carried pre-existing pre-commit hook", combined)
+        self.assertEqual(_commit_count(repo), commits_before)
+
+    def test_gate_uninstall_removes_the_carried_copy_and_leaves_the_original(self):
+        repo = self._repo_with_old_precommit('#!/bin/sh\necho "old hook says no" >&2\nexit 1\n')
+        exit_code, _stdout, stderr = run_tool("gate", "--install", "--apply", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        exit_code, stdout, stderr = run_tool("gate", "--uninstall", "--apply", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertFalse(os.path.isfile(os.path.join(repo, ".kibsu", "hooks", "pre-commit.carried")),
+                         "the carried COPY must not survive uninstall")
+        # The original was never moved, only copied - so it resumes the moment hooksPath is unset.
+        self.assertTrue(os.path.isfile(os.path.join(repo, ".git", "hooks", "pre-commit")),
+                        "the ORIGINAL hook must be untouched by install or uninstall")
+
+
 class GateTests(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_gate_")
@@ -97,7 +186,7 @@ class GateTests(unittest.TestCase):
         files = {
             "gate_widgets.py": GATE_WIDGETS_SCRIPT,
             "widgets.txt": "a\n",
-            ".kibsu.json": '{"gates": [{"name": "widgets", "cmd": ["' + sys.executable + '", "gate_widgets.py"]}]}\n',
+            ".kibsu.json": '{"gates": [{"name": "widgets", "cmd": ["' + sys.executable.replace("\\", "/") + '", "gate_widgets.py"]}]}\n',
         }
         if extra_files:
             files.update(extra_files)
@@ -136,6 +225,63 @@ class GateTests(unittest.TestCase):
         self.assertIn("COMMIT BLOCKED by kibsu gate", combined)
         self.assertIn("[R1] b", combined)
         self.assertEqual(_commit_count(repo), commits_before)
+
+    # ---- a violation is judged by ITS OWN path, not by paths its prose mentions ---------
+
+    def test_new_violation_is_not_excused_by_an_ignored_path_in_its_message(self):
+        """A finding about a TRACKED file must still block when its text names an ignored path.
+
+        `is_ignored_violation()` used to ask "is ANY path-shaped substring anywhere in this
+        message gitignored?". A perfectly ordinary see-also reference in the description -
+        "unsafe eval - compare docs/examples/safe.py" - therefore excused a real, new violation
+        in a tracked file: the item was dropped from the count, the gate printed PASS, and the
+        commit went through with the defect in it. The gate is now judged on the violation's
+        declared subject, the path the item leads with.
+        """
+        repo = self._install_with_one_accepted_violation(
+            extra_files={".gitignore": "docs/examples/\n"},
+        )
+        commits_before = _commit_count(repo)
+
+        # A NEW violation whose subject is tracked, and whose prose references an ignored path.
+        with open(os.path.join(repo, "widgets.txt"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("src/real_bug.py:2 unsafe eval - compare docs/examples/safe.py\n")
+        _write(repo, "src/real_bug.py", "def f(user_input):\n    return eval(user_input)\n")
+        rc, out, err = run_git(repo, "add", "-A")
+        self.assertEqual(rc, 0, "git add -A failed: %s" % (err or out))
+
+        rc, out, err = run_git(repo, *(IDENTITY + ("commit", "-m", "introduce a real violation")))
+
+        combined = out + err
+        self.assertNotEqual(rc, 0, "expected the commit to be BLOCKED, got:\n%s" % combined)
+        self.assertIn("COMMIT BLOCKED by kibsu gate", combined)
+        self.assertIn("src/real_bug.py", combined)
+        self.assertEqual(_commit_count(repo), commits_before)
+
+    def test_a_violation_about_an_ignored_file_is_still_skipped(self):
+        """The complement, and the reason ignored() exists at all.
+
+        gate.py's docstring records the incident this behaviour was built for: a nightly build
+        wrote build/logs/run_<stamp>.log, the rule count moved, and the gate blocked a commit
+        over files that can never be part of one. Narrowing the check to the violation's own
+        declared path must not cost that - a finding whose SUBJECT is gitignored is still
+        correctly skipped, because the subject is exactly what the leading token carries.
+        """
+        repo = self._install_with_one_accepted_violation(
+            extra_files={".gitignore": "build/logs/\n"},
+        )
+        commits_before = _commit_count(repo)
+
+        with open(os.path.join(repo, "widgets.txt"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("build/logs/run_20260726_0100.log stale nightly log\n")
+        rc, out, err = run_git(repo, "add", "-A")
+        self.assertEqual(rc, 0, "git add -A failed: %s" % (err or out))
+
+        rc, out, err = run_git(repo, *(IDENTITY + ("commit", "-m", "nightly log churn only")))
+
+        combined = out + err
+        self.assertEqual(rc, 0, "expected the commit to be ALLOWED, got:\n%s" % combined)
+        self.assertEqual(_commit_count(repo), commits_before + 1)
 
     # ---- negative: clean vs baseline allows the commit ----------------------------------
     def test_clean_against_baseline_allows_commit(self):
@@ -190,8 +336,8 @@ class GateTests(unittest.TestCase):
             "widgets.txt": "a\n",
             ".kibsu.json": (
                 '{"gates": ['
-                '{"name": "widgets", "cmd": ["' + sys.executable + '", "gate_widgets.py"]}, '
-                '{"name": "flaky", "cmd": ["' + sys.executable + '", "gate_flaky.py"], "cannot_run_exit": 42}'
+                '{"name": "widgets", "cmd": ["' + sys.executable.replace("\\", "/") + '", "gate_widgets.py"]}, '
+                '{"name": "flaky", "cmd": ["' + sys.executable.replace("\\", "/") + '", "gate_flaky.py"], "cannot_run_exit": 42}'
                 ']}\n'
             ),
         }
@@ -262,6 +408,89 @@ class GateTests(unittest.TestCase):
         self.assertIn("no gates configured", stdout)
         self.assertIn("nothing was checked", stdout)
         assert_repo_untouched(repo)
+
+
+class GateOccurrenceCountTests(unittest.TestCase):
+    """Regression tests for public issue #31 - the digit-folded identity collapsed DISTINCT
+    violations into one, so a genuinely new occurrence of a known identity passed the gate.
+
+    The design insight the fix rests on: the baseline FILE already records multiplicity -
+    baseline() has always written the raw items list, duplicates included. Only
+    load_baseline()'s set() and check()'s set() collapsed it at read time. Multiset semantics
+    restore what the file already knew, so old baseline files work unchanged - no schema
+    change, no migration.
+
+    Per CONTRIBUTING rule 4, every test here was run RED against the pre-fix gate first; the
+    red outputs are quoted in the fixing PR. The fixture texts deliberately mirror norm()'s
+    own docstring example - violations differing only by an embedded line number, the exact
+    shape digit-folding exists to absorb."""
+
+    TWO = "file.py:120 .unsafe_call(...)\nfile.py:340 .unsafe_call(...)\n"
+    THREE = TWO + "file.py:500 .unsafe_call(...)\n"
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_gate_counts_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _repo_with_baseline(self, widgets):
+        repo = make_repo(self.tmpdir, {
+            "gate_widgets.py": GATE_WIDGETS_SCRIPT,
+            "widgets.txt": widgets,
+            ".kibsu.json": '{"gates": [{"name": "widgets", "cmd": ["python", "gate_widgets.py"]}]}\n',
+        })
+        exit_code, _out, err = run_tool("gate", "--baseline", "--repo", repo)
+        self.assertEqual(exit_code, 0, "stderr=%r" % err)
+        return repo
+
+    def test_issue_31_surplus_occurrence_of_known_identity_blocks(self):
+        """Two same-identity violations baselined; a THIRD occurrence appears. The pre-fix
+        gate printed PASS and exit 0 for exactly this - the case its own docstring says a
+        gate exists to catch."""
+        repo = self._repo_with_baseline(self.TWO)
+        _write(repo, "widgets.txt", self.THREE)
+
+        exit_code, out, _err = run_tool("gate", "--check", "--repo", repo)
+        self.assertEqual(exit_code, 1, out)
+        self.assertIn("COMMIT BLOCKED", out)
+        self.assertIn(".unsafe_call", out)
+
+    def test_issue_31_fewer_occurrences_than_baseline_still_passes(self):
+        """The other direction must not regress: fixing one of three baselined occurrences
+        is progress, not new breakage - the gate passes and reports the gain."""
+        repo = self._repo_with_baseline(self.THREE)
+        _write(repo, "widgets.txt", self.TWO)
+
+        exit_code, out, _err = run_tool("gate", "--check", "--repo", repo)
+        self.assertEqual(exit_code, 0, out)
+        self.assertIn("FIXED", out)
+
+    def test_issue_31_baseline_file_already_carries_multiplicity(self):
+        """The backward-compat proof: the on-disk accepted list keeps BOTH same-identity
+        entries (this is the format every existing baseline file already has), and the gate
+        honors that multiplicity on the very next check."""
+        import json as _json
+        repo = self._repo_with_baseline(self.TWO)
+
+        with open(os.path.join(repo, ".kibsu", "gate_baseline.json"), encoding="utf-8") as fh:
+            payload = _json.load(fh)
+        accepted = payload["gates"]["widgets"]["accepted"]
+        self.assertEqual(len(accepted), 2, accepted)
+        self.assertEqual(accepted[0], accepted[1], accepted)
+
+        exit_code, out, _err = run_tool("gate", "--check", "--repo", repo)
+        self.assertEqual(exit_code, 0, out)
+
+    def test_issue_31_novel_identity_still_blocks(self):
+        """The original guarantee is untouched: an identity never baselined at all still
+        blocks, independent of any occurrence arithmetic."""
+        repo = self._repo_with_baseline(self.TWO)
+        _write(repo, "widgets.txt", self.TWO + "other.py:7 .different_call(...)\n")
+
+        exit_code, out, _err = run_tool("gate", "--check", "--repo", repo)
+        self.assertEqual(exit_code, 1, out)
+        self.assertIn(".different_call", out)
 
 
 if __name__ == "__main__":

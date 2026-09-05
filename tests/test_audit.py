@@ -26,6 +26,316 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from support import make_repo, run_tool, assert_repo_untouched
 from kibsu.audit import VERSION as SCORER_VERSION
+from kibsu.audit import analyse, strip_frontmatter
+from kibsu import audit as audit_mod
+from kibsu import config as config_mod
+
+
+class RootInstructionFileDiscoveryTests(unittest.TestCase):
+    """find_skills() must see the layout the README leads with: a root AGENTS.md / CLAUDE.md."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_rootinstr_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _tree(self, files):
+        root = os.path.join(self.tmpdir, "repo")
+        for rel, content in files.items():
+            full = os.path.join(root, rel.replace("/", os.sep))
+            parent = os.path.dirname(full)
+            if parent and not os.path.isdir(parent):
+                os.makedirs(parent)
+            with open(full, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(content)
+        return root
+
+    def test_instruction_files_constant_matches_the_shared_config_default(self):
+        """audit.py mirrors config.DEFAULTS rather than importing it (it is vendored standalone
+        into .kibsu/bin, where there is no package for `from . import config` to resolve). A
+        mirrored constant drifts unless a machine watches it - so this is that machine."""
+        self.assertEqual(
+            list(audit_mod.INSTRUCTION_FILES),
+            list(config_mod.DEFAULTS["instruction_files"]),
+            "audit.INSTRUCTION_FILES has drifted from config.DEFAULTS['instruction_files']",
+        )
+
+    def test_root_agents_md_is_discovered_instead_of_falling_to_the_catch_all(self):
+        root = self._tree({
+            "AGENTS.md": "- Run `pytest` before every commit.\n",
+            "README.md": "# readme\n",
+            "docs/notes.md": "- Some unrelated note.\n",
+        })
+        files, mode = audit_mod.find_skills(root)
+        self.assertEqual(mode, "instruction-files")
+        self.assertEqual([os.path.basename(f) for f in files], ["AGENTS.md"])
+
+    def test_an_instruction_directory_still_wins_so_no_existing_measurement_moves(self):
+        """The new mode sits BELOW both directory modes on purpose: any repo that already had a
+        real instruction directory must keep being measured by that directory."""
+        root = self._tree({
+            "AGENTS.md": "- Run `pytest` before every commit.\n",
+            ".claude/skills/thing.md": "- Do the thing and write `out.md`.\n",
+        })
+        files, mode = audit_mod.find_skills(root)
+        self.assertEqual(mode, "instruction-dir/*.md")
+        self.assertEqual([os.path.basename(f) for f in files], ["thing.md"])
+
+    def test_a_repo_with_no_instruction_files_still_reaches_the_catch_all(self):
+        """The two pinned survey repos that land in the catch-all carry none of these files at
+        root; this pins that the catch-all is still reachable, so their figures cannot move."""
+        root = self._tree({"README.md": "# readme\n", "docs/notes.md": "- A note.\n"})
+        _files, mode = audit_mod.find_skills(root)
+        self.assertEqual(mode, "*.md (no instruction dir)")
+
+
+class Scorer0100RefinementTests(unittest.TestCase):
+    """Scorer 0.10.0: three refinements from the pre-release adversarial pass. All FAILED
+    against scorer 0.9.0."""
+
+    def test_the_prefix_scope_check_is_case_insensitive_while_the_file_check_is_exact(self):
+        """0.9.0 shared one byte-exact matcher between two different questions. Whether a
+        mandate's ancestor DIRECTORY is this repo's business is a scope fact - `Skills/` and
+        `skills/` are the same business - while whether the FILE exists is git's byte-exact
+        question. Conflated, a case-differing mandate fell into prefix-missing and was never
+        phantom-checked: not credited, not counted, invisible to the round's own ablation."""
+        from kibsu.audit import glob_re
+        self.assertIsNotNone(glob_re("Skills", case_sensitive=False).search("skills"))
+        self.assertIsNone(glob_re("notes.md").search("Notes.md"))
+
+    def test_a_case_differing_mandate_is_phantom_not_out_of_scope(self):
+        """End to end through check_artifacts(): tracked skills/foo.md, mandate `Skills/foo.md`.
+        The right answer is PHANTOM (in scope, zero byte-exact matches) - the answer a Linux
+        `cat Skills/foo.md` gives - not "prefix missing"."""
+        from kibsu.audit import analyse, check_artifacts
+        repo = make_repo(self.tmpdir, {"skills/foo.md": "hello\n", "doc.md": "x\n"})
+        rows = [dict(analyse("Create `Skills/foo.md` in the repo.\n"), skill="doc.md")]
+        res = check_artifacts(repo, rows)
+        arts = res[0] if isinstance(res, tuple) else res
+        art = [x for x in arts if x["artifact"] == "Skills/foo.md"][0]
+        self.assertTrue(art["in_scope"], art)
+        self.assertTrue(art["phantom"], art)
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_0100_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_a_user_scope_placeholder_does_not_demote_doctrine(self):
+        """The mandate rule's own justification - "a unit promising files is making checkable
+        promises" - does not hold for a mention check_artifacts() would exclude as user-scope.
+        Gated on any_clean now; a pure doctrine unit with one "save `{name}.md` into YOUR
+        project" line stays doctrine, and a declared doctrine no longer earns a false
+        genre_conflict flag."""
+        text = ("Resist the temptation to act. Question the hidden assumption. When in doubt,\n"
+                "ask yourself what the failure mode is.\n"
+                "Save `{name}.md` into your project's notes directory once satisfied.\n")
+        o = analyse(text)
+        self.assertEqual(o["genre_detected"], "doctrine")
+        self.assertNotIn("genre_demoted_from", o)
+        o2 = analyse("---\ngenre: doctrine\n---\n" + text)
+        self.assertFalse(o2["genre_conflict"])
+
+    def test_a_real_mandate_still_demotes(self):
+        o = analyse("Resist the temptation to act. Question the hidden assumption. When in doubt,\n"
+                    "ask yourself what the failure mode is.\n1. Create `postmortem.md`.\n")
+        self.assertEqual(o.get("genre_demoted_from"), "doctrine")
+
+    def test_noun_openers_are_not_instructions_but_the_imperatives_still_are(self):
+        """"Note:" callouts and "List of ..." headers opened as instructions through five
+        verb/noun-ambiguous vocabulary entries the 0.7.0 census never re-examined. 20 of 5,930
+        counted lines on a 250-file corpus were this class, every one a false positive."""
+        for ln in ("Note: this only applies to Windows.", "**Note:** results may vary.",
+                   "> Note that caching is on by default.", "List of supported languages: Go.",
+                   "State of the pipeline after step 3."):
+            self.assertEqual(analyse(ln + "\n")["instructions"], 0, ln)
+        # Disclosed residual, not a target: a noun-noun opener ("Record types are defined...")
+        # is still counted. The rule covers the contexts the corpus actually produced (colon,
+        # that/of/is/are/was directly after the verb); widening it to reach one synthetic probe
+        # would be the author's prior belief in regex form, which this file warns against.
+        self.assertEqual(analyse("Record types are defined in the schema.\n")["instructions"], 1)
+        for ln in ("List the files in `docs/`.", "Record the exit code in `run.log`.",
+                   "Note the exit code.", "Track the change in `CHANGELOG.md`."):
+            self.assertEqual(analyse(ln + "\n")["instructions"], 1, ln)
+
+
+class ByteExactExistenceTests(unittest.TestCase):
+    """Scorer 0.9.0, issue #78: the existence check answers the way git would.
+
+    Detection stays case-insensitive (a mandate is a mandate however it is cased - the
+    NOTES.MD ruling stands); existence is byte-exact, because repo paths are byte strings
+    and a mandate a Linux `cat` fails should not read as satisfied. Both directions pinned;
+    the first two FAILED against scorer 0.8.0."""
+
+    def test_a_differently_cased_file_no_longer_satisfies_a_mandate(self):
+        from kibsu.audit import glob_re
+        rx = glob_re("notes.md")
+        self.assertIsNone(rx.search("docs/Notes.md"))
+        self.assertIsNone(rx.search("NOTES.MD"))
+
+    def test_detection_stays_case_insensitive(self):
+        """The split posture, asserted from both sides: NOTES.MD is still EXTRACTED as a
+        mandate even though its existence must now match byte-exactly."""
+        o = analyse("Create NOTES.MD before starting.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], ["NOTES.MD"])
+
+    def test_exact_case_still_matches_including_templates(self):
+        from kibsu.audit import glob_re
+        self.assertIsNotNone(glob_re("notes.md").search("docs/notes.md"))
+        self.assertIsNotNone(glob_re("logs/report_{date}.md").search("logs/report_2026-08-31.md"))
+
+
+class MandateRuleTests(unittest.TestCase):
+    """Scorer 0.8.0, issue #77: a unit that mandates artifacts cannot be DETECTED doctrine.
+
+    Derived from the tool's own definition - doctrine produces judgement, not files - so a
+    unit promising files is making checkable promises and cannot claim the
+    0%-by-construction exemption. Detection only; declaration still beats it both ways.
+    All three tests FAILED against scorer 0.7.0."""
+
+    DOCTRINE_PREAMBLE = ("Resist the temptation to patch the symptom. Question the hidden\n"
+                         "assumption, and ask yourself what failure mode the counter missed.\n"
+                         "It is not enough to close the ticket; when in doubt, treat every\n"
+                         "red flag as a judgement call.\n\n")
+
+    def test_a_mandating_unit_is_not_doctrine(self):
+        """The audited repro: a four-sentence doctrine preamble outvoted a five-step
+        procedure mandating real files (147.7 vs 19.2 on a short file) and pulled the whole
+        unit out of the headline."""
+        text = (self.DOCTRINE_PREAMBLE
+                + "1. Create `incident_timeline.md` from the alert log.\n"
+                  "2. Write `postmortem.md` with the five whys.\n"
+                  "3. Update `STATUS.md`.\n")
+        o = analyse(text)
+        self.assertEqual(o["genre_detected"], "procedure")
+        self.assertEqual(o.get("genre_demoted_from"), "doctrine")
+
+    def test_pure_doctrine_stays_doctrine(self):
+        """The rule must not touch what doctrine actually is: judgement-shaped guidance
+        that promises no files - the genre the tool exists to protect from defamation."""
+        o = analyse(self.DOCTRINE_PREAMBLE)
+        self.assertEqual(o["genre_detected"], "doctrine")
+        self.assertNotIn("genre_demoted_from", o)
+
+    def test_a_declared_doctrine_keeps_its_declaration_and_the_conflict_flag(self):
+        """Declaration beats detection in both directions, unchanged: an author who insists
+        a mandating unit is doctrine keeps that ruling, and the disagreement is flagged
+        rather than silently swallowed."""
+        text = ("---\ngenre: doctrine\n---\n" + self.DOCTRINE_PREAMBLE
+                + "1. Create `incident_timeline.md` from the alert log.\n"
+                  "2. Write `postmortem.md`.\n"
+                  "3. Update `STATUS.md`.\n")
+        o = analyse(text)
+        self.assertEqual(o["genre"], "doctrine")
+        self.assertEqual(o["genre_source"], "declared")
+        self.assertTrue(o["genre_conflict"])
+
+
+class Scorer070Tests(unittest.TestCase):
+    """The 0.7.0 round's four corrections, each pinned by the shape that exposed it.
+
+    All four widen what the scorer can SEE, none change how it judges - the same split
+    every round since 0.5.0 has stated. Every test here FAILED against scorer 0.6.0."""
+
+    def test_emphasised_imperatives_are_instructions(self):
+        """Issue #56. Bold/italic markers around the leading verb are ordinary authoring
+        style, and cycle 2 of the skill experiment proved the blindness live: six numbered
+        gather-steps with real artifact referents were never counted, and de-bolding the
+        verbs ALONE moved the unit's counts."""
+        text = ("**Create** the gate file at `query/gates/_gate.md`.\n"
+                "1. **Gather Audit Info**: read the audit from `_gate_x.md`.\n"
+                "_Update_ the docs afterwards.\n"
+                "__Verify__ the output matches.\n")
+        o = analyse(text)
+        self.assertEqual(o["instructions"], 4)
+
+    def test_a_backtick_code_span_is_not_an_instruction(self):
+        """The counter-shape #56's fix must NOT admit: a line-leading backtick opens a code
+        span - a NAME, not a command. `run_daily.py` mentions a file; nobody is being told
+        to do anything."""
+        o = analyse("`run_daily.py` is the entry point.\n`create` is a keyword here.\n")
+        self.assertEqual(o["instructions"], 0)
+
+    def test_census_approved_verbs_count_and_rejected_nouns_do_not(self):
+        """Issue #74. gather is the incident's own verb; provide/avoid/monitor entered on
+        census evidence. import/query/release were REJECTED on the same evidence - in
+        instruction docs they open noun phrases ("Import maps for JavaScript"), and
+        admitting them would manufacture claimable instructions out of reference bullets."""
+        o = analyse("Gather the requirements first.\n"
+                    "- Provide clear error messages.\n"
+                    "- Avoid stateful tests.\n"
+                    "- Monitor application performance.\n")
+        self.assertEqual(o["instructions"], 4)
+        o = analyse("- Import maps for JavaScript\n"
+                    "- Query optimization and indexing strategies\n"
+                    "- Release notes and changelog\n")
+        self.assertEqual(o["instructions"], 0)
+
+    def test_backtracking_cannot_manufacture_instructions_from_bold_prefixes(self):
+        """Adversarial finding: with an independent optional closer, the engine BACKTRACKED -
+        "**Test**ing framework overview" matched by giving the closer back and letting the
+        bare "*" satisfy a plain boundary. The closer is a backreference to the opener now,
+        and the boundary excludes the marker characters themselves."""
+        o = analyse("**Test**ing is a discipline, not a phase.\n"
+                    "**set**up the project\n"
+                    "*set*up something\n"
+                    "**Build**ing the pipeline\n")
+        self.assertEqual(o["instructions"], 0)
+
+    def test_a_markdown_link_is_one_mention_not_a_corrupted_pair(self):
+        """Adversarial finding: "[README.md](./README.md)" minted a bracket-corrupted
+        `[README.md` token - a path that can never exist, a fabricated phantom - NEXT TO the
+        real one. Links are flattened to text + target before scanning, and the two coats
+        dedup to one record."""
+        o = analyse("You MUST update [README.md](./README.md) before merging.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], ["README.md"])
+
+    def test_www_references_are_pages_not_mandates(self):
+        o = analyse("Create output.py; see www.example.com/readme.md for the site.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], ["output.py"])
+
+    def test_the_display_cap_never_decides_scope(self):
+        """Adversarial finding: with the scope verdict computed from the capped display list,
+        a token whose ONLY clean mention was the ninth distinct line flipped out-of-scope -
+        the exact bug this round fixed, reappearing at mention nine. The verdict is computed
+        over every mention now, unconditionally; the cap only bounds display, and dropping a
+        line for it sets mentions_truncated instead of staying silent."""
+        dirty = "".join("Generate cap.md into the user's %s directory.\n" % w
+                        for w in ("alpha", "beta", "gamma", "delta", "epsilon", "zeta",
+                                  "eta", "theta"))
+        text = dirty + "Write cap.md after every run.\n"
+        o = analyse(text)
+        rec = [m for m in o["mandated"] if m["tok"] == "cap.md"][0]
+        self.assertTrue(rec["any_clean"], "the ninth, clean mention must set the verdict")
+        self.assertTrue(rec["mentions_truncated"], "a dropped display line is disclosed")
+        self.assertEqual(len(rec["lines"]), 8)
+
+    def test_bare_and_quoted_mandates_reach_the_artifact_records(self):
+        """Issue #75. PATHY counted 'Create config.yml' as checkable BECAUSE it names a
+        file, while FILE_TOKEN's backtick requirement kept that same file out of the
+        mandated-artifact records forever - checkable, yet unfalsifiable."""
+        o = analyse("Create config.yml with the settings.\n"
+                    'Write "docs/plan.md" before starting.\n')
+        toks = sorted(m["tok"] for m in o["mandated"])
+        self.assertEqual(toks, ["config.yml", "docs/plan.md"])
+
+    def test_a_url_is_a_page_not_a_mandate(self):
+        o = analyse("Create the doc per https://example.com/guide.md today.\n")
+        self.assertEqual([m["tok"] for m in o["mandated"]], [])
+
+    def test_every_mention_line_is_kept_and_any_clean_one_sets_scope(self):
+        """Issue #76. Dedup used to keep only the FIRST mention line, and the scope filter
+        judged from it - document order, not the specification, decided scope. A token
+        whose first mention reads user-scope but whose second plainly mandates it in-repo
+        must stay in the phantom population."""
+        text = ("Generate out/report.md into the user's project.\n"
+                "Write out/report.md after every run.\n")
+        o = analyse(text)
+        recs = [m for m in o["mandated"] if m["tok"] == "out/report.md"]
+        self.assertEqual(len(recs), 1, "one deduped record")
+        self.assertEqual(len(recs[0]["lines"]), 2, "both mention lines carried")
 
 
 class AuditTests(unittest.TestCase):
@@ -806,6 +1116,132 @@ class DisclosureLedgerTests(unittest.TestCase):
         self.assertEqual(int(m.group(2)), cf["in_scope_n"])
         self.assertEqual(float(m.group(3)), cf["all_pct"])
         self.assertEqual(int(m.group(4)), cf["all_n"])
+        assert_repo_untouched(repo)
+
+
+class ScorerCaseBomAncestorTests(unittest.TestCase):
+    """Regression tests for public issues #26, #27, #28 - three scorer-core defects found by
+    the 2026-08-07 review. Per CONTRIBUTING rule 4, every test here was run RED against the
+    pre-fix scorer before the fix landed; the red runs are quoted in the fixing PR.
+
+    #26 - MODALS was compiled without re.IGNORECASE, so Title-case directives ("- Must run
+    the tests.") matched neither the ALL-CAPS nor the lowercase alternation and were never
+    counted as instructions at all.
+    #27 - check_artifacts() collected only IMMEDIATE parent directories, so a mandate under
+    a directory that contains only subdirectories (skills/ in the skills/<name>/SKILL.md
+    layout this tool itself targets first) was wrongly excluded as prefix-missing and left
+    the phantom population.
+    #28 - strip_frontmatter() tested startswith("---") on raw text, so a UTF-8 BOM (real in
+    the wild; PowerShell writes them) made declared genre/scope invisible - index.py has
+    carried the equivalent fix since it met the same bytes.
+    """
+
+    TITLE_CASE = (
+        "# Release Rules\n\n"
+        "- Must run the tests before merging.\n"
+        "- Never commit directly to main.\n"
+        "- Always confirm before deleting a file.\n"
+        "- Should verify the output before shipping.\n"
+        "- This step is Mandatory for release.\n"
+    )
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_audit_scorerfix_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_issue_26_title_case_directives_are_counted_as_instructions(self):
+        """Five unambiguous directives in ordinary first-word-capitalized bullet style. The
+        pre-fix scorer reported instructions=0 for this exact text."""
+        r = analyse(self.TITLE_CASE)
+        self.assertEqual(r["instructions"], 5, r)
+
+    def test_issue_26_case_does_not_change_the_measurement(self):
+        """The invariant behind the fix: the same directives lowercased must produce the same
+        instruction/checkable/claimable counts as the Title-case original."""
+        title, lower = analyse(self.TITLE_CASE), analyse(self.TITLE_CASE.lower())
+        for key in ("instructions", "checkable", "claimable"):
+            self.assertEqual(title[key], lower[key], key)
+
+    def test_issue_27_mandate_under_nested_only_directory_is_in_scope(self):
+        """skills/ exists only as the parent of two skill subdirectories - no file lives
+        directly inside it. The mandate `skills/NOTES.md` must stay in scope and, never
+        having been committed, must be phantom. The pre-fix scorer excluded it as
+        prefix-missing ("path prefix 'skills/' does not exist in this repo")."""
+        repo = make_repo(self.tmpdir, {
+            "skills/skill-a/SKILL.md": (
+                "# Skill A\n\n"
+                "Update `skills/NOTES.md` with the outcome after every run.\n"
+            ),
+            "skills/skill-b/SKILL.md": "# Skill B\n\nNothing mandated here.\n",
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        arts = [a for a in result["artifacts"] if a["artifact"] == "skills/NOTES.md"]
+        self.assertEqual(len(arts), 1, result["artifacts"])
+        art = arts[0]
+        self.assertTrue(art["in_scope"], art)
+        self.assertIsNone(art["out_of_scope_reason"], art)
+        self.assertTrue(art["phantom"], art)
+        assert_repo_untouched(repo)
+
+    def test_issue_27_truly_missing_prefix_is_still_excluded(self):
+        """The other direction must not regress: a mandate whose directory has never held a
+        file in any commit, directly or through subdirectories, stays prefix-missing."""
+        repo = make_repo(self.tmpdir, {
+            "skills/skill-a/SKILL.md": (
+                "# Skill A\n\n"
+                "Update `warehouse/NOTES.md` with the outcome after every run.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, "skills"), "--json", "--artifacts",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        arts = [a for a in result["artifacts"] if a["artifact"] == "warehouse/NOTES.md"]
+        self.assertEqual(len(arts), 1, result["artifacts"])
+        self.assertFalse(arts[0]["in_scope"], arts[0])
+        self.assertEqual(arts[0]["out_of_scope_class"], "prefix-missing", arts[0])
+        assert_repo_untouched(repo)
+
+    def test_issue_28_bom_prefixed_declaration_is_honored(self):
+        """A BOM-prefixed unit declaring `genre: doctrine` must be read as declared doctrine,
+        not silently re-detected from the body."""
+        text = (
+            "﻿---\ngenre: doctrine\n---\n\n"
+            "You must always verify the intent before building.\n"
+            "Never skip the review step.\n"
+        )
+        body, fm = strip_frontmatter(text)
+        self.assertIn("genre: doctrine", fm)
+        r = analyse(text)
+        self.assertEqual(r["genre"], "doctrine", r)
+        self.assertEqual(r["genre_source"], "declared", r)
+
+    def test_issue_28_bom_prefixed_file_on_disk_is_honored_end_to_end(self):
+        """Same guarantee through the CLI against real bytes on disk (make_repo writes UTF-8,
+        so the leading \\ufeff lands as a real EF BB BF BOM)."""
+        repo = make_repo(self.tmpdir, {
+            "skills/doctrine-skill/SKILL.md": (
+                "﻿---\ngenre: doctrine\n---\n\n"
+                "You must always verify the intent before building.\n"
+            ),
+        })
+
+        exit_code, stdout, stderr = run_tool(
+            "audit", os.path.join(repo, "skills"), "--json",
+        )
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        result = json.loads(stdout)
+        doctrine_units = result["by_genre"].get("doctrine", {}).get("units", 0)
+        self.assertEqual(doctrine_units, 1, result["by_genre"])
         assert_repo_untouched(repo)
 
 

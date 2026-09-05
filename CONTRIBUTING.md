@@ -118,8 +118,13 @@ Run all of it. Paste the exit codes into the pull request. Bare commands, not
 piped — a pipe replaces the exit code you are trying to report with the exit code
 of whatever it was piped into, which is how an untested change passes review.
 
-- [ ] `python -m unittest discover -s tests` → exit **0** (72 tests at time of writing;
+- [ ] `python -m unittest discover -s tests` → exit **0** (144 tests at time of writing;
       the command prints the count, so do not trust this number, read that one)
+- [ ] `python tools/refresh_readme_counts.py` → exit **0**, and commit the README if it
+      changed. The paragraph publishes this repo's own line and test counts, so ANY change
+      under `kibsu/` or `tests/` moves them and the suite fails while the prose disagrees
+      (#29). Do not edit those four numbers by hand — this produces them from the guard's own
+      measurement, touching nothing else in the file. `--check` reports without writing.
 - [ ] `python -m kibsu report .` → exit **3** on this repo, and `git status --porcelain`
       afterwards shows only your own changes
 - [ ] `python -m kibsu audit . --definitions` → exit **0**, still prints the full ruleset,

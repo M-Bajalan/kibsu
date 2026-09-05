@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kibsu"
-version = "0.2.1"
+version = "0.8.0"
 description = "Reads your coding-agent instructions and reports which of them can actually be verified."
 readme = "README.md"
 license = { file = "LICENSE" }

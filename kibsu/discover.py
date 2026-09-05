@@ -46,13 +46,164 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
+
+# Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
+# git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
+# allocation the kernel OOM-killer ends with a SIGKILL no `except` clause sees. 5 MB is
+# generous for instruction markdown; over-ceiling files are SKIPPED WITH A PRINTED REASON
+# on stderr (stdout stays clean for --json), never silently.
+MAX_READ_BYTES = 5 * 1024 * 1024
 OK, INERT_FOUND, CANNOT_RUN = 0, 1, 3
 ABSENT, INERT, LIVE, UNKNOWN = "absent", "INERT", "live", "unknown"
 
 CI_GLOBS = [".github/workflows", ".gitlab-ci.yml", "azure-pipelines.yml",
             "Jenkinsfile", ".circleci/config.yml", ".travis.yml", "bitbucket-pipelines.yml"]
 AGENT_DOCS = ["CLAUDE.md", "AGENTS.md", "GEMINI.md", ".cursorrules", "CONVENTIONS.md"]
+
+# ---- K-1 / K-2 (issues #68 / #69) ---------------------------------------------------------
+# K-1: gate-removing flags an instruction can hand to an agent. These exist so a HUMAN can
+# push a known-good run through; in an agent's hands they delete exactly the gates that would
+# catch a wrong invocation. Bare "-y" is deliberately absent: it collides with ordinary prose,
+# and a check that flags a stranger's innocent text is a check that gets switched off - the
+# same cry-wolf rule the gate classifier's name-boundary fix follows.
+DANGEROUS_FLAG_RE = re.compile(r"--(?:auto-approve|skip-[\w-]+|force|yes|no-verify)\b")
+# What counts as the flag being GATED, anywhere within ADJACENCY lines of the mention: an
+# approval/confirmation rule, or a prohibition - "never run --force" is the opposite of a
+# grant and must not be flagged. Both vocabularies disclosed in the capability detail.
+APPROVAL_RE = re.compile(
+    r"(?:approv|confirm|authoris|authoriz|permission|sign-?off|marker"
+    r"|ask\s+(?:first|before|for|the\s+\w+|your\s+\w+)"
+    r"|do\s+not\b|don'?t\b|never\b|forbidden|prohibit|refuse)", re.I)
+ADJACENCY = 2  # lines before/after the mention searched for APPROVAL_RE
+
+# ---- K-3 (issue #71): write instructions with no subsequent verification ------------------
+# The checkability thesis applied to side effects instead of promises: "run X" with no "then
+# confirm Y" is a write nobody will ever confirm happened correctly. Every vocabulary below
+# was CALIBRATED before freezing - three passes over a 250-file public instruction corpus -
+# because the first draft flagged reference tables, hard-wrapped prose continuations, and
+# read-only `run` targets, and a check that floods a doc with hits gets switched off.
+# A list marker: bullets, "1." / "1)" / "1:" / "(1)" numbering. Colon-numbering demands the
+# trailing whitespace, so a clock time ("10:30") can never read as item ten.
+K3_LEAD = r"^\s*(?:[-*+>]\s+|\d+[.:)]\s+|\(\d+\)\s+)?"
+K3_BULLET_RE = re.compile(r"^\s*(?:[-*+>]\s+|\d+[.:)]\s+|\(\d+\)\s+)")
+K3_EMPH = r"(?:\*\*|\*|__|_)?"
+# Idioms are excluded PER VERB, not by a global rule: "push back" is disagreement, "commit to
+# quality" is a value, "merge conflicts" is a noun phrase, "drop me a note" is a request,
+# "rebuild trust" and "reset expectations" are management prose - all reproduced firing on a
+# team-norms doc by the adversarial pass before this shipped. "apply" and "send" are dropped
+# from the list outright: both fired on ordinary prose in two separate calibration rounds and
+# neither names an agent write worth the noise.
+K3_MUTATION_VERBS = (r"push(?!\s+back\b)|deploy|publish|delete|remove|drop(?!\s+(?:me|him|her|them|us)\b)"
+                     r"|truncate|overwrite|merge(?!\s+conflicts?\b)|migrate|restart"
+                     r"|reset(?!\s+expectations?\b)|upload|commit(?!\s+to\b)|install|reload"
+                     r"|rebuild(?!\s+trust\b)|sync")
+# The trailing class and not bare \b: "install-mechanism" and "publish);" are prose, not
+# commands - the same whole-token lesson as the gate classifier's name boundaries. "!" "." ","
+# ";" are admitted so "- Deploy! the build" still counts. The closing emphasis marker is
+# consumed BEFORE the boundary lookahead - "**Deploy**" otherwise fails it, the same trap
+# issue #56 documents for the instruction anchor.
+K3_MUTATE_RE = re.compile(K3_LEAD + K3_EMPH + r"(?:" + K3_MUTATION_VERBS + r")" + K3_EMPH
+                          + r"(?=[\s:!.,;]|$)", re.I)
+# run/execute count only with a concrete COMMAND-ish backtick on the line (has a space, dot,
+# slash or dash - a single bare word is a name, not a command), whose target is neither a
+# read-only binary nor a test run. A command that runs tests IS a verification step.
+K3_RUN_RE = re.compile(K3_LEAD + K3_EMPH + r"(?:run|execute|invoke)" + K3_EMPH + r"(?=\s|:)", re.I)
+K3_CMDTICK_RE = re.compile(r"`([^`]*[ ./\\-][^`]*)`")
+K3_NEG_RE = re.compile(K3_LEAD + K3_EMPH + r"(?:never|do\s+not|don'?t|avoid)\b", re.I)
+K3_READONLY_FIRST = frozenset(("cat", "ls", "dir", "grep", "rg", "head", "tail", "find",
+                               "echo", "diff", "type", "which", "where"))
+K3_TESTY_RE = re.compile(r"\b(?:tests?|pytest|unittest)\b", re.I)
+# Every bare token is boundary-guarded with room for its ordinary inflections: "checklist"
+# must not verify a push through its first five letters, and neither may "expectations",
+# "invalidate", "assertive" or "inspector" - all five reproduced masking a genuinely
+# unverified write before this shipped.
+K3_VERIFY_RE = re.compile(
+    r"(?:\bverify|\bverif(?:ies|ied|ying)\b|\bconfirm(?:s|ed|ing)?\b|\bcheck(?:s|ed|ing)?\b"
+    r"|\bassert(?:s|ed|ing|ions?)?\b|\bvalidat(?:e|es|ed|ing|ion)\b|\binspect(?:s|ed|ing|ion)?\b"
+    r"|\bcompar(?:e|es|ed|ing)\b|\bdiff\b|\bre-?run\b|\bre-?test\b|test\s+again|then\s+test"
+    r"|\bexpect(?:s|ed|ing)?\b|exit\s+code|must\s+(?:pass|match|show|return)"
+    r"|should\s+(?:see|show|return|match|pass|print|now)"
+    r"|make\s+sure|look\s+for|watch\s+for|git\s+status|row\s+count)", re.I)
+K3_WINDOW = 3  # lines from the command (inclusive) searched forward for K3_VERIFY_RE
+K3_FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+K3_HEAD_RE = re.compile(r"^\s*#")
+K3_SETEXT_RE = re.compile(r"^\s*(?:-{3,}|={3,})\s*$")
+
+
+def write_instructions(text):
+    """(unverified, verified_count) for one doc - the K-3 scan as a pure function.
+
+    A command line counts only at a STRUCTURAL line start - a bullet, a numbered step, or a
+    paragraph start (blank line, heading, setext underline or fence above). Markdown
+    hard-wraps paragraphs, so a raw line beginning with "install (one drops it...)" is a
+    continuation, not an instruction; without this rule those dominated the calibration's
+    false positives. Fenced code is skipped as example material - for WRITE detection and for
+    VERIFICATION credit alike, because a "verify" inside an illustrative code block proved
+    able to launder an unverified push into LIVE. A negated line ("never push directly") is a
+    prohibition, not a command, and a setext title ("Deploy steps" over a dashed underline)
+    is a heading, not an instruction.
+
+    DELIBERATE v1 scope, disclosed rather than silently assumed: only LINE-LEADING commands
+    are in universe. "After running the tests, deploy to production." escapes - the
+    calibration showed that matching verbs mid-line re-admits the wrapped-prose noise this
+    function exists to keep out, and a conservative checker that under-counts and says so
+    beats one that floods. And the verify window deliberately crosses into the next list
+    item, because "1. Push. 2. Then verify CI is green." is the single most common way real
+    docs verify a write - the cost is that an unrelated check-ish next step can take credit.
+    """
+    lines = text.split("\n")
+    # Fence membership precomputed once, so both the write scan and the verify window agree
+    # on what is example material. The fence markers themselves count as "inside".
+    fenced = [False] * len(lines)
+    in_fence = False
+    for i, ln in enumerate(lines):
+        if K3_FENCE_RE.match(ln):
+            in_fence = not in_fence
+            fenced[i] = True
+        else:
+            fenced[i] = in_fence
+    unverified, verified = [], 0
+    for i, ln in enumerate(lines):
+        if fenced[i] or K3_NEG_RE.match(ln) or K3_SETEXT_RE.match(ln):
+            continue
+        if i + 1 < len(lines) and K3_SETEXT_RE.match(lines[i + 1]) and ln.strip():
+            continue  # a setext TITLE - it is a heading, not a command
+        prev = lines[i - 1] if i else ""
+        structural = (bool(K3_BULLET_RE.match(ln)) or not prev.strip()
+                      or bool(K3_HEAD_RE.match(prev)) or bool(K3_FENCE_RE.match(prev))
+                      or bool(K3_SETEXT_RE.match(prev)))
+        if not structural:
+            continue
+        is_write = bool(K3_MUTATE_RE.match(ln))
+        if not is_write and K3_RUN_RE.match(ln) and not K3_TESTY_RE.search(ln):
+            # EVERY command-ish backtick is consulted, not just the first: in
+            # "Run `ls -la` and `migrate.py --force`" the read-only first command must not
+            # shadow the write that follows it.
+            for m in K3_CMDTICK_RE.finditer(ln):
+                cmd = m.group(1).strip()
+                first = cmd.split()[0].split("/")[-1].lower() if cmd.split() else ""
+                if first and first not in K3_READONLY_FIRST:
+                    is_write = True
+                    break
+        if not is_write:
+            continue
+        window = [lines[j] for j in range(i, min(len(lines), i + K3_WINDOW + 1)) if not fenced[j]]
+        if any(K3_VERIFY_RE.search(x) for x in window):
+            verified += 1
+        else:
+            unverified.append((i + 1, ln.strip()))
+    return unverified, verified
+
+
+# K-2: a data-scope default that is a hardcoded date literal - true the day it was written,
+# stale ever after, and the day an argument is omitted it silently scopes a destructive
+# operation to a months-old window. Two signatures, both cheap and low-collision: a
+# module-level assignment of a date/month string, and an argparse default= of one.
+# Environment-name defaults ("prod") are out of scope v1: that string space collides with too
+# much innocent code. Disclosed here, not silently skipped.
+ASSIGN_DATE_RE = re.compile(r"^\s*[A-Za-z_]\w*\s*=\s*[\"']\d{4}-\d{2}(?:-\d{2})?[\"']\s*(?:#.*)?$")
+DEFAULT_DATE_RE = re.compile(r"\bdefault\s*=\s*[\"']\d{4}-\d{2}(?:-\d{2})?[\"']")
 
 # A command the instructions tell you to run. Narrow on purpose: a script path with an extension,
 # optionally preceded by its interpreter. Prose like "run the tests" is not detectable and
@@ -63,6 +214,10 @@ GATE_RE = re.compile(r"`(?:python3?|py|pwsh|powershell|node|bash|sh)?\s*"
 
 def read(p):
     try:
+        if os.path.getsize(p) > MAX_READ_BYTES:
+            sys.stderr.write("kibsu discover: skipping %s (over the %d byte ceiling)\n"
+                             % (p, MAX_READ_BYTES))
+            return ""
         with io.open(p, encoding="utf-8", errors="replace") as f:
             return f.read().lstrip("﻿")
     except Exception:
@@ -89,8 +244,38 @@ def git(root, *args):
         return None
 
 
-def capability(name, state, detail, evidence=""):
-    return {"capability": name, "state": state, "detail": detail, "evidence": evidence}
+NAME_BOUNDARY = (r"(?<![\w.\-])%s(?![\w\-])")
+
+
+def names_script(text, name):
+    """Does this runner/scheduler text actually invoke THIS script?
+
+    It used to be a bare `name in text`, and substring containment is far too loose for a
+    filename: "lint.py" is inside "pylint.py", "check.py" is inside "spellcheck.py", and a
+    commented-out "# see also other_check.py" matched too. Any of those marked a script LIVE,
+    so `discover` reported a gate as enforced when nothing ran it and `guide` passed that on
+    as ENFORCED - the tool making exactly the kind of unbacked claim it exists to find.
+
+    The name must appear as a whole path component. A path separator or quote or space before
+    it is fine and expected (tools/lint.py, "lint.py"); a word character, dot or hyphen is not,
+    because that is a DIFFERENT filename. Trailing word characters are rejected the same way,
+    so "lint.pyc" no longer answers for "lint.py".
+    """
+    if not name:
+        return False
+    return re.search(NAME_BOUNDARY % re.escape(name), text) is not None
+
+
+def capability(name, state, detail, evidence="", scripts=None):
+    """`scripts`, when given, is {script: "live"|"monitored"|"unenforced"} - the
+    machine-readable form of what detail/evidence say in prose. guide.py consumes THIS
+    (issue #32): its buckets() used to regex the prose, and the schedule-only branch's
+    wording matched none of its patterns, so merely-MONITORED gates fell through to
+    ENFORCED - "you do not need to remember these" - the harmful inversion."""
+    cap = {"capability": name, "state": state, "detail": detail, "evidence": evidence}
+    if scripts is not None:
+        cap["scripts"] = scripts
+    return cap
 
 
 def os_scheduler_text():
@@ -165,10 +350,19 @@ def main():
     # this very repo within a minute of a working gate being installed. One level only: enough
     # for the runner-script pattern, no cycle risk.
     for m in re.findall(r"[\w$./\\{}-]+\.(?:py|sh|ps1|js)", hook_text):
-        cand = m.split("/")[-1] if "$" in m else m.replace("\\", "/")
+        # A `$`-containing path is a computed one - `$ROOT/.kibsu/bin/check.py`, kibsu's OWN
+        # installed-hook idiom. Probe the variable-stripped, root-relative remainder FIRST
+        # (issue #35: collapsing straight to the bare basename only ever found wrappers
+        # sitting at repo root, so the tool's own layout read INERT), then the basename.
         # A second fallback probe here used to try a hardcoded, origin-specific subdirectory.
         # Removed: an origin's private layout belongs in config, never baked into published code.
-        for probe in (cand,):
+        if "$" in m:
+            parts = [p for p in m.replace("\\", "/").split("/") if p]
+            keep = next((i for i, seg in enumerate(parts) if "$" not in seg), len(parts) - 1)
+            probes = ("/".join(parts[keep:]), parts[-1])
+        else:
+            probes = (m.replace("\\", "/"),)
+        for probe in probes:
             fp = os.path.join(root, probe.replace("/", os.sep))
             if os.path.isfile(fp):
                 hook_text += "\n" + read(fp)
@@ -241,13 +435,14 @@ def main():
                                "someone remembers to run them.%s" % (len(tests), unchecked)))
 
     # ---- the flagship: gates the instructions mandate but nothing invokes -----------------
-    doc_hits, docs_found = {}, []
+    doc_hits, docs_found, doc_texts = {}, [], {}
     for d in AGENT_DOCS:
         p = os.path.join(root, d)
         if not os.path.isfile(p):
             continue
         docs_found.append(d)
         text = read(p)
+        doc_texts[d] = text
         for m in GATE_RE.findall(text):
             script = m.replace("\\", "/")
             if not os.path.exists(os.path.join(root, script)):
@@ -259,14 +454,19 @@ def main():
     # log satisfies neither half of that. Counted separately, never folded into "live".
     monitored = []
     unenforced = []
+    script_states = {}
     for script, where in sorted(doc_hits.items()):
         base = os.path.basename(script)
-        if base in runner_text or script in runner_text:
+        if names_script(runner_text, base) or names_script(runner_text, script):
+            script_states[script] = "live"
             continue
-        if sched_text and (base in sched_text or script.replace("/", "\\") in sched_text):
+        if sched_text and (names_script(sched_text, base)
+                           or names_script(sched_text, script.replace("/", "\\"))):
             monitored.append((script, sorted(where)))
+            script_states[script] = "monitored"
             continue
         unenforced.append((script, sorted(where)))
+        script_states[script] = "unenforced"
 
     if not docs_found:
         caps.append(capability("Mandated gates", UNKNOWN,
@@ -289,15 +489,114 @@ def main():
                                "invoked by no automation at all.%s"
                                % (len(unenforced), len(doc_hits), note),
                                "; ".join("%s (named in %s)" % (s, "+".join(w))
-                                         for s, w in unenforced)))
+                                         for s, w in unenforced),
+                               scripts=script_states))
     elif monitored:
         caps.append(capability("Mandated gates", INERT,
                                "every mandated script runs on a SCHEDULE, and none of them gates "
                                "a commit. Your instructions say 'before commit - do not commit "
-                               "red'; a scheduled job discovers red afterwards."))
+                               "red'; a scheduled job discovers red afterwards.",
+                               scripts=script_states))
     else:
         caps.append(capability("Mandated gates", LIVE,
-                               "every script the instructions mandate is invoked by automation."))
+                               "every script the instructions mandate is invoked by automation.",
+                               scripts=script_states))
+
+    # ---- K-1: dangerous flags handed out ungated (issue #68) ------------------------------
+    # The mirror of the flagship check. Mandated-gates asks "which promised checks does
+    # nothing run?"; this asks "which instructions hand an agent destructive capability with
+    # no verification attached?". Same three states: a grant with an adjacent approval rule
+    # (or a prohibition) is LIVE gating; a grant with nothing adjacent is INERT - it reads as
+    # a priced convenience and is actually a standing free pass.
+    flag_hits, gated_count = [], 0
+    for d in docs_found:
+        lines = doc_texts.get(d, "").split("\n")
+        for i, ln in enumerate(lines):
+            m = DANGEROUS_FLAG_RE.search(ln)
+            if not m:
+                continue
+            lo, hi = max(0, i - ADJACENCY), min(len(lines), i + ADJACENCY + 1)
+            # The flag tokens are struck from the window before the approval test, because
+            # "--auto-approve" CONTAINS "approve" - without this, the most dangerous flag on
+            # the list gated itself and could never be flagged at all.
+            if any(APPROVAL_RE.search(DANGEROUS_FLAG_RE.sub("", lines[j])) for j in range(lo, hi)):
+                gated_count += 1
+            else:
+                flag_hits.append("%s:%d %s" % (d, i + 1, m.group(0)))
+    if docs_found:
+        if flag_hits:
+            caps.append(capability("Dangerous flags", INERT,
+                                   "%d instruction line(s) hand out a gate-removing flag with no "
+                                   "approval or prohibition rule within %d line(s). These flags "
+                                   "exist so a HUMAN can push a known-good run through; ungated, "
+                                   "they are a standing grant of exactly the checks they disable."
+                                   % (len(flag_hits), ADJACENCY),
+                                   "; ".join(flag_hits)))
+        elif gated_count:
+            caps.append(capability("Dangerous flags", LIVE,
+                                   "%d gate-removing flag mention(s), every one adjacent to an "
+                                   "approval or prohibition rule." % gated_count))
+        else:
+            caps.append(capability("Dangerous flags", ABSENT,
+                                   "the instruction docs mention no gate-removing flags "
+                                   "(--auto-approve / --skip-* / --force / --yes / --no-verify)."))
+
+    # ---- K-2: stale literal scope defaults in mandated entry points (issue #69) ------------
+    # Universe = the scripts the repo's own instructions mandate - the set doc_hits already
+    # built - NOT the whole tree. That keeps test fixtures and vendored code out by
+    # construction and this tool out of the repo-wide-linter business.
+    scope_hits, py_examined = [], 0
+    for script in sorted(doc_hits):
+        if not script.lower().endswith(".py"):
+            continue
+        py_examined += 1
+        for i, ln in enumerate(read(os.path.join(root, script)).split("\n")):
+            if ASSIGN_DATE_RE.match(ln) or DEFAULT_DATE_RE.search(ln):
+                scope_hits.append("%s:%d %s" % (script, i + 1, ln.strip()[:60]))
+    if py_examined:
+        if scope_hits:
+            caps.append(capability("Scope defaults", INERT,
+                                   "%d hardcoded date-literal scope default(s) in the %d python "
+                                   "entry point(s) your instructions mandate. A literal scope was "
+                                   "true the day it was written; the day an argument is omitted "
+                                   "it silently scopes the run to a stale window."
+                                   % (len(scope_hits), py_examined),
+                                   "; ".join(scope_hits)))
+        else:
+            caps.append(capability("Scope defaults", LIVE,
+                                   "no date-literal scope defaults in the %d mandated python "
+                                   "entry point(s) (module assignments and argparse defaults "
+                                   "checked; environment-name defaults are out of scope v1)."
+                                   % py_examined))
+
+    # ---- K-3: write instructions with no subsequent verification (issue #71) ---------------
+    # The third face of the same question. K-1 asks who may remove the gates; K-2 asks what a
+    # forgotten argument silently scopes; this asks which commanded writes nobody will ever
+    # confirm. The incident behind all three: the instruction said "run the pipeline" and
+    # never said "then verify the months outside your window did not move" - the repair that
+    # worked asserted against pre-named invariants, the wound-maker asserted nothing.
+    k3_unverified, k3_verified = [], 0
+    for d in docs_found:
+        u, v = write_instructions(doc_texts.get(d, ""))
+        k3_verified += v
+        k3_unverified.extend("%s:%d %s" % (d, n, t[:60]) for n, t in u)
+    if docs_found:
+        if k3_unverified:
+            caps.append(capability("Writes verified", INERT,
+                                   "%d write-command(s) with no verification instruction within "
+                                   "%d line(s) after them. A write nobody confirms is a write "
+                                   "whose failure is discovered by the next reader."
+                                   % (len(k3_unverified), K3_WINDOW),
+                                   "; ".join(k3_unverified)))
+        elif k3_verified:
+            caps.append(capability("Writes verified", LIVE,
+                                   "%d write-command(s), every one followed by a verification "
+                                   "instruction within %d line(s)." % (k3_verified, K3_WINDOW)))
+        else:
+            caps.append(capability("Writes verified", ABSENT,
+                                   "the instruction docs command no state-changing actions "
+                                   "(mutation verbs and backtick-command run/execute lines "
+                                   "checked; fenced code and prohibitions excluded)."))
 
     inert = [c for c in caps if c["state"] == INERT]
 

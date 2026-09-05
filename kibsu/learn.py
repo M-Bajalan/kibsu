@@ -48,6 +48,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 VERSION = "1.0.0"
+
+# Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
+# git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
+# allocation the kernel OOM-killer ends with a SIGKILL no `except` clause sees. 5 MB is
+# generous for instruction markdown; over-ceiling files are SKIPPED WITH A PRINTED REASON
+# on stderr (stdout stays clean for --json), never silently.
+MAX_READ_BYTES = 5 * 1024 * 1024
 OK, FINDINGS, CANNOT_RUN = 0, 1, 3
 
 # Extracting a cited path is where the FIRST version of this file was badly wrong, and the way it
@@ -148,8 +155,17 @@ COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
 
 
 def read(p):
-    with io.open(p, encoding="utf-8", errors="replace") as f:
-        text = f.read().lstrip("﻿")      # a BOM defeats every startswith() you will write
+    # Guarded (issue #39): this was the one read in the package with no try/except at all -
+    # an unreadable or over-ceiling file propagated an uncaught exception straight up.
+    try:
+        if os.path.getsize(p) > MAX_READ_BYTES:
+            sys.stderr.write("kibsu learn: skipping %s (over the %d byte ceiling)\n"
+                             % (p, MAX_READ_BYTES))
+            return ""
+        with io.open(p, encoding="utf-8", errors="replace") as f:
+            text = f.read().lstrip("﻿")  # a BOM defeats every startswith() you will write
+    except OSError:
+        return ""
     # An HTML comment is not a live link or a live citation. Without this, a note that documents
     # a broken link in order to explain the fix gets reported for containing the broken link -
     # which happened the first time this file was used to fix something it found.

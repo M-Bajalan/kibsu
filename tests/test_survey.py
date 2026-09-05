@@ -782,14 +782,38 @@ class SurveyAggregationTests(unittest.TestCase):
         self.assertAlmostEqual(all_pct, 100.0, msg="both of repo A's artifacts are zero-match "
                                                      "and repo B contributes nothing to either side")
 
-    def test_genre_mix_summary_silently_omits_doctrine_units(self):
-        """A genuine finding surfaced BY writing this test, not asserted-then-fixed: the
-        printed "genre mix" aggregate sums four of the five genres audit.py recognises -
-        procedure, persona, reference, mixed - and OMITS doctrine, even though a row's
-        `genres` dict can carry a doctrine count and the README's own genre table lists
-        doctrine as one of four first-class genres. A collection that is mostly doctrine
-        content still prints a genre mix with no doctrine key and no indication anything
-        was left out of the total."""
+    def test_headline_mandated_line_excludes_unusable_history_denominator(self):
+        """Issue #30: `tm` summed every ranked repo's mandated-artifact count unconditionally
+        while `tp` skipped repos whose history is unusable (phantom=None on a shallow clone) -
+        the exact bug class the 'all' side already guards three lines below, with the guard's
+        own comment naming the failure. Repo A: full history, one in-scope phantom mandate.
+        Repo B: shallow history, one in-scope mandate that must not pad the denominator while
+        contributing nothing to the numerator. Pre-fix this printed '2 distinct, 1 PHANTOM
+        (50%)'; the honest figure is '1 distinct, 1 PHANTOM (100%)'."""
+        slug_a, slug_b = survey.REPOS[0], survey.REPOS[1]
+        results = {
+            slug_a: _result(10, 100, 20.0, 10, 100, 20.0,
+                            artifacts=[_artifact("in.md", in_scope=True, phantom=True)],
+                            has_git=True, history_shallow=False),
+            slug_b: _result(10, 100, 20.0, 10, 100, 20.0,
+                            artifacts=[_artifact("z.md", in_scope=True, phantom=True)],
+                            has_git=True, history_shallow=True),
+        }
+        out, _ = _SurveyRun(results=results).run()
+
+        m = re.search(r"in-scope mandated artifacts: (\d+) distinct, (\d+) PHANTOM \((\d+)%\)", out)
+        self.assertTrue(m, "no headline mandated-artifacts line found in:\n%s" % out)
+        self.assertEqual(int(m.group(1)), 1, "repo B's shallow-history mandate must not pad "
+                                              "the denominator when its numerator is unusable")
+        self.assertEqual(int(m.group(2)), 1)
+        self.assertEqual(int(m.group(3)), 100)
+
+    def test_genre_mix_summary_includes_doctrine_units(self):
+        """Issue #34, and the closing of a loop: this test's previous life PINNED the buggy
+        output (asserting doctrine absent) as documentation of a live defect. The printed
+        "genre mix" aggregate now sums all five genres audit.py recognises - a collection
+        that is mostly doctrine content shows its doctrine units instead of silently losing
+        them from the total."""
         slug = survey.REPOS[0]
         results = {slug: _result(all_units=20, all_instr=300, all_pct=15.0,
                                   proc_units=10, proc_instr=100, proc_pct=25.0,
@@ -798,8 +822,7 @@ class SurveyAggregationTests(unittest.TestCase):
 
         genre_mix_line = next(ln for ln in out.splitlines() if ln.startswith("genre mix:"))
         self.assertIn("'procedure': 10", genre_mix_line)
-        self.assertNotIn("doctrine", genre_mix_line, "doctrine units are silently excluded "
-                                                       "from the printed genre mix total")
+        self.assertIn("'doctrine': 9", genre_mix_line)
 
 
 class SurveyNetworkTests(unittest.TestCase):
@@ -825,10 +848,12 @@ class SurveyNetworkTests(unittest.TestCase):
 
 class RealEvidenceReconciliationTests(unittest.TestCase):
     """Pin against the actual committed evidence/*.json - not a synthetic fixture. The Round 4
-    verifier's finding (26 distinct artifacts across exclusion records, 25 excluded outright,
-    1 overlap - davila7's `.mcp.json`) was computed against this exact data; if a re-measurement
-    or a scorer change ever moves these numbers, this test is the trip-wire that catches it,
-    rather than a stale docstring claim nobody re-checks."""
+    verifier's finding was computed against the 0.5.0 evidence (26 distinct artifacts across
+    exclusion records, 25 excluded outright, 1 overlap - davila7's `.mcp.json`); the 0.6.0
+    re-measure (CORRECTIONS.md, 2026-08-07) moved the pins to 30/27/3 - the overlap grew to
+    three davila7 artifacts (`.mcp.json`, `progress.md`, `task_plan.md`), each mandated
+    in-scope by one skill and excluded under another. The trip-wire fired exactly as this
+    docstring said it would, and these constants moved WITH the evidence in the same commit."""
 
     def test_ledger_reconciliation_on_committed_evidence(self):
         evidence_dir = os.path.join(PACKAGE_ROOT, "evidence")
@@ -851,10 +876,15 @@ class RealEvidenceReconciliationTests(unittest.TestCase):
 
         to = sum(r["out"] for r in rows)
         te = sum(r["excluded_distinct"] for r in rows)
-        self.assertEqual(to, 25, "bracket (excluded outright) on committed evidence")
-        self.assertEqual(te, 26, "distinct artifacts across exclusion records")
-        self.assertEqual(te - to, 1, "davila7's .mcp.json - in scope under two skills, "
-                                      "excluded under a third")
+        # Constants re-pinned for the scorer 0.7.0 evidence (CORRECTIONS 2026-08-31): the
+        # widened FILE_TOKEN pulls bare/quoted mandates into the population, so the
+        # exclusion brackets grow with it - 27 -> 31 outright, 30 -> 33 distinct. The
+        # RECONCILIATION INVARIANT (te - to == the also-in-scope-elsewhere overlap) is the
+        # load-bearing assertion and still holds at the historical 3.
+        self.assertEqual(to, 31, "bracket (excluded outright) on committed evidence")
+        self.assertEqual(te, 33, "distinct artifacts across exclusion records")
+        self.assertEqual(te - to, 2, "artifacts in scope under one skill, excluded under "
+                                     "another - see the survey's own ledger line")
 
 
 if __name__ == "__main__":

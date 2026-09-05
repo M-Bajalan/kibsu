@@ -62,6 +62,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 VERSION = "1.0.0"
+
+# Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
+# git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
+# allocation the kernel OOM-killer ends with a SIGKILL no `except` clause sees. 5 MB is
+# generous for instruction markdown; over-ceiling files are SKIPPED WITH A PRINTED REASON
+# on stderr (stdout stays clean for --json), never silently.
+MAX_READ_BYTES = 5 * 1024 * 1024
 OK, DRIFT, CANNOT_RUN = 0, 1, 3
 
 AGENT_DOCS = ["CLAUDE.md", "AGENTS.md", "GEMINI.md", ".cursorrules", "CONVENTIONS.md"]
@@ -93,6 +100,10 @@ def relpath(p):
 
 def read(p):
     try:
+        if os.path.getsize(p) > MAX_READ_BYTES:
+            sys.stderr.write("kibsu guide: skipping %s (over the %d byte ceiling)\n"
+                             % (p, MAX_READ_BYTES))
+            return ""
         with io.open(p, encoding="utf-8", errors="replace") as f:
             return f.read().lstrip("﻿")
     except Exception:
@@ -142,9 +153,13 @@ def discover(root):
 def buckets(root, disc):
     """{script: state} for every command the instructions mandate.
 
-    ns_discover already decided which are unenforced and which merely monitored; it reports them
-    as prose in the 'Mandated gates' capability. Parse that rather than recomputing it - two
-    implementations of the same rule is how they drift apart."""
+    ns_discover already decided which are unenforced, which merely monitored, and which live;
+    since issue #32 it says so in a machine-readable `scripts` map on the 'Mandated gates'
+    capability, and THAT is what this consumes - one source of truth, no prose coupling. The
+    regex parse survives only as a fallback for older discover JSON, because parsing prose is
+    exactly how the schedule-only branch's wording (which matched neither pattern) sent every
+    merely-MONITORED gate through the else-branch to ENFORCED - "you do not need to remember
+    these" - the inversion this module's own docstring forbids."""
     gates = None
     for c in disc.get("capabilities", []):
         if c.get("capability") == "Mandated gates":
@@ -153,15 +168,17 @@ def buckets(root, disc):
     if gates is None:
         return None
 
+    states_map = gates.get("scripts")
     on_you, monitored = set(), set()
-    for m in re.findall(r"([\w./\\-]+\.(?:py|ps1|sh|js|bat|cmd))\s*\(named in", gates.get("evidence", "")):
-        on_you.add(relpath(m))
-    m = re.search(r"MONITORS but cannot block a commit:\s*([^)]*)", gates.get("detail", ""))
-    if m:
-        for name in m.group(1).split(","):
-            name = name.strip()
-            if name:
-                monitored.add(name)
+    if not isinstance(states_map, dict):
+        for m in re.findall(r"([\w./\\-]+\.(?:py|ps1|sh|js|bat|cmd))\s*\(named in", gates.get("evidence", "")):
+            on_you.add(relpath(m))
+        m = re.search(r"MONITORS but cannot block a commit:\s*([^)]*)", gates.get("detail", ""))
+        if m:
+            for name in m.group(1).split(","):
+                name = name.strip()
+                if name:
+                    monitored.add(name)
 
     # Everything the docs mandate that ns_discover did NOT list as unenforced or monitored is,
     # by elimination, enforced. Derived from one source, not asserted twice.
@@ -177,6 +194,15 @@ def buckets(root, disc):
                 mandated.setdefault(s, set()).add(d)
 
     out = {}
+    if isinstance(states_map, dict):
+        norm = {relpath(k): v for k, v in states_map.items()}
+        label = {"unenforced": "ON YOU", "monitored": "MONITORED", "live": "ENFORCED"}
+        for s, docs in mandated.items():
+            st = norm.get(s) or norm.get(os.path.basename(s))
+            # A script discover never classified defaults to the SAFE reading - still on
+            # the agent - never to ENFORCED, the direction that deletes real protection.
+            out[s] = (label.get(st, "ON YOU"), sorted(docs))
+        return out
     for s, docs in mandated.items():
         base = os.path.basename(s)
         if s in on_you:

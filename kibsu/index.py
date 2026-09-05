@@ -37,6 +37,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 VERSION = "1.0.0"
+
+# Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
+# git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
+# allocation the kernel OOM-killer ends with a SIGKILL no `except` clause sees. 5 MB is
+# generous for instruction markdown; over-ceiling files are SKIPPED WITH A PRINTED REASON
+# on stderr (stdout stays clean for --json), never silently.
+MAX_READ_BYTES = 5 * 1024 * 1024
 SCHEMA = 1
 VENDOR = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build",
           ".next", ".nuxt", "vendor", ".tox", ".mypy_cache", ".pytest_cache"}
@@ -154,6 +161,25 @@ def derive_taxonomy(docs):
             "enforceable": bool(required)}
 
 
+def escapes_root(root, full):
+    """Does this path resolve OUTSIDE the repo being scanned?
+
+    kibsu reads whatever markdown a repo contains, and it is pointed at repos it did not
+    author - the survey clones ten of them. os.walk() does not descend directory symlinks
+    (followlinks defaults to False), but a symlinked FILE is followed by open() like any
+    other, and git tracks such a link happily as mode 120000. So a repo could carry
+    `notes.md -> /home/you/.ssh/config` and this tool would read it, hash it, and copy its
+    frontmatter into the index it writes - measured, and the values landed verbatim in
+    idx.json plus the derived taxonomy.
+
+    realpath resolves the link before the comparison; normcase because Windows compares paths
+    case-insensitively and the same directory can arrive spelled two ways.
+    """
+    root_r = os.path.normcase(os.path.realpath(root))
+    target = os.path.normcase(os.path.realpath(full))
+    return not (target == root_r or target.startswith(root_r + os.sep))
+
+
 def build(root):
     tracked = git_tracked(root)
     src = "git ls-files" if tracked is not None else "filesystem walk (not a git repo)"
@@ -162,7 +188,14 @@ def build(root):
     docs = []
     for rel in paths:
         full = os.path.join(root, rel.replace("/", os.sep))
+        if escapes_root(root, full):
+            sys.stderr.write("kibsu index: skipping %s (resolves outside the repo)\n" % rel)
+            continue
         try:
+            if os.path.getsize(full) > MAX_READ_BYTES:
+                sys.stderr.write("kibsu index: skipping %s (%d bytes > %d byte ceiling)\n"
+                                 % (rel, os.path.getsize(full), MAX_READ_BYTES))
+                continue
             text = io.open(full, encoding="utf-8", errors="replace").read()
         except Exception:
             continue

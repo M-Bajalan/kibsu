@@ -26,9 +26,17 @@ two), asserting its own documented "always 0" code on a non-spawning event - cho
 because it never touches the real on-disk ledger file (`~/.claude/ns_token_ledger.jsonl`), which
 a test suite must never write to as a side effect of merely proving an exit code.
 """
+import contextlib
+import io
 import json
+import os
+import shutil
+import tempfile
+import time
 import unittest
+import unittest.mock as mock
 
+from kibsu import tokens
 from support import run_tool
 
 
@@ -77,6 +85,95 @@ class TokensTests(unittest.TestCase):
         exit_code, stdout, stderr = run_tool("tokens", "--ledger", input_text=event)
 
         self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+
+class ReportTests(unittest.TestCase):
+    """Issue #37: `--report` - the ledger/bracket arithmetic half of tokens.py - had zero
+    coverage, in the codebase whose own history (CORRECTIONS.md entry #5, survey.py's ledger
+    regressions) says bracket arithmetic is the bug-prone class.
+
+    Every test here patches `tokens.LEDGER` to a per-test temp file and calls `report()`
+    in-process - this suite must NEVER read or write the real `~/.claude/ns_token_ledger.jsonl`
+    (the same law the --ledger test above already observes). The documented 0-vs-3 exit
+    contract is driven in BOTH directions, per CONTRIBUTING rule 4: the clean path to 0, and
+    each unclean path (missing ledger, unknown-cost rows, unparseable lines) to 3."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_tokens_report_")
+        self.ledger = os.path.join(self.tmpdir, "ledger.jsonl")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    @staticmethod
+    def _row(tier="sonnet", tokens_n=100, known=True, requested_only=False, age_days=0):
+        ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - age_days * 86400))
+        row = {"ts": ts, "tokens_known": known, "total_tokens": tokens_n if known else None}
+        if requested_only:
+            row["requested_tier"] = tier
+        else:
+            row["resolved_tier"] = tier
+        return row
+
+    def _report(self, rows=None, raw_lines=None, days=7, budget=None, write_file=True):
+        if write_file:
+            with io.open(self.ledger, "w", encoding="utf-8", newline="\n") as fh:
+                for r in rows or []:
+                    fh.write(json.dumps(r) + "\n")
+                for ln in raw_lines or []:
+                    fh.write(ln + "\n")
+        out = io.StringIO()
+        with mock.patch.object(tokens, "LEDGER", self.ledger):
+            with contextlib.redirect_stdout(out):
+                rc = tokens.report(days, budget)
+        return rc, out.getvalue()
+
+    def test_clean_ledger_exits_zero_and_sums_by_tier(self):
+        rc, out = self._report(rows=[
+            self._row("sonnet", 1000), self._row("sonnet", 500), self._row("haiku", 200),
+            self._row("sonnet", 9999, age_days=30),  # outside the window - must not count
+        ])
+        self.assertEqual(rc, 0, out)
+        self.assertIn("3 runs, 1,700 tokens counted.", out)
+        self.assertNotIn("ABOVE", out)
+
+    def test_over_ceiling_tier_is_marked_and_summed(self):
+        rc, out = self._report(rows=[self._row("sonnet", 100), self._row("opus", 500)])
+        self.assertEqual(rc, 0, "over-ceiling spend is a finding, not an incomplete report")
+        self.assertIn("x opus", out)
+        self.assertIn("500 tokens ran ABOVE the sonnet/haiku ceiling.", out)
+
+    def test_unknown_cost_rows_force_exit_three_and_the_higher_not_equal_note(self):
+        rc, out = self._report(rows=[self._row("sonnet", 100), self._row("sonnet", known=False)])
+        self.assertEqual(rc, 3, out)
+        self.assertIn("1 of 2 runs recorded NO token count", out)
+        self.assertIn("the real total is HIGHER, not equal", out)
+
+    def test_unparseable_lines_force_exit_three_and_are_counted(self):
+        rc, out = self._report(rows=[self._row("sonnet", 100)], raw_lines=["{not json"])
+        self.assertEqual(rc, 3, out)
+        self.assertIn("1 unparseable ledger lines skipped.", out)
+
+    def test_missing_ledger_exits_three_not_zero(self):
+        rc, out = self._report(write_file=False)
+        self.assertEqual(rc, 3, out)
+        self.assertIn("NOT the same as nothing was spent", out)
+
+    def test_tier_falls_back_requested_then_undeclared(self):
+        rc, out = self._report(rows=[
+            self._row("haiku", 10, requested_only=True),
+            {"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "tokens_known": True, "total_tokens": 7},
+        ])
+        self.assertEqual(rc, 0, out)
+        self.assertIn("haiku", out)
+        self.assertIn("(undeclared)", out)
+
+    def test_weekly_budget_prints_share_and_its_absence_says_cannot_evaluate(self):
+        rc_with, out_with = self._report(rows=[self._row("sonnet", 150)], budget=1000)
+        self.assertIn("15.0% of the 1,000 weekly budget.", out_with)
+        rc_without, out_without = self._report(rows=[self._row("sonnet", 150)])
+        self.assertIn("CANNOT be evaluated", out_without)
+        self.assertEqual((rc_with, rc_without), (0, 0))
 
 
 if __name__ == "__main__":

@@ -186,3 +186,177 @@ regardless.)
 requires a re-baseline of both workspaces and a dated note here, before any "after" numbers
 are published. An instrument that changes silently between the before and the after is the
 oldest trick in the book, and this file would rather name the trick than be suspected of it.
+
+## Appended note — 2026-08-07: the instrument changed again, so everything was re-measured again
+
+The clause directly above this note fired for the first time. Scorer 0.6.0 fixes three
+defects found by a full review of the repository — chiefly that `MODALS` was
+case-sensitive, so ordinary Title-case directives ("- Must run the tests.") were never
+counted as instructions at all; see [CORRECTIONS.md](CORRECTIONS.md), 2026-08-07 entry.
+This fix DOES bite these files' counted regions (unlike the 0.5.0 round's five), so this
+time the numbers move — denominators grow everywhere, percentages come down, and the
+comparison column for all future cycles is the 0.6.0 one below.
+
+**Re-measurement, origin workspace (1a), same pinned states:**
+
+| pinned state | scorer 0.5.0 (previous column) | scorer 0.6.0 (re-measured) |
+|---|---|---|
+| baseline, procedure-only | 28.7% — 208/726, 36 units | **27.1% — 240/887, 36 units** |
+| baseline, doctrine | 0.0% — 0/34, 3 units | **0.0% — 0/37, 3 units** |
+| post-cycle-1, procedure-only | 31.4% — 251/800, 39 units | **29.3% — 283/967, 39 units** |
+| post-cycle-1, doctrine | 0.0% — 0/34, 3 units | **0.0% — 0/37, 3 units** |
+
+**Re-measurement, kibsu-lab (1b) and the public survey:**
+
+| | scorer 0.5.0 (previous column) | scorer 0.6.0 (re-measured) |
+|---|---|---|
+| 1b kibsu-lab @ `8bec5ee`, procedure-only | 46.7% (14/30, 3 units) | **42.4% (14/33, 3 units)** |
+| 1b kibsu-lab @ `8bec5ee`, doctrine | 0.0% (0/7, 1 unit) | **0.0% (0/7, 1 unit)** |
+| public median (procedure-only), 8 ranked collections | 11.1% | **9.4%** |
+
+What survives re-instrumentation, which is the point of publishing both columns: cycle 1's
+improvement is still there and still the same shape (27.1% → 29.3% under 0.6.0; the old
+instrument read the same move as 28.7% → 31.4%) — the gain shrank with the growing
+denominator but did not vanish, and no unit changed genre. Doctrine checkability is a hard
+0.0% at every stage under both instruments, so clause 3's disqualification floor is
+untouched, and the 2026-07-31 ruling on instrument-caused movement was not even needed —
+the doctrine numerator stayed zero on its own. Per this file's own rule, nothing above the
+2026-07-31 note has been edited; the checkable counts in both tables above were produced by
+`kibsu audit <skills dir> --json` at the pinned states, with the private origin states
+carrying the same directional-only caveat as section 1a.
+
+
+## Appended note — 2026-08-31: the instrument changed a third time, so everything was re-measured a third time
+
+The standing clause fired again. Scorer 0.7.0 closes four blind spots found by the
+2026-08-28 audit — the imperative anchor reads through markdown emphasis, the verb
+vocabulary grew by 55 census-approved entries, artifact extraction accepts the delimiters
+checkability always did, and every mention of a mandate counts toward its scope — see
+[CORRECTIONS.md](CORRECTIONS.md), 2026-08-31 entry. These fixes BITE these files' counted
+regions harder than any round before them (cycle 2's own record documents working AROUND
+the emphasis blindness by de-bolding verbs, movement it labelled "format visibility"), so
+denominators grow everywhere, percentages come down, and the comparison column for all
+future cycles is the 0.7.0 one below. The post-cycle-2 state, published since the last
+note, is re-measured alongside the original two.
+
+**Re-measurement, origin workspace (1a), same pinned states:**
+
+| pinned state | scorer 0.6.0 (previous column) | scorer 0.7.0 (re-measured) |
+|---|---|---|
+| baseline, procedure-only | 27.1% — 240/887, 36 units | **24.0% — 249/1,036, 36 units** |
+| baseline, doctrine | 0.0% — 0/37, 3 units | **0.0% — 0/45, 3 units** |
+| post-cycle-1, procedure-only | 29.3% — 283/967, 39 units | **25.9% — 295/1,141, 39 units** |
+| post-cycle-1, doctrine | 0.0% — 0/44, 3 units | **0.0% — 0/53, 3 units** |
+| post-cycle-2, procedure-only | 29.9% — 294/982, 39 units | **26.7% — 306/1,147, 39 units** |
+| post-cycle-2, doctrine | 0.0% — 0/44, 3 units | **0.0% — 0/53, 3 units** |
+
+**Re-measurement, kibsu-lab (1b) and the public survey:**
+
+| | scorer 0.6.0 (previous column) | scorer 0.7.0 (re-measured) |
+|---|---|---|
+| 1b kibsu-lab @ `8bec5ee`, procedure-only | 42.4% (14/33, 3 units) | **42.4% (14/33, 3 units) — unmoved** |
+| 1b kibsu-lab @ `8bec5ee`, doctrine | 0.0% (0/7, 1 unit) | **0.0% (0/9, 1 unit)** |
+| public median (procedure-only), 8 ranked collections | 9.4% | **7.7%** |
+
+What survives re-instrumentation, which remains the point of publishing every column: both
+cycles' improvements are still there and still the same shape — 24.0% → 25.9% → 26.7%
+under 0.7.0, where 0.6.0 read the same two moves as 27.1% → 29.3% → 29.9%. The gains
+shrink with the growing, truer denominators and do not vanish, and no unit changed genre.
+The lab is the one place the new instrument found nothing to correct: its rewrites already
+carried their verbs unemphasized and their mandates backticked, so its procedure figures
+reproduce digit-for-digit. Doctrine checkability is a hard 0.0% at every stage under every
+instrument this project has shipped — clause 3's floor is untouched, and the 2026-07-31
+ruling on instrument-caused movement was again not needed. The pin authentication for
+these tables was mechanical, not asserted: the 0.6.0 instrument was re-run first at every
+pinned state and required to reproduce the previous column digit-for-digit before the
+0.7.0 column was trusted. Per this file's own rule, nothing above the earlier notes has
+been edited.
+
+
+## Appended note — 2026-08-31 (second): the genre detector changed, and nothing here moved
+
+The standing clause fired for scorer 0.8.0 — the mandate rule: a unit that mandates
+artifacts cannot be *detected* as doctrine (see [CORRECTIONS.md](CORRECTIONS.md), second
+2026-08-31 entry). Both workspaces were re-measured at every pinned state. **Every figure in
+both tables of the previous note reproduces under 0.8.0 to the digit** — no unit in either
+workspace mandates files while reading as doctrine, so no membership changed and no number
+moved. The note exists because the clause demands it, and a null result recorded is worth
+more than a null result assumed. One consequence worth stating for future cycles: the
+doctrine pool this experiment's clause 3 watches is now harder to join by accident — a
+mandating unit cannot drift into it through detection — which makes the disqualification
+test stricter than the one originally pre-registered, in the direction that favours the
+reader over the author.
+
+
+## Appended note — 2026-08-31 (third): the existence check went byte-exact, and nothing here moved
+
+The standing clause fired for scorer 0.9.0 (the case round - see
+[CORRECTIONS.md](CORRECTIONS.md), third 2026-08-31 entry). Both workspaces were re-measured
+at every pinned state: **every figure in the previous notes' tables reproduces under 0.9.0
+to the digit** - no mandate in either workspace depends on a case-insensitive match. One
+public-survey phantom count moved by one; the columns future cycles compare against are
+unchanged. Recorded because the clause demands it.
+
+
+## Appended note — 2026-09-01: two cells in the 2026-08-07 table were copies of the row above
+
+Found by a pre-release audit that recomputed every appended table against the pinned
+states. In the 2026-08-07 note's origin-workspace table, the **post-cycle-1, doctrine** row
+reads `0.0% — 0/34, 3 units` under scorer 0.5.0 and `0.0% — 0/37, 3 units` under scorer
+0.6.0. Both numbers are the *baseline* doctrine row's, copied down. Re-run at the pinned
+post-cycle-1 state with each instrument reconstructed from its own tag:
+
+| pinned state | scorer 0.5.0 (`v0.2.1`) | scorer 0.6.0 (`v0.3.0`) |
+|---|---|---|
+| post-cycle-1, doctrine — as published 2026-08-07 | 0/34 | 0/37 |
+| post-cycle-1, doctrine — **actual** | **0/40** | **0/44** |
+
+The procedure-only cells in the same row (251/800 → 283/967) reproduce exactly, and the
+2026-08-31 note's "scorer 0.6.0 (previous column)" of `0/44` — which appeared to break the
+chain — was the correct figure all along; the break was upstream of it. No conclusion moves:
+doctrine checkability was 0.0% at every state under every instrument, and clause 3 was never
+triggered. The original 2026-08-07 text stays as written above, per this file's own rule:
+corrections to errors of fact get an appended, dated note.
+
+One process consequence, applied from this note on: the chaining check ("each note's
+previous column must equal the prior note's re-measured column") is now run mechanically
+before an appended note is committed, not read by eye - the two slips survived four
+subsequent notes because nobody ran it.
+
+
+## Appended note — 2026-09-01: scorer 0.10.0, three refinements, two instructions fewer per state
+
+The standing clause fired for scorer 0.10.0 (see [CORRECTIONS.md](CORRECTIONS.md),
+2026-09-01 entry). Of its three refinements, two are measured nulls everywhere - the
+directory-prefix scope check and the mandate rule's scope gate touch no unit in either
+workspace or the public corpus - and one moves instruction counts: five verb/noun-ambiguous
+vocabulary entries no longer count `Note: ...` / `Note that ...` / `List of ...` /
+`State of ...` lines as instructions. Both workspaces re-measured at every pinned state:
+
+**Re-measurement, origin workspace (1a), same pinned states:**
+
+| pinned state | scorer 0.9.0 (previous column) | scorer 0.10.0 (re-measured) |
+|---|---|---|
+| baseline, procedure-only | 24.0% — 249/1,036, 36 units | **24.0% — 248/1,034, 36 units** |
+| baseline, doctrine | 0.0% — 0/45, 3 units | **0.0% — 0/45, 3 units** |
+| post-cycle-1, procedure-only | 25.9% — 295/1,141, 39 units | **25.8% — 294/1,139, 39 units** |
+| post-cycle-1, doctrine | 0.0% — 0/53, 3 units | **0.0% — 0/53, 3 units** |
+| post-cycle-2, procedure-only | 26.7% — 306/1,147, 39 units | **26.6% — 305/1,145, 39 units** |
+| post-cycle-2, doctrine | 0.0% — 0/53, 3 units | **0.0% — 0/53, 3 units** |
+
+**Re-measurement, kibsu-lab (1b) and the public survey:**
+
+| | scorer 0.9.0 (previous column) | scorer 0.10.0 (re-measured) |
+|---|---|---|
+| 1b kibsu-lab @ `8bec5ee`, procedure-only | 42.4% (14/33, 3 units) | **42.4% (14/33, 3 units) — unmoved** |
+| 1b kibsu-lab @ `8bec5ee`, doctrine | 0.0% (0/9, 1 unit) | **0.0% (0/9, 1 unit) — unmoved** |
+| public median (procedure-only), 8 ranked collections | 7.7% | **7.5%** |
+
+Exactly two instructions leave every origin state - the same two `Note:` callout lines,
+present in all three pins - and one of them was counted checkable, so the checkable numerator
+drops by one alongside. The experiment's reading is unchanged: the doctrine floor is a hard
+0.0% at every state under every instrument this project has shipped, clause 3 was never
+triggered, and the cycle-over-cycle procedure trend (24.0 → 25.8 → 26.6) is the same shape it
+was under 0.9.0. The previous columns above were verified against the 2026-08-31 (third)
+note's re-measured column before this table was written - the mechanical chaining check this
+file's 2026-09-01 correction note introduced.

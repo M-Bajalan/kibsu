@@ -42,31 +42,29 @@ Real output, against a public repository at commit `3dcbd5c`:
   --------------------------------------------------------------------------
   x  Find your docs             89 markdown files, no index. An agent must grep the tree.
   +  Know your conventions      consistent frontmatter (description, name) - enforceable.
-  +  Prove they followed        19.8% of your procedural instructions are verifiable
-                                (above the 11.1% public median).
-  x  Resume after a break       1 of 1 artifacts your instructions promise have never
-                                existed in any commit.
-  ?  Follow your own rules      COULD NOT CHECK - no index file to check history against
-                                (looked for docs\index.json, .kibsu/index.json, docs/index.json).
+  +  Prove they followed        15.6% of your procedural instructions are verifiable (above the 9.4% public median).
+  x  Resume after a break       1 of 1 artifacts your instructions promise have never existed in any commit.
+  ?  Follow your own rules      COULD NOT CHECK - no index file to check history against (looked for docs/index.json, .kibsu/index.json, docs/index.json).
   --------------------------------------------------------------------------
   2 of 5 ready.  1 could NOT be checked - that is not a pass.
   Nothing was written to this repo - run `git status` to confirm.
 ```
 
-> That block was re-run against `3dcbd5c` with scorer 0.5.0 on 2026-07-31 before being
-> pasted here — its fourth line changed under the corrected scorer (was: "your instructions
-> promise no artifacts at all"). The cause is the scaffold-scope fix, not the placeholder
-> one: the old scorer had *extracted* this repo's one mandated artifact and then excluded it
-> under the unit-level scaffold sweep ("skill scaffolds the user's project" — check
-> `evidence/obra__superpowers.json` on both sides); the line-level rule returns it to scope,
-> where it has never existed in any commit. This is the second time this block
-> has had to be re-pasted: an earlier revision showed the fifth line as
-> `!  Follow your own rules` with a bare `2 of 5 ready.` summary — output from a build
-> predating the `?` mark, which the legend and the paragraph directly below it already
-> described. A pasted sample a reader
-> could reproduce and get something *else* from is the same reproducibility defect as the
-> SHA-less survey table further down, and it is recorded rather than quietly corrected for
-> the same reason.
+> That block was re-run against `3dcbd5c` with scorer 0.6.0 on 2026-08-07 before being
+> pasted here — the third re-paste this block has needed, each one recorded. This round:
+> 19.8% became 15.6% and the median it is compared against became 9.4%, because the scorer
+> now counts Title-case directives ("- Must run the tests.") it used to skip entirely —
+> obra's instruction denominator grew from 265 to 339 with the checkable count barely
+> moving (see [CORRECTIONS.md](CORRECTIONS.md), 2026-08-07). Two smaller honesty notes on
+> this paste: it was produced on Linux, the platform the repro commands below target, so
+> the lookup-paths line now shows forward slashes — the previous paste's `docs\index.json`
+> was quietly disclosing a Windows run; and the long lines are no longer re-wrapped for
+> README width — the block now matches the tool's byte-for-byte line structure. The prior
+> two re-pastes (the scaffold-scope change under 0.5.0, the pre-`?`-mark build before
+> that) are narrated in this file's git history. A pasted sample a reader could reproduce
+> and get something *else* from is the same reproducibility defect as the SHA-less survey
+> table further down, and it is recorded rather than quietly corrected for the same
+> reason.
 
 Reproduce it:
 
@@ -199,23 +197,41 @@ SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 
 | repo | sha | units | instr | all% | **proc%** | phantom |
 |---|---|---:|---:|---:|---:|---:|
-| davila7/claude-code-templates | `91d14a7` | 891 | 12,339 | 21.9% | **23.3%** | 44/101 (44%) |
-| obra/superpowers | `3dcbd5c` | 14 | 265 | 17.7% | **19.8%** | 1/1 |
-| wshobson/agents | `c4b82b0` | 180 | 798 | 10.9% | **12.8%** | 4/7 (57%) |
-| contains-studio/agents | `a5a480c` | 37 | 564 | 12.4% | **12.7%** | — |
-| anthropics/skills | `b29e7cf` | 18 | 310 | 15.8% | **9.4%** | 6/24 (25%) |
-| sanjeed5/awesome-cursor-rules-mdc | `8fbf269` | 5 | 124 | 8.9% | **8.9%** | 1/1 |
-| vijaythecoder/awesome-claude-agents | `2050f3c` | 33 | 186 | 7.5% | **6.2%** | — |
-| VoltAgent/awesome-claude-code-subagents | `947b44c` | 154 | 2,775 | 2.1% | **2.2%** | — |
+| davila7/claude-code-templates | `91d14a7` | 891 | 18,823 | 15.7% | **16.6%** | 73/172 (42%) |
+| obra/superpowers | `3dcbd5c` | 14 | 418 | 12.2% | **13.1%** | 1/1 |
+| contains-studio/agents | `a5a480c` | 37 | 737 | 9.5% | **9.7%** | — |
+| wshobson/agents | `c4b82b0` | 180 | 1,918 | 6.2% | **7.7%** | 8/14 (57%) |
+| anthropics/skills | `b29e7cf` | 18 | 498 | 14.1% | **7.4%** | 12/38 (32%) |
+| vijaythecoder/awesome-claude-agents | `2050f3c` | 33 | 290 | 8.6% | **6.8%** | — |
+| sanjeed5/awesome-cursor-rules-mdc | `8fbf269` | 5 | 210 | 6.2% | **6.2%** | 1/2 (50%) |
+| VoltAgent/awesome-claude-code-subagents | `947b44c` | 154 | 3,729 | 1.7% | **1.8%** | 1/1 |
 
-**median procedure-only: 11.1%** · min 2.2% · max 23.3%
-**in-scope mandated artifacts: 134 distinct, 56 never existed in any commit (42%)**
+**median procedure-only: 7.5%** · min 1.8% · max 16.6%
+**in-scope mandated artifacts: 229 distinct, 96 never existed in any commit (42%)**
 
-> **These figures were re-measured 2026-07-31 with a corrected scorer (0.5.0), at the same
-> pinned SHAs.** Five scorer bugs were found and fixed — one of them had been inflating the
-> phantom rate, i.e. running in this table's favor. The median did not move; the phantom
-> line did (was: 103 distinct, 44 phantom, 43%). Every correction, with its bias direction
-> and the commands to reproduce both sides, is indexed in [CORRECTIONS.md](CORRECTIONS.md).
+> **These figures were re-measured 2026-09-01 with scorer 0.10.0, at the same pinned SHAs.**
+> The 0.10.0 round came out of a pre-release audit of the three rounds before it: five
+> verb/noun-ambiguous vocabulary entries stopped counting `Note: ...` callouts as
+> instructions, and the median moved DOWN (7.7 -> 7.5) - many of those callouts carried
+> a backtick command and had been counted checkable. Notes about commands are not
+> commands. Before it,
+> The 0.9.0 case round moved exactly one number: the existence check is byte-exact now
+> - the answer git itself would give - and one mandate whose only instances differ by
+> case became the phantom a Linux `cat` always said it was (95 -> 96). Before it,
+> The 0.8.0 genre round moved almost nothing, and that is a published result, not a
+> disappointment: the mandate rule reclassified 8 of 1,561 units (a doctrine label
+> cannot sit on a unit that mandates files), two cells above shifted by a tenth of a
+> point, and the median, the phantom counts and both preregistration workspaces are
+> unmoved to the digit. The 0.7.0 round before it moved everything:
+> The median moved again (9.4% → 7.7%) and every collection's percentage came down: four
+> blind spots closed at once — the anchor now reads through markdown emphasis, the verb
+> vocabulary grew by 55 census-approved entries, artifact extraction accepts the same
+> optional delimiters checkability always did, and every mention of a mandate now counts
+> toward its scope. Of the ~6,700 newly visible instructions, **97% are claimable** — the
+> blind spots overwhelmingly hid unverifiable instructions, so the older tables flattered
+> every repo they measured, this project's own included. Every correction round, with its
+> bias direction and the commands to reproduce both sides, is indexed in
+> [CORRECTIONS.md](CORRECTIONS.md).
 
 ### One number moved, and that is the point of the SHA column
 
@@ -248,8 +264,8 @@ unit.
 
 **Three of the eight mandate zero artifacts.** Not "promised and missing" — *never promised anything
 at all*. The field splits into two distinct failure modes: collections that make no verifiable claim
-in the first place, and collections whose claims fail — at rates from 25% to 100% per collection,
-42% in aggregate. (An earlier revision said *five* of the eight — true under the old scorer. Two
+in the first place, and collections whose claims fail — at rates from 33% to 100% per collection,
+43% in aggregate. (An earlier revision said *five* of the eight — true under the old scorer. Two
 collections moved off that list for two different reasons, both checkable in `evidence/`: obra's
 one mandate was never missed — the old scorer extracted it, then the unit-level scaffold sweep
 excluded it; the line-level rule returns it to scope. sanjeed5's was genuinely invisible until
@@ -278,9 +294,13 @@ One line rather than a heredoc, because a heredoc is a bash construct and this l
 to work in PowerShell too — a "verify it yourself" section that only verifies on Unix
 is half a claim.
 
-**It is small enough to actually read.** 4,781 lines across 14 files in `kibsu/`, plus
-3,258 lines of tests running 120 cases. That is an evening, not a quarter. Count it
-yourself rather than believing this paragraph:
+**It is small enough to actually read.** 5,949 lines across 14 files in `kibsu/`, plus
+6,033 lines of tests running 244 cases. That is an evening, not a quarter. Count it
+yourself rather than believing this paragraph — this is the third revision of these
+numbers to ship after the code had already grown past them ([#29](https://github.com/M-Bajalan/kibsu/issues/29)
+indexes the incident), so the commands below outrank the prose above them - and as of #29's fix the test
+suite enforces that agreement (`tests/test_readme_counts.py` runs the same
+measurements and fails while this paragraph is stale):
 
 ```bash
 python -c "import pathlib,sys; f=sorted(pathlib.Path(sys.argv[1]).glob('*.py')); print(len(f),'files',sum(len(p.read_text(encoding='utf-8').splitlines()) for p in f),'lines')" kibsu
@@ -365,7 +385,7 @@ Read these before quoting anything above.
 
 - **`obra/superpowers` ships a separate eval harness** that drives real agent CLIs and grades
   whether a skill was followed. Kibsu reads only *documents*, so it cannot see that. The real
-  enforceability of that repo is higher than 19.8%. This is the strongest counter-example to the
+  enforceability of that repo is higher than 15.6%. This is the strongest counter-example to the
   entire approach, and it belongs at the top of the limits rather than buried at the bottom.
 - **The metric is a heuristic.** Biased generous by design. Ceilings, not measurements.
 - **Persona collections are not badly written**, they are a different genre. Scoring them on

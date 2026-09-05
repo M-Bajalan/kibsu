@@ -23,9 +23,11 @@ detection itself (what check.py reports and why) is covered in test_check.py and
 black box: a hook-blocked commit here is verified by exit code and by the presence of check.py's
 own "commit blocked by ns_check" text, not by re-deriving STALE semantics.
 """
+import io
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -205,6 +207,61 @@ class InstallTests(unittest.TestCase):
             "uninstall must restore the PRIOR custom hooksPath exactly, not merely unset it",
         )
 
+    def test_reinstall_force_does_not_overwrite_previous_hookspath_with_our_own(self):
+        """A second --install --force must not record kibsu's own hooks dir as what to restore.
+
+        `prev = current_hookspath(root)` answers "what is set right now", which after a first
+        install is `.kibsu/hooks`. So re-running --install --force over an existing install
+        overwrote previous_hookspath with OUR path, and --uninstall then "restored"
+        core.hooksPath to a directory whose hook it had just deleted: the user's real setting
+        lost, and no hooks running at all. Reproduced end to end before the fix - the record
+        went `.myhooks` -> `.kibsu\\hooks`, and uninstall left core.hooksPath at `.kibsu\\hooks`.
+        """
+        repo = make_repo(self.tmpdir, {"doc.md": "hello\n"})
+        os.makedirs(os.path.join(repo, "custom-hooks"), exist_ok=True)
+        rc, out, err = run_git(repo, "config", "core.hooksPath", "custom-hooks")
+        self.assertEqual(rc, 0, "git config failed: %s" % (err or out))
+
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install", "--force")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        with io.open(os.path.join(repo, ".kibsu", "install.json"), encoding="utf-8") as fh:
+            first = json.load(fh)
+        self.assertEqual(first["previous_hookspath"], "custom-hooks")
+
+        # The re-install. This is the step that used to lose the answer.
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install", "--force")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        with io.open(os.path.join(repo, ".kibsu", "install.json"), encoding="utf-8") as fh:
+            second = json.load(fh)
+        self.assertEqual(
+            second["previous_hookspath"], "custom-hooks",
+            "a forced re-install must carry the ORIGINAL previous_hookspath forward, "
+            "not re-capture kibsu's own hooks dir",
+        )
+
+        exit_code, _stdout, stderr = run_tool("install", repo, "--uninstall")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertEqual(_hooks_path(repo), "custom-hooks",
+                         "uninstall after a forced re-install must still restore the user's own path")
+
+    def test_reinstall_force_records_a_genuinely_new_hookspath_set_since_install(self):
+        """The complement: if the user pointed core.hooksPath somewhere else AFTER installing,
+        that is a real previous value and must be recorded as one - the carry-forward applies
+        only when the current value is in fact ours."""
+        repo = make_repo(self.tmpdir, {"doc.md": "hello\n"})
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        os.makedirs(os.path.join(repo, "later-hooks"), exist_ok=True)
+        rc, out, err = run_git(repo, "config", "core.hooksPath", "later-hooks")
+        self.assertEqual(rc, 0, "git config failed: %s" % (err or out))
+
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install", "--force")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        with io.open(os.path.join(repo, ".kibsu", "install.json"), encoding="utf-8") as fh:
+            rec = json.load(fh)
+        self.assertEqual(rec["previous_hookspath"], "later-hooks")
+
     # ---- refusal: an already-set core.hooksPath is never silently overwritten -------------
     def test_install_refuses_when_hookspath_already_set(self):
         repo = make_repo(self.tmpdir, {"doc.md": "hello\n"})
@@ -224,6 +281,48 @@ class InstallTests(unittest.TestCase):
         assert_repo_untouched(repo)
 
     # ---- --status: a read-only report, documented as always 0 ------------------------------
+    # ---- uninstall never reaches outside the repo it was pointed at -----------------------
+
+    def test_uninstall_refuses_paths_that_resolve_outside_the_repo(self):
+        """A tampered install.json must not turn `--uninstall` into an arbitrary file delete.
+
+        kibsu is pointed at repos it did NOT author - that is the whole job - so .kibsu/install.json
+        is untrusted input read off disk, not our own bookkeeping. Before the containment check,
+        uninstall built its delete list with a bare os.path.join(root, declared), which silently
+        DISCARDS root when `declared` is absolute and happily walks out of the tree on "..".
+        Both canaries below are deleted by the unfixed code.
+        """
+        repo = self._prepare_repo_with_clean_index()
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        outside = os.path.dirname(os.path.abspath(repo))
+        traversal_canary = os.path.join(outside, "traversal_canary.txt")
+        absolute_canary = os.path.join(outside, "absolute_canary.txt")
+        for c in (traversal_canary, absolute_canary):
+            with io.open(c, "w", encoding="utf-8") as fh:
+                fh.write("must survive uninstall\n")
+
+        ij_path = os.path.join(repo, ".kibsu", "install.json")
+        with io.open(ij_path, encoding="utf-8") as fh:
+            rec = json.load(fh)
+        rec["files_written"] = list(rec.get("files_written", [])) + [
+            "../traversal_canary.txt",                       # walks out with ".."
+            absolute_canary.replace("\\", "/"),              # absolute: os.path.join drops root
+        ]
+        with io.open(ij_path, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec))
+
+        exit_code, stdout, stderr = run_tool("install", repo, "--uninstall")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        self.assertTrue(os.path.isfile(traversal_canary),
+                        "uninstall deleted a file outside the repo via '..' traversal")
+        self.assertTrue(os.path.isfile(absolute_canary),
+                        "uninstall deleted a file outside the repo via an absolute path")
+        # The skip is announced, never silent - the same disclosure rule the size guard follows.
+        self.assertIn("refusing to remove", stderr)
+
     def test_status_exits_zero_and_never_writes_on_a_plain_repo(self):
         """Per install.py's EXIT CODES section, --status always returns 0 - it is a read-only
         report with nothing to fail on, even against a repo that was never installed into (no
@@ -260,6 +359,84 @@ class InstallTests(unittest.TestCase):
         exit_code, stdout_status, _ = run_tool("install", repo, "--status")
         self.assertEqual(exit_code, 0)
         self.assertIn("head at install", stdout_status)
+
+
+class CarriedPreCommitTests(unittest.TestCase):
+    """Issue #33: install()'s carry-forward list excluded `pre-commit` unconditionally while
+    core.hooksPath redirected git away from .git/hooks - so a repo's pre-existing pre-commit
+    hook silently stopped firing: not copied, not chained, not in carried_hooks, invisible in
+    the dry-run preview. That contradicted the module docstring's own guarantee ("nothing is
+    left behind and nothing is silently disabled") word for word.
+
+    The fix carries it as `pre-commit.carried`, and the generated hook execs it FIRST - its
+    failure still blocks, exactly as it did before kibsu arrived. Both tests below ran RED
+    against the pre-fix installer (no .carried file; the old hook's evidence file never
+    written; a failing old hook no longer blocking anything). Real `git commit` subprocesses
+    against the throwaway repo, same as every other hook test in this file."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_install_carried_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _repo_with_old_precommit(self, hook_body):
+        repo = make_repo(self.tmpdir, {"doc.md": "version one\n"})
+        idx_exit, _out, idx_err = run_tool("index", repo, "-o", ".kibsu/index.json")
+        self.assertEqual(idx_exit, 0, "stderr=%r" % idx_err)
+        _commit_all(repo, "build index matching current content")
+        hook = os.path.join(repo, ".git", "hooks", "pre-commit")
+        if not os.path.isdir(os.path.dirname(hook)):
+            os.makedirs(os.path.dirname(hook))
+        with open(hook, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(hook_body)
+        # The OR-with-existing-mode idiom install.py itself uses - a bare 0o755 mask
+        # is the exact overly-permissive-chmod shape CodeQL rightly flags.
+        os.chmod(hook, os.stat(hook).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        return repo
+
+    def test_issue_33_preexisting_precommit_is_carried_and_still_runs(self):
+        repo = self._repo_with_old_precommit(
+            '#!/bin/sh\necho carried-hook-ran > "$(git rev-parse --show-toplevel)/hook_evidence.txt"\nexit 0\n'
+        )
+        exit_code, stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+        self.assertTrue(os.path.isfile(os.path.join(repo, ".kibsu", "hooks", "pre-commit.carried")),
+                        "the old pre-commit must be carried, not silently disabled")
+
+        import json as _json
+        with open(os.path.join(repo, ".kibsu", "install.json"), encoding="utf-8") as fh:
+            rec = _json.load(fh)
+        self.assertIn("pre-commit.carried", rec["carried_hooks"], rec)
+
+        with open(os.path.join(repo, "doc.md"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("more\n")
+        run_tool("index", repo, "-o", ".kibsu/index.json")
+        rc, _out2, err2 = run_git(repo, "add", "-A")
+        self.assertEqual(rc, 0)
+        rc, out3, err3 = run_git(repo, *(IDENTITY + ("commit", "-q", "-m", "with both hooks")))
+        self.assertEqual(rc, 0, "commit should pass both hooks: %s %s" % (out3, err3))
+        self.assertTrue(os.path.isfile(os.path.join(repo, "hook_evidence.txt")),
+                        "the carried hook's own logic must actually FIRE on commit")
+
+    def test_issue_33_failing_carried_hook_still_blocks_the_commit(self):
+        repo = self._repo_with_old_precommit(
+            '#!/bin/sh\necho "old hook says no" >&2\nexit 1\n'
+        )
+        exit_code, _stdout, stderr = run_tool("install", repo, "--install")
+        self.assertEqual(exit_code, 0, "stderr=%r" % stderr)
+
+        commits_before = _commit_count(repo)
+        with open(os.path.join(repo, "doc.md"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("more\n")
+        # Re-index BEFORE committing so kibsu's own check is clean - the carried hook must be
+        # the ONLY thing standing, or this test would go red/green for the wrong reason.
+        run_tool("index", repo, "-o", ".kibsu/index.json")
+        run_git(repo, "add", "-A")
+        rc, _out, _err = run_git(repo, *(IDENTITY + ("commit", "-q", "-m", "must be blocked")))
+        self.assertNotEqual(rc, 0, "the carried hook exits 1 - the commit must block, "
+                                    "exactly as it did before kibsu arrived")
+        self.assertEqual(_commit_count(repo), commits_before)
 
 
 if __name__ == "__main__":

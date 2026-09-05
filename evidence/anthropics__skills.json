@@ -3,75 +3,75 @@
   "sha": "b29e7cf65e5cb78a5ac33d582270551bc74a14eb",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.5.0",
+    "version": "0.10.0",
     "root": "<clone of anthropics/skills at b29e7cf65e5c>",
     "mode": "SKILL.md",
     "all": {
       "lines": 3510,
-      "instructions": 310,
-      "checkable": 49,
-      "claimable": 261,
+      "instructions": 498,
+      "checkable": 70,
+      "claimable": 428,
       "runnable_fences": 53,
       "checkboxes": 0,
       "units": 18,
-      "pct": 15.806451612903226,
+      "pct": 14.056224899598394,
       "zero": 6
     },
     "procedure_only": {
       "lines": 2513,
-      "instructions": 212,
-      "checkable": 20,
-      "claimable": 192,
+      "instructions": 340,
+      "checkable": 25,
+      "claimable": 315,
       "runnable_fences": 44,
       "checkboxes": 0,
       "units": 12,
-      "pct": 9.433962264150944,
-      "zero": 6
+      "pct": 7.352941176470588,
+      "zero": 5
     },
     "by_genre": {
       "procedure": {
         "lines": 2513,
-        "instructions": 212,
-        "checkable": 20,
-        "claimable": 192,
+        "instructions": 340,
+        "checkable": 25,
+        "claimable": 315,
         "runnable_fences": 44,
         "checkboxes": 0,
         "units": 12,
-        "pct": 9.433962264150944,
-        "zero": 6
+        "pct": 7.352941176470588,
+        "zero": 5
       },
       "doctrine": {
-        "lines": 148,
-        "instructions": 15,
-        "checkable": 4,
-        "claimable": 11,
-        "runnable_fences": 1,
+        "lines": 52,
+        "instructions": 9,
+        "checkable": 2,
+        "claimable": 7,
+        "runnable_fences": 0,
         "checkboxes": 0,
-        "units": 2,
-        "pct": 26.666666666666668,
+        "units": 1,
+        "pct": 22.22222222222222,
         "zero": 0
       },
       "reference": {
-        "lines": 775,
-        "instructions": 83,
-        "checkable": 25,
-        "claimable": 58,
-        "runnable_fences": 8,
+        "lines": 871,
+        "instructions": 147,
+        "checkable": 43,
+        "claimable": 104,
+        "runnable_fences": 9,
         "checkboxes": 0,
-        "units": 2,
-        "pct": 30.120481927710845,
+        "units": 3,
+        "pct": 29.25170068027211,
         "zero": 0
       },
       "mixed": {
         "lines": 74,
-        "instructions": 0,
+        "instructions": 2,
         "checkable": 0,
-        "claimable": 0,
+        "claimable": 2,
         "runnable_fences": 0,
         "checkboxes": 0,
         "units": 2,
         "pct": 0.0,
-        "zero": 0
+        "zero": 1
       }
     },
     "artifacts": [
@@ -87,7 +87,8 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -101,7 +102,8 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -115,7 +117,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -129,7 +132,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -143,7 +147,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -157,7 +162,8 @@
         "match_count": 7,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -171,7 +177,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -185,7 +192,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -199,7 +207,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -213,7 +222,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -227,7 +237,8 @@
         "match_count": 14,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -241,7 +252,8 @@
         "match_count": 6,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -255,7 +267,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -269,7 +282,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -283,7 +297,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -297,7 +312,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/claude-api",
@@ -311,7 +327,53 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "app.py",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "a.py",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/claude-api",
+        "artifact": "b.py",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/doc-coauthoring",
@@ -325,7 +387,8 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/doc-coauthoring",
@@ -339,7 +402,68 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/pptx",
+        "artifact": "scripts/thumbnail.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 3,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/pptx",
+        "artifact": "add_slide.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 1,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/pptx",
+        "artifact": "clean.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 1,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/pptx",
+        "artifact": "scripts/office/soffice.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 3,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/skill-creator",
@@ -353,7 +477,23 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "SKILL.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 50,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/skill-creator",
@@ -367,7 +507,8 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/skill-creator",
@@ -381,7 +522,8 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/skill-creator",
@@ -395,7 +537,8 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/skill-creator",
@@ -409,7 +552,38 @@
         "match_count": 0,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": true
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "create_docx.py",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "build_chart.py",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
       },
       {
         "skill": "skills/skill-creator",
@@ -423,7 +597,68 @@
         "match_count": 1,
         "unverifiable_pattern": false,
         "unverifiable_reason": null,
-        "phantom": false
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "run_loop.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 1,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "run_eval.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 1,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/skill-creator",
+        "artifact": "benchmark.json",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "skills/xlsx",
+        "artifact": "recalc.py",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 4,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
       }
     ],
     "history_shallow": false,
@@ -434,17 +669,17 @@
         "fences": 5,
         "runnable_fences": 3,
         "checkboxes": 0,
-        "instructions": 30,
-        "checkable": 0,
-        "claimable": 30,
+        "instructions": 58,
+        "checkable": 1,
+        "claimable": 57,
         "inline_cmds": 0,
         "steps": 17,
         "seq": 1,
         "tables": 0,
         "persona_hits": 0,
         "doctrine_hits": 1,
-        "epistemic": 0,
-        "action": 30,
+        "epistemic": 3,
+        "action": 55,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -465,9 +700,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 0,
+        "instructions": 2,
         "checkable": 0,
-        "claimable": 0,
+        "claimable": 2,
         "inline_cmds": 0,
         "steps": 0,
         "seq": 0,
@@ -475,7 +710,7 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 0,
+        "action": 2,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -496,17 +731,17 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 14,
+        "instructions": 24,
         "checkable": 0,
-        "claimable": 14,
+        "claimable": 24,
         "inline_cmds": 0,
         "steps": 2,
         "seq": 1,
         "tables": 0,
         "persona_hits": 0,
         "doctrine_hits": 1,
-        "epistemic": 0,
-        "action": 14,
+        "epistemic": 2,
+        "action": 22,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -527,9 +762,9 @@
         "fences": 3,
         "runnable_fences": 3,
         "checkboxes": 0,
-        "instructions": 55,
-        "checkable": 21,
-        "claimable": 34,
+        "instructions": 75,
+        "checkable": 30,
+        "claimable": 45,
         "inline_cmds": 20,
         "steps": 7,
         "seq": 2,
@@ -537,75 +772,196 @@
         "persona_hits": 0,
         "doctrine_hits": 13,
         "epistemic": 0,
-        "action": 55,
+        "action": 75,
         "mandated": [
           {
             "tok": "agent-openai.py",
-            "line": "Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers \u2014 `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names li"
+            "line": "Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers \u2014 `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names li",
+            "lines": [
+              "Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers \u2014 `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names li"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "*-generic.py",
-            "line": "Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers \u2014 `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names li"
+            "line": "Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers \u2014 `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names li",
+            "lines": [
+              "Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers \u2014 `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names li"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/live-sources.md",
-            "line": "**Never guess SDK usage.** Function names, class names, namespaces, method signatures, and import paths must come from explicit documentation \u2014 either the `{lang}/` files in this skill or the official"
+            "line": "**Never guess SDK usage.** Function names, class names, namespaces, method signatures, and import paths must come from explicit documentation \u2014 either the `{lang}/` files in this skill or the official",
+            "lines": [
+              "**Never guess SDK usage.** Function names, class names, namespaces, method signatures, and import paths must come from explicit documentation \u2014 either the `{lang}/` files in this skill or the official",
+              "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/models.md",
-            "line": "**ALWAYS use `claude-opus-5` unless the user explicitly names a different model.** This is non-negotiable. Do not use `claude-sonnet-5`, `claude-sonnet-4-6`, or any other model unless the user literal"
+            "line": "**ALWAYS use `claude-opus-5` unless the user explicitly names a different model.** This is non-negotiable. Do not use `claude-sonnet-5`, `claude-sonnet-4-6`, or any other model unless the user literal",
+            "lines": [
+              "**ALWAYS use `claude-opus-5` unless the user explicitly names a different model.** This is non-negotiable. Do not use `claude-sonnet-5`, `claude-sonnet-4-6`, or any other model unless the user literal"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/model-migration.md",
-            "line": "- **`refusal` stop reason \u2014 handle it, and opt into fallbacks by default** \u2014 safety classifiers may decline a request (HTTP 200, `stop_reason: \"refusal\"`, with a `stop_details` category); always check"
+            "line": "- **`refusal` stop reason \u2014 handle it, and opt into fallbacks by default** \u2014 safety classifiers may decline a request (HTTP 200, `stop_reason: \"refusal\"`, with a `stop_details` category); always check",
+            "lines": [
+              "- **`refusal` stop reason \u2014 handle it, and opt into fallbacks by default** \u2014 safety classifiers may decline a request (HTTP 200, `stop_reason: \"refusal\"`, with a `stop_details` category); always check",
+              "- **Longer turns, different prompting** \u2014 single requests on hard tasks can run many minutes (plan timeouts/streaming/progress UX); effort sweeps should include low/medium for routine work; prompts wr",
+              "- **Confirm migration scope before editing:** When a user asks to migrate code to a newer Claude model without naming a specific file, directory, or file list, **ask which scope to apply first** \u2014 the",
+              "- **Disabling thinking on Claude Opus 5 has two failure modes \u2014 prefer low/medium effort instead.** Only affects code that explicitly opts out; thinking is on by default, so watch for a disabled-think"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "{lang}/claude-api/README.md",
-            "line": "- **`refusal` stop reason \u2014 handle it, and opt into fallbacks by default** \u2014 safety classifiers may decline a request (HTTP 200, `stop_reason: \"refusal\"`, with a `stop_details` category); always check"
+            "line": "- **`refusal` stop reason \u2014 handle it, and opt into fallbacks by default** \u2014 safety classifiers may decline a request (HTTP 200, `stop_reason: \"refusal\"`, with a `stop_details` category); always check",
+            "lines": [
+              "- **`refusal` stop reason \u2014 handle it, and opt into fallbacks by default** \u2014 safety classifiers may decline a request (HTTP 200, `stop_reason: \"refusal\"`, with a `stop_details` category); always check"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/platform-availability.md",
-            "line": "**Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and Claude Mythos 5; not Claude Sonnet 5; no beta header.** Append `{\"role\": \"system\", \"content\": \"\u2026\"}` to the `messages` array (not the top-level `sy"
+            "line": "**Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and Claude Mythos 5; not Claude Sonnet 5; no beta header.** Append `{\"role\": \"system\", \"content\": \"\u2026\"}` to the `messages` array (not the top-level `sy",
+            "lines": [
+              "**Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and Claude Mythos 5; not Claude Sonnet 5; no beta header.** Append `{\"role\": \"system\", \"content\": \"\u2026\"}` to the `messages` array (not the top-level `sy",
+              "**Files API (beta `files-api-2025-04-14`):** upload via `client.beta.files.upload(...)` \u2192 response `id` is the `file_id`. Reference it as `{\"type\": \"document\", \"source\": {\"type\": \"file\", \"file_id\": \".",
+              "**Programmatic tool calling (no beta header):** Claude calls your custom tool from inside code execution. Add `{\"type\": \"code_execution_20260120\", \"name\": \"code_execution\"}` **and** set `\"allowed_call",
+              "**Message Batches (no beta; availability: `shared/platform-availability.md`):** `client.messages.batches.create(requests=[{custom_id, params}, ...])` \u2192 poll `client.messages.batches.retrieve(id).proce",
+              "- **`inference_geo` is a direct top-level request parameter** \u2014 `client.messages.create(..., inference_geo=\"us\")` / `.inferenceGeo(\"us\")`. Do not put it in `extra_body` / `putAdditionalBodyProperty`. "
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/prompt-caching.md",
-            "line": "**Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and Claude Mythos 5; not Claude Sonnet 5; no beta header.** Append `{\"role\": \"system\", \"content\": \"\u2026\"}` to the `messages` array (not the top-level `sy"
+            "line": "**Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and Claude Mythos 5; not Claude Sonnet 5; no beta header.** Append `{\"role\": \"system\", \"content\": \"\u2026\"}` to the `messages` array (not the top-level `sy",
+            "lines": [
+              "**Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and Claude Mythos 5; not Claude Sonnet 5; no beta header.** Append `{\"role\": \"system\", \"content\": \"\u2026\"}` to the `messages` array (not the top-level `sy",
+              "- **`max_tokens` defaults:** Don't lowball `max_tokens` \u2014 hitting the cap truncates output mid-thought and requires a retry. For non-streaming requests, default to `~16000` (keeps responses under SDK "
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/managed-agents-onboarding.md",
-            "line": "| `managed-agents-onboard` | Walk the user through setting up a Managed Agent from scratch. **Read `shared/managed-agents-onboarding.md` immediately** and follow its interview script: **describe \u2192 con"
+            "line": "| `managed-agents-onboard` | Walk the user through setting up a Managed Agent from scratch. **Read `shared/managed-agents-onboarding.md` immediately** and follow its interview script: **describe \u2192 con",
+            "lines": [
+              "| `managed-agents-onboard` | Walk the user through setting up a Managed Agent from scratch. **Read `shared/managed-agents-onboarding.md` immediately** and follow its interview script: **describe \u2192 con"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/managed-agents-overview.md",
-            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched",
+            "lines": [
+              "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/managed-agents-*.md",
-            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched",
+            "lines": [
+              "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "{lang}/managed-agents/README.md",
-            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched",
+            "lines": [
+              "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "curl/managed-agents.md",
-            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched",
+            "lines": [
+              "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/anthropic-cli.md",
-            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched",
+            "lines": [
+              "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "csharp/claude-api/README.md",
-            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            "line": "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched",
+            "lines": [
+              "**Reading guide:** Start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, sched"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/managed-agents-client-patterns.md",
-            "line": "**When the user asks \"how do I write the client code for X\":** reach for `shared/managed-agents-client-patterns.md` \u2014 covers lossless stream reconnect, `processed_at` queued/processed gate, interrupt,"
+            "line": "**When the user asks \"how do I write the client code for X\":** reach for `shared/managed-agents-client-patterns.md` \u2014 covers lossless stream reconnect, `processed_at` queued/processed gate, interrupt,",
+            "lines": [
+              "**When the user asks \"how do I write the client code for X\":** reach for `shared/managed-agents-client-patterns.md` \u2014 covers lossless stream reconnect, `processed_at` queued/processed gate, interrupt,"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "shared/managed-agents-tools.md",
-            "line": "**When the user asks \"how do I write the client code for X\":** reach for `shared/managed-agents-client-patterns.md` \u2014 covers lossless stream reconnect, `processed_at` queued/processed gate, interrupt,"
+            "line": "**When the user asks \"how do I write the client code for X\":** reach for `shared/managed-agents-client-patterns.md` \u2014 covers lossless stream reconnect, `processed_at` queued/processed gate, interrupt,",
+            "lines": [
+              "**When the user asks \"how do I write the client code for X\":** reach for `shared/managed-agents-client-patterns.md` \u2014 covers lossless stream reconnect, `processed_at` queued/processed gate, interrupt,"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "app.py",
+            "line": "- **Confirm migration scope before editing:** When a user asks to migrate code to a newer Claude model without naming a specific file, directory, or file list, **ask which scope to apply first** \u2014 the",
+            "lines": [
+              "- **Confirm migration scope before editing:** When a user asks to migrate code to a newer Claude model without naming a specific file, directory, or file list, **ask which scope to apply first** \u2014 the"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "a.py",
+            "line": "- **Confirm migration scope before editing:** When a user asks to migrate code to a newer Claude model without naming a specific file, directory, or file list, **ask which scope to apply first** \u2014 the",
+            "lines": [
+              "- **Confirm migration scope before editing:** When a user asks to migrate code to a newer Claude model without naming a specific file, directory, or file list, **ask which scope to apply first** \u2014 the"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "b.py",
+            "line": "- **Confirm migration scope before editing:** When a user asks to migrate code to a newer Claude model without naming a specific file, directory, or file list, **ask which scope to apply first** \u2014 the",
+            "lines": [
+              "- **Confirm migration scope before editing:** When a user asks to migrate code to a newer Claude model without naming a specific file, directory, or file list, **ask which scope to apply first** \u2014 the"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           }
         ],
         "length_cap_dropped": 0,
@@ -627,25 +983,35 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 49,
+        "instructions": 82,
         "checkable": 1,
-        "claimable": 48,
+        "claimable": 81,
         "inline_cmds": 0,
         "steps": 19,
         "seq": 1,
         "tables": 0,
         "persona_hits": 0,
         "doctrine_hits": 2,
-        "epistemic": 13,
-        "action": 36,
+        "epistemic": 14,
+        "action": 68,
         "mandated": [
           {
             "tok": "decision-doc.md",
-            "line": "Create a markdown file in the working directory. Name it appropriately (e.g., `decision-doc.md`, `technical-spec.md`)."
+            "line": "Create a markdown file in the working directory. Name it appropriately (e.g., `decision-doc.md`, `technical-spec.md`).",
+            "lines": [
+              "Create a markdown file in the working directory. Name it appropriately (e.g., `decision-doc.md`, `technical-spec.md`)."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "technical-spec.md",
-            "line": "Create a markdown file in the working directory. Name it appropriately (e.g., `decision-doc.md`, `technical-spec.md`)."
+            "line": "Create a markdown file in the working directory. Name it appropriately (e.g., `decision-doc.md`, `technical-spec.md`).",
+            "lines": [
+              "Create a markdown file in the working directory. Name it appropriately (e.g., `decision-doc.md`, `technical-spec.md`)."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           }
         ],
         "length_cap_dropped": 0,
@@ -667,9 +1033,9 @@
         "fences": 3,
         "runnable_fences": 3,
         "checkboxes": 0,
-        "instructions": 10,
+        "instructions": 15,
         "checkable": 3,
-        "claimable": 7,
+        "claimable": 12,
         "inline_cmds": 5,
         "steps": 0,
         "seq": 0,
@@ -677,7 +1043,7 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 10,
+        "action": 15,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -698,17 +1064,17 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 6,
+        "instructions": 9,
         "checkable": 2,
-        "claimable": 4,
+        "claimable": 7,
         "inline_cmds": 0,
         "steps": 0,
         "seq": 1,
         "tables": 0,
         "persona_hits": 0,
         "doctrine_hits": 5,
-        "epistemic": 0,
-        "action": 6,
+        "epistemic": 1,
+        "action": 8,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -729,9 +1095,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 0,
+        "instructions": 3,
         "checkable": 0,
-        "claimable": 0,
+        "claimable": 3,
         "inline_cmds": 0,
         "steps": 3,
         "seq": 0,
@@ -739,7 +1105,7 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 0,
+        "action": 3,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -760,9 +1126,9 @@
         "fences": 1,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 21,
-        "checkable": 3,
-        "claimable": 18,
+        "instructions": 30,
+        "checkable": 4,
+        "claimable": 26,
         "inline_cmds": 3,
         "steps": 4,
         "seq": 1,
@@ -770,7 +1136,7 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 21,
+        "action": 30,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -822,9 +1188,9 @@
         "fences": 5,
         "runnable_fences": 5,
         "checkboxes": 0,
-        "instructions": 28,
-        "checkable": 4,
-        "claimable": 24,
+        "instructions": 53,
+        "checkable": 8,
+        "claimable": 45,
         "inline_cmds": 9,
         "steps": 0,
         "seq": 0,
@@ -832,8 +1198,46 @@
         "persona_hits": 0,
         "doctrine_hits": 2,
         "epistemic": 0,
-        "action": 28,
-        "mandated": [],
+        "action": 53,
+        "mandated": [
+          {
+            "tok": "scripts/thumbnail.py",
+            "line": "Pick layouts first: `python scripts/thumbnail.py template.pptx template-thumbs` writes a labeled grid of every slide and prints the file(s) it created \u2014 `template-thumbs.jpg`, split into `template-thu",
+            "lines": [
+              "Pick layouts first: `python scripts/thumbnail.py template.pptx template-thumbs` writes a labeled grid of every slide and prints the file(s) it created \u2014 `template-thumbs.jpg`, split into `template-thu"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "add_slide.py",
+            "line": "- **Do all structural work \u2014 add, delete, reorder \u2014 before editing any slide's content.** `add_slide.py` copies a slide file verbatim, so duplicating after you edit clones the edited content; and `cle",
+            "lines": [
+              "- **Do all structural work \u2014 add, delete, reorder \u2014 before editing any slide's content.** `add_slide.py` copies a slide file verbatim, so duplicating after you edit clones the edited content; and `cle",
+              "- **Never copy a slide file by hand** \u2014 `add_slide.py` does every registration a new slide needs and reports what it made (`Created ppt/slides/slide17.xml from slide2.xml`). It also works directly on "
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "clean.py",
+            "line": "- **Do all structural work \u2014 add, delete, reorder \u2014 before editing any slide's content.** `add_slide.py` copies a slide file verbatim, so duplicating after you edit clones the edited content; and `cle",
+            "lines": [
+              "- **Do all structural work \u2014 add, delete, reorder \u2014 before editing any slide's content.** `add_slide.py` copies a slide file verbatim, so duplicating after you edit clones the edited content; and `cle"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "scripts/office/soffice.py",
+            "line": "- Legacy `.ppt` must be converted first: `python scripts/office/soffice.py --headless --convert-to pptx file.ppt`. `.potx` templates unpack and pack identically \u2014 keep the `.potx` extension on the out",
+            "lines": [
+              "- Legacy `.ppt` must be converted first: `python scripts/office/soffice.py --headless --convert-to pptx file.ppt`. `.potx` templates unpack and pack identically \u2014 keep the `.potx` extension on the out"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          }
+        ],
         "length_cap_dropped": 0,
         "declared_scope": null,
         "genre_scores": {
@@ -853,9 +1257,9 @@
         "fences": 15,
         "runnable_fences": 5,
         "checkboxes": 0,
-        "instructions": 48,
-        "checkable": 12,
-        "claimable": 36,
+        "instructions": 67,
+        "checkable": 14,
+        "claimable": 53,
         "inline_cmds": 0,
         "steps": 26,
         "seq": 2,
@@ -863,31 +1267,121 @@
         "persona_hits": 0,
         "doctrine_hits": 13,
         "epistemic": 1,
-        "action": 47,
+        "action": 66,
         "mandated": [
           {
             "tok": "eval-viewer/generate_review.py",
-            "line": "- Use the `eval-viewer/generate_review.py` script to show the user the results for them to look at, and also let them look at the quantitative metrics"
+            "line": "- Use the `eval-viewer/generate_review.py` script to show the user the results for them to look at, and also let them look at the quantitative metrics",
+            "lines": [
+              "- Use the `eval-viewer/generate_review.py` script to show the user the results for them to look at, and also let them look at the quantitative metrics",
+              "- Create benchmark.json and run `eval-viewer/generate_review.py` to help the user review them",
+              "Please add steps to your TodoList, if you have such a thing, to make sure you don't forget. If you're in Cowork, please specifically put \"Create evals JSON and run `eval-viewer/generate_review.py` so "
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "SKILL.md",
+            "line": "- Keep SKILL.md under 500 lines; if you're approaching this limit, add an additional layer of hierarchy along with clear pointers about where the model using the skill should go next to follow up.",
+            "lines": [
+              "- Keep SKILL.md under 500 lines; if you're approaching this limit, add an additional layer of hierarchy along with clear pointers about where the model using the skill should go next to follow up.",
+              "Take `best_description` from the JSON output and update the skill's SKILL.md frontmatter. Show the user before/after and report the scores."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "evals/evals.json",
-            "line": "Save test cases to `evals/evals.json`. Don't write assertions yet \u2014 just the prompts. You'll draft assertions in the next step while the runs are in progress."
+            "line": "Save test cases to `evals/evals.json`. Don't write assertions yet \u2014 just the prompts. You'll draft assertions in the next step while the runs are in progress.",
+            "lines": [
+              "Save test cases to `evals/evals.json`. Don't write assertions yet \u2014 just the prompts. You'll draft assertions in the next step while the runs are in progress.",
+              "Don't just wait for the runs to finish \u2014 you can use this time productively. Draft quantitative assertions for each test case and explain them to the user. If assertions already exist in `evals/evals.",
+              "Update the `eval_metadata.json` files and `evals/evals.json` with the assertions once drafted. Also explain to the user what they'll see in the viewer \u2014 both the qualitative outputs and the quantitati"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "eval_metadata.json",
-            "line": "Write an `eval_metadata.json` for each test case (assertions can be empty for now). Give each eval a descriptive name based on what it's testing \u2014 not just \"eval-0\". Use this name for the directory to"
+            "line": "Write an `eval_metadata.json` for each test case (assertions can be empty for now). Give each eval a descriptive name based on what it's testing \u2014 not just \"eval-0\". Use this name for the directory to",
+            "lines": [
+              "Write an `eval_metadata.json` for each test case (assertions can be empty for now). Give each eval a descriptive name based on what it's testing \u2014 not just \"eval-0\". Use this name for the directory to",
+              "Update the `eval_metadata.json` files and `evals/evals.json` with the assertions once drafted. Also explain to the user what they'll see in the viewer \u2014 both the qualitative outputs and the quantitati"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "agents/grader.md",
-            "line": "1. **Grade each run** \u2014 spawn a grader subagent (or grade inline) that reads `agents/grader.md` and evaluates each assertion against the outputs. Save results to `grading.json` in each run directory. "
+            "line": "1. **Grade each run** \u2014 spawn a grader subagent (or grade inline) that reads `agents/grader.md` and evaluates each assertion against the outputs. Save results to `grading.json` in each run directory. ",
+            "lines": [
+              "1. **Grade each run** \u2014 spawn a grader subagent (or grade inline) that reads `agents/grader.md` and evaluates each assertion against the outputs. Save results to `grading.json` in each run directory. "
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "grading.json",
-            "line": "1. **Grade each run** \u2014 spawn a grader subagent (or grade inline) that reads `agents/grader.md` and evaluates each assertion against the outputs. Save results to `grading.json` in each run directory. "
+            "line": "1. **Grade each run** \u2014 spawn a grader subagent (or grade inline) that reads `agents/grader.md` and evaluates each assertion against the outputs. Save results to `grading.json` in each run directory. ",
+            "lines": [
+              "1. **Grade each run** \u2014 spawn a grader subagent (or grade inline) that reads `agents/grader.md` and evaluates each assertion against the outputs. Save results to `grading.json` in each run directory. "
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "create_docx.py",
+            "line": "4. **Look for repeated work across test cases.** Read the transcripts from the test runs and notice if the subagents all independently wrote similar helper scripts or took the same multi-step approach",
+            "lines": [
+              "4. **Look for repeated work across test cases.** Read the transcripts from the test runs and notice if the subagents all independently wrote similar helper scripts or took the same multi-step approach"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "build_chart.py",
+            "line": "4. **Look for repeated work across test cases.** Read the transcripts from the test runs and notice if the subagents all independently wrote similar helper scripts or took the same multi-step approach",
+            "lines": [
+              "4. **Look for repeated work across test cases.** Read the transcripts from the test runs and notice if the subagents all independently wrote similar helper scripts or took the same multi-step approach"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           },
           {
             "tok": "generate_review.py",
-            "line": "- For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after runn"
+            "line": "- For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after runn",
+            "lines": [
+              "- For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after runn"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "run_loop.py",
+            "line": "- Description optimization (`run_loop.py` / `run_eval.py`) should work in Cowork just fine since it uses `claude -p` via subprocess, not a browser, but please save it until you've fully finished makin",
+            "lines": [
+              "- Description optimization (`run_loop.py` / `run_eval.py`) should work in Cowork just fine since it uses `claude -p` via subprocess, not a browser, but please save it until you've fully finished makin"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "run_eval.py",
+            "line": "- Description optimization (`run_loop.py` / `run_eval.py`) should work in Cowork just fine since it uses `claude -p` via subprocess, not a browser, but please save it until you've fully finished makin",
+            "lines": [
+              "- Description optimization (`run_loop.py` / `run_eval.py`) should work in Cowork just fine since it uses `claude -p` via subprocess, not a browser, but please save it until you've fully finished makin"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "benchmark.json",
+            "line": "- Create benchmark.json and run `eval-viewer/generate_review.py` to help the user review them",
+            "lines": [
+              "- Create benchmark.json and run `eval-viewer/generate_review.py` to help the user review them"
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
           }
         ],
         "length_cap_dropped": 0,
@@ -909,17 +1403,17 @@
         "fences": 9,
         "runnable_fences": 9,
         "checkboxes": 0,
-        "instructions": 22,
+        "instructions": 34,
         "checkable": 0,
-        "claimable": 22,
+        "claimable": 34,
         "inline_cmds": 0,
         "steps": 5,
         "seq": 0,
         "tables": 0,
         "persona_hits": 0,
         "doctrine_hits": 5,
-        "epistemic": 0,
-        "action": 22,
+        "epistemic": 1,
+        "action": 33,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -940,9 +1434,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 4,
+        "instructions": 7,
         "checkable": 0,
-        "claimable": 4,
+        "claimable": 7,
         "inline_cmds": 0,
         "steps": 18,
         "seq": 0,
@@ -950,7 +1444,7 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 4,
+        "action": 7,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -972,8 +1466,8 @@
         "runnable_fences": 2,
         "checkboxes": 0,
         "instructions": 3,
-        "checkable": 0,
-        "claimable": 3,
+        "checkable": 1,
+        "claimable": 2,
         "inline_cmds": 1,
         "steps": 5,
         "seq": 1,
@@ -1002,9 +1496,9 @@
         "fences": 5,
         "runnable_fences": 4,
         "checkboxes": 0,
-        "instructions": 4,
+        "instructions": 10,
         "checkable": 0,
-        "claimable": 4,
+        "claimable": 10,
         "inline_cmds": 0,
         "steps": 3,
         "seq": 0,
@@ -1012,7 +1506,7 @@
         "persona_hits": 0,
         "doctrine_hits": 1,
         "epistemic": 0,
-        "action": 4,
+        "action": 10,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
@@ -1033,9 +1527,9 @@
         "fences": 1,
         "runnable_fences": 1,
         "checkboxes": 0,
-        "instructions": 9,
-        "checkable": 2,
-        "claimable": 7,
+        "instructions": 19,
+        "checkable": 5,
+        "claimable": 14,
         "inline_cmds": 2,
         "steps": 0,
         "seq": 1,
@@ -1043,8 +1537,18 @@
         "persona_hits": 0,
         "doctrine_hits": 3,
         "epistemic": 0,
-        "action": 9,
-        "mandated": [],
+        "action": 19,
+        "mandated": [
+          {
+            "tok": "recalc.py",
+            "line": "- **Never use `XLOOKUP`, `XMATCH`, `SORT`, `FILTER`, `UNIQUE`, or `SEQUENCE`.** The runtime's LibreOffice cannot evaluate them under *any* prefix. Newer builds do evaluate them, but they are spilling ",
+            "lines": [
+              "- **Never use `XLOOKUP`, `XMATCH`, `SORT`, `FILTER`, `UNIQUE`, or `SEQUENCE`.** The runtime's LibreOffice cannot evaluate them under *any* prefix. Newer builds do evaluate them, but they are spilling "
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          }
+        ],
         "length_cap_dropped": 0,
         "declared_scope": null,
         "genre_scores": {
@@ -1053,10 +1557,11 @@
           "reference": 4.38,
           "doctrine": 5.0
         },
-        "genre": "doctrine",
+        "genre_demoted_from": "doctrine",
+        "genre": "reference",
         "genre_source": "detected",
         "genre_conflict": false,
-        "genre_detected": "doctrine",
+        "genre_detected": "reference",
         "skill": "skills/xlsx"
       },
       {
@@ -1095,10 +1600,10 @@
       "prefix-missing": 1
     },
     "phantom_counterfactual": {
-      "in_scope_pct": 25.0,
-      "in_scope_n": 24,
-      "all_pct": 28.0,
-      "all_n": 25
+      "in_scope_pct": 31.6,
+      "in_scope_n": 38,
+      "all_pct": 33.3,
+      "all_n": 39
     }
   }
 }

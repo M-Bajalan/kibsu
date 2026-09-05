@@ -16,8 +16,12 @@ WHY core.hooksPath AND NOT .git/hooks/pre-commit
   key plus one directory - which is also why it uninstalls cleanly.
 
   Cost, stated plainly: core.hooksPath REPLACES the default hooks directory. Any existing hook
-  in .git/hooks is copied into the new directory at install time and its SHA recorded; nothing
-  is left behind and nothing is silently disabled.
+  in .git/hooks is copied into the new directory at install time and its SHA recorded; a
+  pre-existing pre-commit - the one name this installer also writes - is carried as
+  `pre-commit.carried` and the generated hook execs it FIRST, so its logic keeps firing and
+  its failure keeps blocking, exactly as before (issue #33: it used to be excluded from the
+  carry list outright, which silently disabled it while this paragraph promised otherwise).
+  Nothing is left behind and nothing is silently disabled - now checkably.
 
 FAIL-SAFE, NOT FAIL-SHUT
   ns_check exit 1 (violations) blocks the commit.
@@ -79,6 +83,20 @@ HOOK = """#!/bin/sh
 # hook works in anyone's clone. Nothing here points at the machine that installed it.
 ROOT="$(git rev-parse --show-toplevel)"
 NS_TOOL="$ROOT/.kibsu/bin/check.py"
+
+# A pre-commit that existed BEFORE this install is carried, not silently disabled: it runs
+# first, and its failure blocks, exactly as it did before kibsu arrived (issue #33). Exec'd
+# directly so its own shebang decides the interpreter - the same way git itself ran it.
+CARRIED="$ROOT/{hooks}/pre-commit.carried"
+if [ -f "$CARRIED" ]; then
+  "$CARRIED" "$@"
+  crc=$?
+  if [ $crc -ne 0 ]; then
+    echo "  commit blocked by the carried pre-existing pre-commit hook (exit $crc)."
+    echo "  It lives at {hooks}/pre-commit.carried - it predates kibsu and still applies."
+    exit $crc
+  fi
+fi
 
 # Windows ships a "python"/"python3" App Execution Alias stub even on a machine with NO real
 # interpreter installed: `command -v` finds it happily, but running it only prints a Microsoft
@@ -186,6 +204,36 @@ def status(root):
     return 0
 
 
+def _is_our_hookspath(value):
+    """Is this core.hooksPath value pointing at the directory this installer writes?
+
+    Compared on both separators: git stores whatever string it was given, and HOOKS_DIR is
+    built with os.path.join, so the same directory reads as ".kibsu\\hooks" on Windows and
+    ".kibsu/hooks" everywhere else - and either spelling can already be on disk from an
+    install done on the other platform.
+    """
+    if not value:
+        return False
+    norm = value.replace("\\", "/").rstrip("/")
+    return norm == HOOKS_DIR.replace("\\", "/").rstrip("/")
+
+
+def _read_install_json(root):
+    """The existing install record, or None when there isn't one we can read."""
+    p = os.path.join(root, INSTALL_JSON)
+    if not os.path.isfile(p):
+        return None
+    try:
+        with io.open(p, encoding="utf-8") as fh:
+            rec = json.load(fh)
+        return rec if isinstance(rec, dict) else None
+    except Exception:
+        # A record we cannot parse tells us nothing about what preceded kibsu. Returning None
+        # leaves previous_hookspath unset, which uninstall treats as "unset core.hooksPath" -
+        # the safe end state, and never a claim that our own directory came first.
+        return None
+
+
 def install(root, dry, force, index_rel, baseline_rel):
     gd = git_dir(root)
     if not gd:
@@ -196,6 +244,18 @@ def install(root, dry, force, index_rel, baseline_rel):
         print("  REFUSED: already installed (%s). Use --uninstall first, or --force." % INSTALL_JSON)
         return 3
     prev = current_hookspath(root)
+    # A re-install over an ALREADY-installed kibsu must not record kibsu's own hooks dir as the
+    # thing to restore. current_hookspath() answers "what is set right now", which after a first
+    # install is `.kibsu/hooks` - so a second `--install --force` overwrote previous_hookspath
+    # with our own path, and `--uninstall` then "restored" core.hooksPath to a directory whose
+    # hook it had just deleted: the user's real setting gone, and NO hooks running at all.
+    #
+    # The prior record is the authority for what predates kibsu, but only when the current value
+    # is in fact ours. If the user pointed core.hooksPath somewhere else since the last install,
+    # that IS a genuine previous value and is recorded as one.
+    if prev and _is_our_hookspath(prev):
+        old_rec = _read_install_json(root)
+        prev = old_rec.get("previous_hookspath") if old_rec else None
     if prev and not force:
         print("  REFUSED: core.hooksPath is already set to '%s'." % prev)
         print("  Overwriting it would silently disable those hooks. Re-run with --force to")
@@ -212,13 +272,20 @@ def install(root, dry, force, index_rel, baseline_rel):
     hook_path = os.path.join(hooks_abs, "pre-commit")
     default_hooks = os.path.join(gd, "hooks")
     carry = []
+    carried_precommit = False
     if os.path.isdir(default_hooks):
         carry = [f for f in sorted(os.listdir(default_hooks))
-                 if not f.endswith(".sample") and f != "pre-commit"
+                 if not f.endswith(".sample")
                  and os.path.isfile(os.path.join(default_hooks, f))]
+        # The one name this installer also writes cannot keep it (issue #33) - it is carried
+        # under a recorded rename and the generated hook execs it first, failure still blocking.
+        if "pre-commit" in carry:
+            carry.remove("pre-commit")
+            carried_precommit = True
 
     bin_dir = os.path.join(root, NS_DIR, "bin")
     body = HOOK.format(v=VERSION,
+                       hooks=HOOKS_DIR.replace("\\", "/"),
                        index=index_rel.replace("\\", "/"),
                        baseline=('--baseline "%s"' % baseline_rel.replace("\\", "/")) if baseline_rel else "")
 
@@ -228,6 +295,9 @@ def install(root, dry, force, index_rel, baseline_rel):
     print("  will vendor   %s/bin/{check.py, index.py}  (hook resolves from repo root)" % NS_DIR)
     if carry:
         print("  will carry    existing hooks into the new dir: %s" % ", ".join(carry))
+    if carried_precommit:
+        print("  will carry    the existing pre-commit as pre-commit.carried - it runs FIRST "
+              "on every commit and its failure still blocks")
     print("  will set      core.hooksPath = %s   (was: %s)" % (HOOKS_DIR, prev or "unset"))
     print("  behaviour     ns_check --staged on every commit;")
     print("                exit 1 blocks · exit 3 warns and ALLOWS · --no-verify bypasses")
@@ -249,6 +319,11 @@ def install(root, dry, force, index_rel, baseline_rel):
             vendored.append(NS_DIR + "/bin/" + tool)
     for f in carry:
         shutil.copy2(os.path.join(default_hooks, f), os.path.join(hooks_abs, f))
+    if carried_precommit:
+        dst = os.path.join(hooks_abs, "pre-commit.carried")
+        shutil.copy2(os.path.join(default_hooks, "pre-commit"), dst)
+        os.chmod(dst, os.stat(dst).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        carry = carry + ["pre-commit.carried"]
     with io.open(hook_path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(body)
     os.chmod(hook_path, os.stat(hook_path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -270,6 +345,27 @@ def install(root, dry, force, index_rel, baseline_rel):
     return 0
 
 
+def _inside(root, rel):
+    """Absolute path for a record-declared path, or None when it escapes the repo.
+
+    install.json is READ from the target repo, and kibsu is pointed at repos it did not
+    author - so this record is untrusted input, not our own bookkeeping. Two ways a declared
+    path leaves the tree, both silent: os.path.join() DISCARDS root entirely when the second
+    argument is absolute (join("C:/repo", "C:/Windows/x") -> "C:/Windows/x"), and a
+    "../../.." prefix simply walks out. Either one would hand uninstall's os.remove() an
+    arbitrary file on the disk. Resolve the pair, then require the result to BE root or sit
+    under it; symlinks are resolved first so a link inside the repo cannot point outside it.
+    normcase because Windows compares paths case-insensitively, so the same directory
+    can arrive spelled two ways and a raw string compare would miss the match.
+    """
+    root_r = os.path.realpath(root)
+    target = os.path.realpath(os.path.join(root_r, rel.replace("/", os.sep)))
+    root_n, target_n = os.path.normcase(root_r), os.path.normcase(target)
+    if target_n == root_n or target_n.startswith(root_n + os.sep):
+        return target
+    return None
+
+
 def uninstall(root, dry, purge=False):
     ij = os.path.join(root, INSTALL_JSON)
     if not os.path.isfile(ij):
@@ -284,9 +380,15 @@ def uninstall(root, dry, purge=False):
     print("ns_install v%s   uninstall   %s%s" % (VERSION, root, "   [DRY RUN]" if dry else ""))
     print("  restore  core.hooksPath -> %s" % (prev or "(unset)"))
     for f in rec.get("files_written", []):
-        print("  remove   %s" % f)
+        if _inside(root, f) is None:
+            print("  REFUSED  %s - resolves outside the repo; not removed." % f)
+        else:
+            print("  remove   %s" % f)
     for f in rec.get("vendored", []):
-        print("  remove   %s   (vendored at install, not your data)" % f)
+        if _inside(root, f) is None:
+            print("  REFUSED  %s - resolves outside the repo; not removed." % f)
+        else:
+            print("  remove   %s   (vendored at install, not your data)" % f)
     if rec.get("carried_hooks"):
         print("  NOTE     carried hooks (%s) were copies; the originals in .git/hooks are untouched"
               % ", ".join(rec["carried_hooks"]))
@@ -307,7 +409,11 @@ def uninstall(root, dry, purge=False):
     else:
         run(["git", "config", "--unset", "core.hooksPath"], root)
     for f in list(rec.get("files_written", [])) + list(rec.get("vendored", [])):
-        p = os.path.join(root, f.replace("/", os.sep))
+        p = _inside(root, f)
+        if p is None:
+            sys.stderr.write("kibsu install: refusing to remove %r - it resolves "
+                             "outside %s\n" % (f, root))
+            continue
         if os.path.isfile(p):
             os.remove(p)
     if purge:
