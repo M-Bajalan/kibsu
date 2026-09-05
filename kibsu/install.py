@@ -57,6 +57,7 @@ EXIT CODES
   python -m kibsu install [repo] --install|--uninstall|--status [--dry-run] [--force] [--purge]
 """
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import io
 import json
@@ -191,6 +192,8 @@ def status(root):
     print("  .kibsu/install.json   %s" % ("present" if rec else "absent"))
     if rec:
         print("    installed        %s by %s" % (rec.get("installed_at", "?"), rec.get("by", "?")))
+        if rec.get("head_at_install"):
+            print("    head at install  %s" % rec["head_at_install"])
         print("    previous hooks   %s" % (rec.get("previous_hookspath") or "(was unset)"))
         print("    files written    %s" % ", ".join(rec.get("files_written", [])) or "(none)")
         print("    carried hooks    %s" % (", ".join(rec.get("carried_hooks", [])) or "(none)"))
@@ -327,7 +330,8 @@ def install(root, dry, force, index_rel, baseline_rel):
     run(["git", "config", "core.hooksPath", HOOKS_DIR], root, check=True)
 
     rec = {"schema": 1, "installer": "ns_install.py v" + VERSION,
-           "installed_at": run(["git", "log", "-1", "--format=%cI"], root).stdout.strip() or None,
+           "installed_at": datetime.now(timezone.utc).isoformat(),
+           "head_at_install": run(["git", "log", "-1", "--format=%cI"], root).stdout.strip() or None,
            "by": "ns_install", "previous_hookspath": prev,
            "files_written": [os.path.join(HOOKS_DIR, "pre-commit").replace("\\", "/"),
                              INSTALL_JSON.replace("\\", "/")],
