@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-kibsu audit v0.9.0 - how much of an agent instruction set can actually be checked?
+kibsu audit v0.10.0 - how much of an agent instruction set can actually be checked?
 
 An instruction is CHECKABLE if a reviewer could tell from the repo alone whether it happened: it
 runs a command, produces or edits a named file, or is a tick-box. It is CLAIMABLE if the only
 evidence is the agent saying so.
+
+v0.10.0 is three refinements from the pre-release adversarial pass, two of them measured
+nulls at the pinned states: the directory-prefix scope check is case-insensitive again
+(scope question, not git's existence question - 0.9.0 had conflated them); the mandate rule
+fires only on a mention that is this repo's own promise (any_clean), not on a user-scope
+placeholder; and five verb/noun-ambiguous entries (note/state/list/record/track) stop
+counting "Note: ..." and "List of ..." as instructions. Re-measure indexed in CORRECTIONS.md.
 
 v0.9.0 makes the existence check BYTE-EXACT (issue #78): glob_re() no longer matches
 case-insensitively, so the phantom verdict is the answer git itself would give. Detection
@@ -113,7 +120,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-VERSION = "0.9.0"
+VERSION = "0.10.0"
 
 # Issue #39: kibsu scans arbitrary third-party repositories, and nothing stops one from
 # git-tracking a multi-gigabyte markdown file. A whole-file .read() of that is an unbounded
@@ -176,6 +183,17 @@ VERBS = (r"add|align|announce|append|apply|archive|ask|assert|audit|avoid|build|
 #     the round's adversarial pass, with the repro pinned in Scorer070Tests.
 IMPERATIVE = re.compile(r"^\s*(?:[-*+>]\s+|\d+[.)]\s+|\|\s*)?(?:(\*\*|\*|__|_))?"
                         r"(?:" + VERBS + r")(?:\1)?(?![\w*_])", re.I)
+# Five entries in VERBS open ordinary prose at least as often as they command: "Note: ...",
+# "Note that ...", "List of ...", "State of the ...", "Record types are ...", "Track changes
+# are ...". Held to the vocabulary census's own bar retroactively (the 0.7.0 round rejected
+# `import`/`order`/`format` on exactly this ground and never re-examined the inherited list):
+# when one of these five is followed by a colon, or by "that / of / the following / is / are /
+# was", the line is a label or a description, not an instruction. Measured on a 250-file public
+# corpus: 20 of 5,930 counted lines drop, every one a "Note:" callout or a wrapped "list is..."
+# continuation. The other 186 verbs are untouched - "List the files" still counts.
+NOUN_OPENER_RE = re.compile(
+    r"^\s*(?:[-*+>]\s+|\d+[.)]\s+|\|\s*)?(?:\*\*|\*|__|_)?(?:note|state|list|record|track)"
+    r"(?:\*\*|\*|__|_)?(?:\s*:|\s+(?:that|of|the\s+following|is|are|was)\b)", re.I)
 
 # ---- genre signals -------------------------------------------------------------------------
 PERSONA_RE = [re.compile(p, re.I) for p in (
@@ -334,6 +352,14 @@ METRIC DEFINITIONS (contest them - that is the point)
                imperative verb, or carries a modal (must / should / always / never / required /
                do not / mandatory / ensure / make sure - any capitalisation; "Must run the
                tests" counts the same as "MUST run the tests").
+               As of scorer 0.7.0 (issues #56, #74): the opening verb is read THROUGH markdown
+               emphasis - `**Create** the file`, `_Create_ the file` and `1. **Gather** the
+               audit` all count; a leading backtick does not (it opens a code span, a name) -
+               and the verb vocabulary carries 191 entries, grown by census of a public corpus:
+               a verb entered only if the lines it would newly admit were overwhelmingly
+               imperatives, and was refused when they were noun-heavy (`import` alone would
+               have added 1,625 "Import maps"-style topic bullets). Print the list:
+               `python -c "from kibsu.audit import VERBS; print(VERBS)"`.
 
   CHECKABLE    a reviewer could confirm it happened from the repo alone:
                  tick-box | runnable command | names a concrete file | exit code / diff / assertion
@@ -349,6 +375,13 @@ METRIC DEFINITIONS (contest them - that is the point)
                mixed     - no signal dominates.
                NOTE: procedure is weighted toward EXECUTABLE signals (commands, checkboxes), not
                merely numbered ones - ten numbered principles are not a ten-step procedure.
+               MANDATE RULE (scorer 0.8.0, issue #77): a unit that mandates artifacts, or carries
+               a runnable code fence, cannot be DETECTED as doctrine - it demotes to its next-best
+               genre (or mixed). This follows from the definition above, not from a new
+               heuristic: doctrine produces judgement, not files, so a unit promising files is
+               making checkable promises and the "0% is the genre working" reading cannot apply
+               to it. Detection only - a declared `genre:` still wins in both directions, and
+               the disagreement is flagged as genre_conflict rather than swallowed.
 
   phantom      an artifact a skill mandates with ZERO matching instances anywhere - working tree
                OR git history, counted together as match_count. Requires full history; a shallow
@@ -356,6 +389,13 @@ METRIC DEFINITIONS (contest them - that is the point)
                (`CHANGELOG.md`) and a templated one (`logs/report_{date}.md`): a templated
                mandate that matches something is not phantom, and a templated mandate that
                matches nothing is STILL phantom - braces do not launder a mandate nobody served.
+               Existence is BYTE-EXACT as of scorer 0.9.0 (issue #78): a mandate for `notes.md`
+               is NOT satisfied by a tracked `Notes.md`, because git compares paths byte-for-byte
+               and a Linux `cat notes.md` fails. Reading a mandate stays case-insensitive - a
+               different question - so `NOTES.MD` is still extracted as a mandate; it just has
+               to exist as written. As of 0.7.0 the mandated filename may be wrapped in
+               backticks, double or single quotes, or nothing at all (issue #75), and every
+               mention of a mandate counts toward its scope, not only the first (issue #76).
 
   templated    the mandated token contains a wildcard (`*`, `?`) or a `{...}` placeholder
                segment, either of which expands to "any run of non-slash characters" when
@@ -526,7 +566,8 @@ def analyse(text):
             o["checkboxes"] += 1
         if not ln.strip():
             continue
-        if not (is_box or IMPERATIVE.match(ln) or MODALS.search(ln)):
+        imperative = bool(IMPERATIVE.match(ln)) and not NOUN_OPENER_RE.match(ln)
+        if not (is_box or imperative or MODALS.search(ln)):
             continue
         o["instructions"] += 1
         o["epistemic" if EPISTEMIC.match(ln) else "action"] += 1
@@ -594,7 +635,15 @@ def analyse(text):
     # to "mixed" below the same 0.8 floor classify() has always used. DECLARED genre still
     # beats detection in both directions, so an author who insists a mandating unit is
     # doctrine keeps that ruling (and the conflict flag).
-    if detected == "doctrine" and (o["mandated"] or o["runnable_fences"] > 0):
+    # Gated on any_clean - a mention with no scaffold-scope or user-scope signal - not on
+    # the raw list. A doctrine unit whose only "mandate" is "save `{name}.md` into YOUR
+    # project's notes" is not promising this repo a file; check_artifacts() would exclude
+    # that very mention as user-scope, so the rule's own justification ("a unit promising
+    # files is making checkable promises") does not hold for it. Found by the pre-release
+    # adversarial pass; 0 of the 8 pinned-corpus demotions were driven by excluded-only
+    # mentions, measured, so no figure moves.
+    if detected == "doctrine" and (any(m.get("any_clean") for m in o["mandated"])
+                                   or o["runnable_fences"] > 0):
         o["genre_demoted_from"] = "doctrine"
         rest = {g: v for g, v in o["genre_scores"].items() if g != "doctrine"}
         best = max(rest, key=rest.get)
@@ -719,7 +768,7 @@ PLACEHOLDER_RE = re.compile(r"\{[^{}]*\}")
 TEMPLATED_RE = re.compile(r"[*?]|\{[^{}]*\}")
 
 
-def glob_re(tok):
+def glob_re(tok, case_sensitive=True):
     r"""Build the matcher for a mandated-artifact token.
 
     `*` -> "any run of non-slash characters" and `?` -> "any one character" have been true since
@@ -749,7 +798,17 @@ def glob_re(tok):
     # across the pinned corpus and both experiment workspaces, exactly one flips to phantom
     # (a `summary.md` mandate whose only instances are SUMMARY.md benchmark files) and seven
     # lose surplus matches without changing verdict.
-    return re.compile(r"(^|/)" + esc + r"$")
+    # case_sensitive=False exists for ONE caller: the directory-prefix scope check in
+    # check_artifacts(). Whether a mandate's ancestor directory is part of this repo at all is
+    # a scope question - "is `Skills/x.md` even this repo's business?" - and a directory that
+    # exists under different casing answers YES to it. The byte-exact rule above is about the
+    # FILE's existence, the question git answers. Conflating the two (0.9.0 did, by sharing
+    # this function) dropped such mandates into the prefix-missing exclusion bucket, where
+    # they were never phantom-checked at all - the opposite of "credit less": they were not
+    # counted either way. Found by the pre-release adversarial pass; zero pinned-corpus tokens
+    # were affected, measured, so no figure moves - but the two questions are now asked by
+    # two matchers on purpose.
+    return re.compile(r"(^|/)" + esc + r"$", 0 if case_sensitive else re.I)
 
 
 def check_artifacts(root, rows):
@@ -814,7 +873,7 @@ def check_artifacts(root, rows):
                         # glob_re() gives the filename, via the identical helper, so a templated
                         # directory prefix is checked WITH the pattern applied instead of being
                         # compared to itself literally and always losing.
-                        pre_rx = glob_re(pre)
+                        pre_rx = glob_re(pre, case_sensitive=False)
                         if not any(pre_rx.search(d) for d in dirs):
                             reason = "path prefix '%s/' does not exist in this repo" % pre
                             reason_class = "prefix-missing"

@@ -197,19 +197,24 @@ SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 
 | repo | sha | units | instr | all% | **proc%** | phantom |
 |---|---|---:|---:|---:|---:|---:|
-| davila7/claude-code-templates | `91d14a7` | 891 | 18,888 | 15.7% | **16.6%** | 73/172 (42%) |
-| obra/superpowers | `3dcbd5c` | 14 | 419 | 12.2% | **13.1%** | 1/1 |
-| contains-studio/agents | `a5a480c` | 37 | 738 | 9.5% | **9.7%** | — |
-| wshobson/agents | `c4b82b0` | 180 | 1,922 | 6.2% | **7.8%** | 8/14 (57%) |
-| anthropics/skills | `b29e7cf` | 18 | 501 | 14.4% | **7.6%** | 12/39 (31%) |
+| davila7/claude-code-templates | `91d14a7` | 891 | 18,823 | 15.7% | **16.6%** | 73/172 (42%) |
+| obra/superpowers | `3dcbd5c` | 14 | 418 | 12.2% | **13.1%** | 1/1 |
+| contains-studio/agents | `a5a480c` | 37 | 737 | 9.5% | **9.7%** | — |
+| wshobson/agents | `c4b82b0` | 180 | 1,918 | 6.2% | **7.7%** | 8/14 (57%) |
+| anthropics/skills | `b29e7cf` | 18 | 498 | 14.1% | **7.4%** | 12/38 (32%) |
 | vijaythecoder/awesome-claude-agents | `2050f3c` | 33 | 290 | 8.6% | **6.8%** | — |
 | sanjeed5/awesome-cursor-rules-mdc | `8fbf269` | 5 | 210 | 6.2% | **6.2%** | 1/2 (50%) |
-| VoltAgent/awesome-claude-code-subagents | `947b44c` | 154 | 3,730 | 1.7% | **1.8%** | 1/1 |
+| VoltAgent/awesome-claude-code-subagents | `947b44c` | 154 | 3,729 | 1.7% | **1.8%** | 1/1 |
 
-**median procedure-only: 7.7%** · min 1.8% · max 16.6%
-**in-scope mandated artifacts: 230 distinct, 96 never existed in any commit (42%)**
+**median procedure-only: 7.5%** · min 1.8% · max 16.6%
+**in-scope mandated artifacts: 229 distinct, 96 never existed in any commit (42%)**
 
-> **These figures were re-measured 2026-08-31 with scorer 0.9.0, at the same pinned SHAs.**
+> **These figures were re-measured 2026-09-01 with scorer 0.10.0, at the same pinned SHAs.**
+> The 0.10.0 round came out of a pre-release audit of the three rounds before it: five
+> verb/noun-ambiguous vocabulary entries stopped counting `Note: ...` callouts as
+> instructions, and the median moved DOWN (7.7 -> 7.5) - many of those callouts carried
+> a backtick command and had been counted checkable. Notes about commands are not
+> commands. Before it,
 > The 0.9.0 case round moved exactly one number: the existence check is byte-exact now
 > - the answer git itself would give - and one mandate whose only instances differ by
 > case became the phantom a Linux `cat` always said it was (95 -> 96). Before it,
@@ -289,8 +294,8 @@ One line rather than a heredoc, because a heredoc is a bash construct and this l
 to work in PowerShell too — a "verify it yourself" section that only verifies on Unix
 is half a claim.
 
-**It is small enough to actually read.** 5,886 lines across 14 files in `kibsu/`, plus
-5,857 lines of tests running 233 cases. That is an evening, not a quarter. Count it
+**It is small enough to actually read.** 5,945 lines across 14 files in `kibsu/`, plus
+6,009 lines of tests running 243 cases. That is an evening, not a quarter. Count it
 yourself rather than believing this paragraph — this is the third revision of these
 numbers to ship after the code had already grown past them ([#29](https://github.com/M-Bajalan/kibsu/issues/29)
 indexes the incident), so the commands below outrank the prose above them - and as of #29's fix the test

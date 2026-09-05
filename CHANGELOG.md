@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.8.0 - 2026-09-05
+
+The pre-release audit round. Before this package was cut, `main` was audited the way the
+survey repos are - adversarial agents over the three scorer rounds of 2026-08-31, refuters
+defaulting to "refuted" when a claim could not be reproduced - and everything that survived
+ships here. Minor version: the published figures move, the sdist's contents change, and this
+package carries scorer 0.10.0 (the 0.7.0 package carried 0.8.0; scorer 0.9.0 was never on PyPI).
+
+- **SCORER 0.10.0 (#89; CORRECTIONS 2026-09-01): three refinements, one moves numbers.** Five
+  verb-vocabulary entries - `note`, `state`, `list`, `record`, `track` - stop counting
+  `Note: ...`, `List of ...` and `State of ...` openers as instructions (20 of 5,930 counted
+  lines on a 250-file public corpus; `List the files` still counts). Two measured nulls: the
+  directory-prefix SCOPE check had gone case-sensitive with 0.9.0's byte-exact existence check
+  (scope and existence are different questions - two matchers now), and the mandate rule read
+  user-scope mentions ("save it into *your* notes") as this repository's promises. Zero pinned
+  tokens hit either. Re-measured at the same pinned SHAs (#92): median procedure-only
+  7.7% -> 7.5%, instructions 26,698 -> 26,623, in-scope mandated artifacts 230 -> 229 with
+  phantoms unmoved at 96 (42%). The median moved DOWN because many of the dropped callouts
+  carried a backtick command and had been counted CHECKABLE - a note about a command is not a
+  command.
+- **Scorer 0.9.0 (#85, #86) reaches a package for the first time:** file existence is byte-exact,
+  like git; detection stays case-insensitive. One flip at the pins, phantoms 95 -> 96.
+- **The sdist can run its own test suite (#90, #91).** The 0.7.0 tarball on PyPI could not:
+  setuptools' legacy finder dropped `tests/support.py`, `tests/__init__.py`, `tools/` and
+  `evidence/`. `MANIFEST.in` now carries them, plus the CI definitions the suite reads;
+  `tools/assert_dist_roundtrip.py --sdist-contents --sdist-suite` proves it against every build
+  in CI, unpacking behind a containment check after CodeQL flagged the first draft's
+  `extractall()`. #90's commit message described three parts and shipped one; #91's message
+  owns that, and CORRECTIONS records it.
+- **`kibsu audit --definitions` describes the ruleset it runs (#88).** The text had stopped at
+  scorer 0.6.0 while the code was at 0.9.0.
+- **PREREGISTRATION.md carries a dated correction.** Two cells of the 2026-08-07 table were
+  copies of the baseline row (post-cycle-1 doctrine, 0/34 and 0/37; re-run from the v0.2.1 and
+  v0.3.0 tags: 0/40 and 0/44). Doctrine was 0.0% at every state under every instrument - no
+  conclusion moves. The chaining check runs before any note is committed from here on.
+
 ## 0.7.0 - 2026-08-31
 
 The genre round, alone by design. Scorer 0.8.0's mandate rule is the only change: a unit

@@ -7,6 +7,84 @@ expects to keep finding errors in its own instrument; the alternative is not fin
 
 ---
 
+## 2026-09-01 — a pre-release audit of yesterday's three rounds (scorer 0.10.0)
+
+Before cutting the release carrying scorer 0.9.0, main was audited the way the survey repos
+are: two adversarial agents sent at the three scorer rounds shipped on 2026-08-31, refuters
+defaulting to "refuted" when a claim could not be reproduced. Five findings survived. Three
+touch the scorer and ship as 0.10.0 ([#PR1](https://github.com/M-Bajalan/kibsu/pull/89));
+one was a stale ruleset disclosure, fixed in [#88](https://github.com/M-Bajalan/kibsu/pull/88);
+one is packaging - the live 0.7.0 sdist could not run its own test suite. That fix arrived in
+two commits, and the first one's message overstated it: [#90](https://github.com/M-Bajalan/kibsu/pull/90)
+described MANIFEST.in plus two checker flags plus their CI wiring, and shipped MANIFEST.in
+alone (the applying script stopped early; a `;` where `&&` belonged let the commit through).
+The checks and wiring landed in [#91](https://github.com/M-Bajalan/kibsu/pull/91),
+whose message owns the discrepancy - and whose first push CodeQL flagged for `py/tarslip`: the
+checker written to guard the release unpacked the tarball with `extractall()`, the same
+path-escape class #59 and #65 had closed elsewhere. It extracts member-by-member behind a
+containment check now, with two negative controls. Recorded here because a commit message the
+repository does not back is the exact class this project measures elsewhere. Survey re-run at
+the **same pinned SHAs**, ref-scrubbed clones as always.
+
+**Two of the three scorer refinements are measured nulls** - real defects, reproduced in a
+temp repo, and affecting zero units at the pinned states:
+
+- **The directory-prefix scope check went case-sensitive by accident.** 0.9.0 made `glob_re()`
+  byte-exact for the file-existence question git answers; `check_artifacts()` reused the same
+  function to decide whether a mandate's *ancestor directory* is this repo's business at all -
+  a scope question, to which a directory that exists under different casing answers yes. A
+  tracked `skills/` with a mandate for `Skills/foo.md` fell into the prefix-missing exclusion
+  bucket and was never phantom-checked: not credited, not counted, and invisible to the 0.9.0
+  ablation, because an excluded token never reaches `match_count`. Two questions, two matchers
+  now. Zero pinned-corpus tokens were affected.
+- **The mandate rule read the raw mandated list.** A doctrine unit whose only "mandate" was
+  "save `{name}.md` into *your* project's notes" - a mention `check_artifacts()` excludes as
+  user-scope - was demoted to mixed, and a declared doctrine earned a false conflict flag. The
+  rule's own justification ("a unit promising files is making checkable promises") does not
+  hold for a promise about someone else's tree. Gated on `any_clean`, a per-mention signal the
+  scan already computed. Zero of the eight pinned-corpus demotions were affected.
+
+**The third moves numbers.** Five entries in the verb vocabulary - `note`, `state`, `list`,
+`record`, `track` - open ordinary prose at least as often as they command: `Note: ...`,
+`Note that ...`, `List of ...`, `State of ...`. The 0.7.0 census had rejected `import`,
+`order` and `format` on exactly this ground, and never re-examined the inherited list. When
+one of the five is followed by a colon or by *that / of / the following / is / are / was*, the
+line is a label or a description, not an instruction. On a 250-file public corpus 20 of 5,930
+counted lines drop, every one a `Note:` callout or a wrapped continuation; `List the files`
+still counts. Disclosed residual: a noun-noun opener (`Record types are ...`) is still counted
+- the rule reaches the contexts the corpus produced, and one synthetic probe is not evidence
+to widen it.
+
+**What moved** (survey at the same pinned SHAs, scorer 0.9.0 → 0.10.0):
+
+| figure | 0.9.0 published | 0.10.0 re-measured |
+|---|---|---|
+| median procedure-only checkability (8 ranked collections) | 7.7% | **7.5%** |
+| total instructions, 8 ranked collections | 26,698 | **26,623** |
+| phantom artifacts | 96 of 230 (42%) | **96 of 229 (42%)** |
+| genre census, doctrine units | 15 | **15 (unmoved)** |
+| origin workspace, every state | — | **two `Note:` lines fewer per state; see PREREGISTRATION** |
+| kibsu-lab, every figure | — | **identical to the digit** |
+
+The median moved DOWN, which the corpus ablation did not predict and the survey then
+explained: a large share of the dropped `Note:` lines carried a backtick command
+(`Note: run \`x.py\` first`) and had therefore been counted as CHECKABLE instructions, so
+the numerator shrank with the denominator. A note about a command is not a command, and
+the checkable ratio was borrowing credit from lines that instructed nobody to do anything.
+One in-scope mandate left the denominator the same way: it sat on a `Note:` line in
+anthropics/skills, and a mention on a non-instruction line has never been a mandate. The
+genre census is untouched (doctrine 15) and the two null refinements are confirmed null at
+the pinned states, as the ablation said.
+
+The same audit found two cells in PREREGISTRATION.md's 2026-08-07 table that were copies of
+the row above them (post-cycle-1 doctrine, both instrument columns); the file carries a dated
+correction with the re-run values, per its own rule. Reproduce both sides of this entry:
+`pip install kibsu==0.7.0` (which carries scorer 0.8.0 - the 0.9.0 instrument was never on
+PyPI, only on `main` between #85 and this entry) versus this repository at `main`,
+ref-scrubbed pinned clones per the 0.6.0 entry's caveat.
+
+---
+
 ## 2026-08-31 — the existence check matched case-insensitively; git never did (scorer 0.9.0)
 
 The case round ([#78](https://github.com/M-Bajalan/kibsu/issues/78), fixed in
