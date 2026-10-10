@@ -28,8 +28,16 @@ receipt file). Everything else — `report`, `audit`, `discover`, `survey`, `gui
 No dependencies. Python 3.8+.
 
 ```bash
+pip install kibsu
 python -m kibsu report /path/to/any/repo
 ```
+
+Or try it without installing anything into your environment: `uvx kibsu report /path/to/any/repo`
+(`pipx run kibsu report ...` is the same idea). `kibsu ...` and `python -m kibsu ...` are the
+same program; this page writes the long form because it is the one that also works from a
+bare clone, with no install at all. One honesty note: the short `kibsu` command needs a
+release newer than 0.8.0 — through 0.8.0 the package declared no command, and `uvx kibsu`
+answered "does not provide any executables" (see [CORRECTIONS.md](CORRECTIONS.md), 2026-10-10).
 
 `report` is one of twelve subcommands — `python -m kibsu --help` lists them all. It is
 the one to start with, and the only one you need to read this page.
@@ -42,7 +50,7 @@ Real output, against a public repository at commit `3dcbd5c`:
   --------------------------------------------------------------------------
   x  Find your docs             89 markdown files, no index. An agent must grep the tree.
   +  Know your conventions      consistent frontmatter (description, name) - enforceable.
-  +  Prove they followed        15.6% of your procedural instructions are verifiable (above the 9.4% public median).
+  +  Prove they followed        13.1% of your procedural instructions are verifiable (above the 7.5% public median).
   x  Resume after a break       1 of 1 artifacts your instructions promise have never existed in any commit.
   ?  Follow your own rules      COULD NOT CHECK - no index file to check history against (looked for docs/index.json, .kibsu/index.json, docs/index.json).
   --------------------------------------------------------------------------
@@ -50,21 +58,21 @@ Real output, against a public repository at commit `3dcbd5c`:
   Nothing was written to this repo - run `git status` to confirm.
 ```
 
-> That block was re-run against `3dcbd5c` with scorer 0.6.0 on 2026-08-07 before being
-> pasted here — the third re-paste this block has needed, each one recorded. This round:
-> 19.8% became 15.6% and the median it is compared against became 9.4%, because the scorer
-> now counts Title-case directives ("- Must run the tests.") it used to skip entirely —
-> obra's instruction denominator grew from 265 to 339 with the checkable count barely
-> moving (see [CORRECTIONS.md](CORRECTIONS.md), 2026-08-07). Two smaller honesty notes on
-> this paste: it was produced on Linux, the platform the repro commands below target, so
-> the lookup-paths line now shows forward slashes — the previous paste's `docs\index.json`
-> was quietly disclosing a Windows run; and the long lines are no longer re-wrapped for
-> README width — the block now matches the tool's byte-for-byte line structure. The prior
-> two re-pastes (the scaffold-scope change under 0.5.0, the pre-`?`-mark build before
-> that) are narrated in this file's git history. A pasted sample a reader could reproduce
-> and get something *else* from is the same reproducibility defect as the SHA-less survey
-> table further down, and it is recorded rather than quietly corrected for the same
-> reason.
+> That block was last re-run against `3dcbd5c` on 2026-10-10, with scorer 0.10.0 — the
+> fourth re-paste it has needed, each one recorded. One line moved, and both numbers on it
+> were stale for different reasons. 15.6% became 13.1%: the block had not been re-run since
+> scorer 0.6.0, while the survey table further down was re-measured three times — so this
+> page showed two different figures for the same repository at the same commit. And 9.4%
+> became 7.5%: that one was stale *inside the tool*. `report` carries the survey median as a
+> constant, and it sat at the scorer-0.6.0 value through three releases while the scorer and
+> this page's own table moved on (see [CORRECTIONS.md](CORRECTIONS.md), 2026-10-10 — a
+> test now fails while the constant and `evidence/` disagree). This run was on Windows; every
+> other line matched the earlier Linux paste except for path separators, so those lines are
+> kept as pasted. The three earlier re-pastes (Title-case directives under scorer 0.6.0, the
+> scaffold-scope change under 0.5.0, the pre-`?`-mark build before that) are narrated in
+> this file's git history. A pasted sample a reader could reproduce and get something
+> *else* from is the same reproducibility defect as the SHA-less survey table further down,
+> and it is recorded rather than quietly corrected for the same reason.
 
 Reproduce it:
 
@@ -294,8 +302,8 @@ One line rather than a heredoc, because a heredoc is a bash construct and this l
 to work in PowerShell too — a "verify it yourself" section that only verifies on Unix
 is half a claim.
 
-**It is small enough to actually read.** 5,949 lines across 14 files in `kibsu/`, plus
-6,033 lines of tests running 244 cases. That is an evening, not a quarter. Count it
+**It is small enough to actually read.** 6,018 lines across 14 files in `kibsu/`, plus
+6,423 lines of tests running 262 cases. That is an evening, not a quarter. Count it
 yourself rather than believing this paragraph — this is the third revision of these
 numbers to ship after the code had already grown past them ([#29](https://github.com/M-Bajalan/kibsu/issues/29)
 indexes the incident), so the commands below outrank the prose above them - and as of #29's fix the test
@@ -385,7 +393,7 @@ Read these before quoting anything above.
 
 - **`obra/superpowers` ships a separate eval harness** that drives real agent CLIs and grades
   whether a skill was followed. Kibsu reads only *documents*, so it cannot see that. The real
-  enforceability of that repo is higher than 15.6%. This is the strongest counter-example to the
+  enforceability of that repo is higher than 13.1%. This is the strongest counter-example to the
   entire approach, and it belongs at the top of the limits rather than buried at the bottom.
 - **The metric is a heuristic.** Biased generous by design. Ceilings, not measurements.
 - **Persona collections are not badly written**, they are a different genre. Scoring them on

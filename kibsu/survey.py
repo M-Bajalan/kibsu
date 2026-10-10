@@ -85,6 +85,16 @@ def _version_banner():
 MIN_UNITS, MIN_INSTR = 5, 50
 
 
+def median(values):
+    """The median main() prints. A function rather than an inline expression because report.py
+    ships this figure as a constant, and the guard that keeps the two equal
+    (tests/test_peer_median.py) has to measure with THIS code - a second median that merely
+    agrees today is how the constant sat three releases behind the table."""
+    ps = sorted(values)
+    n = len(ps)
+    return ps[n // 2] if n % 2 else (ps[n // 2 - 1] + ps[n // 2]) / 2
+
+
 def _artifact_population(arts, include_out_of_scope):
     """The population taxonomy every count-printing site in survey.py's main() must speak - named
     ONCE, here, so "distinct" and "record" never again mean two different things a few lines
@@ -280,7 +290,7 @@ def main():
         for key, lbl in (("pct_all", "all units"), ("pct_proc", "procedure units only")):
             ps = sorted(r[key] for r in pub)
             n = len(ps)
-            med = ps[n // 2] if n % 2 else (ps[n // 2 - 1] + ps[n // 2]) / 2
+            med = median(ps)
             print("ranked public n=%d  %-22s median %5.1f%%   min %4.1f%%   max %5.1f%%"
                   % (n, lbl, med, ps[0], ps[-1]))
         # Same guard as cf_repos below (issue #30): a shallow-history repo's mand must not

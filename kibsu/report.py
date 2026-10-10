@@ -26,7 +26,7 @@ WHAT IT MEASURES
 
 Dependency-free. Python 3.8+. Reads only.
 
-  python -m kibsu report [repo] [--skills DIR] [--json] [--peer-median 11.1]
+  python -m kibsu report [repo] [--skills DIR] [--json] [--peer-median 7.5]
 
 EXIT CODES
   0  the report is complete - every check ran.
@@ -51,8 +51,12 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 VERSION = "1.1.0"
-PEER_MEDIAN = 9.4           # procedure-only checkability, 8 public collections, SHA-pinned,
-                            # scorer 0.6.0 (was 11.1 under 0.5.0 - CORRECTIONS.md, 2026-08-07)
+PEER_MEDIAN = 7.5           # procedure-only checkability, 8 public collections, SHA-pinned.
+PEER_MEDIAN_SCORER = "0.10.0"   # the scorer that median was measured with. The pair is a
+                            # published figure living inside code: tests/test_peer_median.py
+                            # fails while either half disagrees with evidence/ (it sat at 9.4,
+                            # scorer 0.6.0, through three releases - CORRECTIONS.md, 2026-10-10).
+BACKTEST_N = 200            # how many commits question 5 replays, at most
 BAD, WARN, OK, SKIP = "x", "!", "+", "?"
 CANNOT_RUN = 3              # exit code, same value and same meaning as in ns_check.py
 # SKIP is not a pass. A check that could not run must say so on its own line - printing one
@@ -126,6 +130,47 @@ def root_instruction_files(root, cfg=None):
     """
     names = (cfg or {}).get("instruction_files") or config.DEFAULTS["instruction_files"]
     return [n for n in names if os.path.isfile(os.path.join(root, n.replace("/", os.sep)))]
+
+
+def verifiability_verdict(pct, peer_median):
+    """What "ready" means on question 3: (mark, comparison word).
+
+    The rule is relative, not absolute - a repository is ready when it beats the public median,
+    whatever that median is. Kept as its own function because it is the one place in this
+    report where a policy, not a measurement, decides the mark."""
+    above = pct > peer_median
+    return (OK if above else BAD), ("above" if above else "below")
+
+
+def median_note(run_scorer, peer_median):
+    """Disclose a comparison across two scorers, in the finding itself.
+
+    The median is a constant measured with PEER_MEDIAN_SCORER; the percentage beside it is
+    measured by whatever scorer is running. An instrument change lands before its
+    re-measurement does, and in that window the two differ - the same pair of numbers, no
+    longer like for like. Empty when the caller passed their own --peer-median: that figure is
+    theirs to vouch for, and a note about our scorer on it would describe a measurement we
+    never saw."""
+    if peer_median != PEER_MEDIAN or not run_scorer or run_scorer == PEER_MEDIAN_SCORER:
+        return ""
+    return (" - that median was measured with scorer %s and this run used %s, so the "
+            "comparison is approximate" % (PEER_MEDIAN_SCORER, run_scorer))
+
+
+def index_ever_committed(root, rel):
+    """Has this index file been in any commit on the current history? None when git could not
+    answer (not a repository) - the caller falls through to the replay's own abstention."""
+    out = run(["git", "log", "-1", "--format=%H", "--", rel.replace("\\", "/")], root)
+    return None if out is None else bool(out.strip())
+
+
+def commits_replayed(root):
+    """How many commits the replay actually walked: the history, capped at BACKTEST_N."""
+    out = run(["git", "rev-list", "--count", "--max-count=%d" % BACKTEST_N, "HEAD"], root)
+    try:
+        return int(out.strip())
+    except (AttributeError, ValueError):
+        return BACKTEST_N
 
 
 def q(p):
@@ -211,12 +256,13 @@ def main():
         p = sk["procedure_only"]
         if p["instructions"] >= 20:
             pct = p["pct"]
-            cmp_ = "above" if pct > a.peer_median else "below"
-            mark = OK if pct > a.peer_median else BAD
+            mark, cmp_ = verifiability_verdict(pct, a.peer_median)
             findings.append((mark, "Prove they followed",
                              "%.1f%% of your procedural instructions are verifiable "
-                             "(%s the %.1f%% public median)." % (pct, cmp_, a.peer_median)))
-            if pct > a.peer_median:
+                             "(%s the %.1f%% public median%s)."
+                             % (pct, cmp_, a.peer_median,
+                                median_note(sk.get("version"), a.peer_median))))
+            if mark == OK:
                 score += 1
         else:
             findings.append((WARN, "Prove they followed",
@@ -278,7 +324,18 @@ def main():
         if os.path.isfile(os.path.join(root, c.replace("/", os.sep))):
             cat = c
             break
-    if cat:
+    if cat and index_ever_committed(root, cat) is False:
+        # An index that was never committed has no history, so every commit that added a doc
+        # "failed to update it" and the replay convicts 100% of the eligible commits - a number
+        # check.py's own backtest docstring calls meaningless. `kibsu index` writes exactly
+        # such a file, and gitignoring it to build on demand is a legitimate layout: following
+        # this tool's own quickstart must not turn "could not check" into an accusation.
+        findings.append((SKIP, "Follow your own rules",
+                         "COULD NOT CHECK - %s has never been committed (built locally, or "
+                         "gitignored), so there is no index history to replay." % cat,
+                         "git -C %s log --oneline -- %s"
+                         % (q(root), q(cat.replace("\\", "/")))))
+    elif cat:
         # ns_check needs an index in ITS format; the repo's own catalog is a different
         # shape, and passing it made ns_check exit 3 (cannot run) so the backtest never ran
         # and this whole finding vanished without an error. Build ours into a SYSTEM temp
@@ -293,7 +350,7 @@ def main():
                 with io.open(tmp, "w", encoding="utf-8", newline="") as fh:
                     fh.write(_ni.dumps(idx))
                 out = run([sys.executable, tool("check.py"), root, "--all", "--quiet",
-                           "--index", tmp, "--backtest", "200", "--backtest-index", cat,
+                           "--index", tmp, "--backtest", str(BACKTEST_N), "--backtest-index", cat,
                            "--backtest-mode", "existence"], root, any_rc=True)
             finally:
                 try:
@@ -309,9 +366,11 @@ def main():
                     pass
         if n is not None:
             mark = OK if n == 0 else BAD
+            # The denominator is the commits actually walked. It used to print the cap, so a
+            # repository with twenty commits was told about its "last 200".
             findings.append((mark, "Follow your own rules",
-                             "%d of your last 200 commits changed a doc without updating "
-                             "the index they claim to keep." % n))
+                             "%d of your last %d commits changed a doc without updating "
+                             "the index they claim to keep." % (n, commits_replayed(root))))
             if n == 0:
                 score += 1
         else:

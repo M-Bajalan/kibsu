@@ -7,6 +7,88 @@ expects to keep finding errors in its own instrument; the alternative is not fin
 
 ---
 
+## 2026-10-10 — the front door: `report` compared against a median three scorers old
+
+Every earlier audit read this code against itself. This round did something else: it installed
+the published 0.8.0 into an empty environment and followed the two READMEs as a stranger
+would - `pip install kibsu`, the sample on this repository's front page, then kibsu-lab's
+Quickstart from a fresh clone. Four things were wrong, none of them in the scorer, and none
+of the survey table's figures move. One of them is a published number, which is why it is
+indexed here.
+
+**`report` judged every repository against the wrong median.** Question 3's mark is decided
+by one comparison - the repository's procedure-only percentage against the public median -
+and `report.py` carries that median as a constant, because the wheel does not ship
+`evidence/`. It was set to 9.4 when scorer 0.6.0 measured 9.4, and never moved again. Scorer
+0.7.0 re-measured the table to 7.7 and 0.10.0 to 7.5; four measurement rounds regenerated
+`evidence/` and this file's tables, and not one touched the constant, because nothing
+connected the two. Releases **0.6.0, 0.7.0 and 0.8.0** therefore measured with the strict
+instrument and compared the answer to a median taken with the lenient one.
+
+Direction of the bias: **against the repository being measured** - the one case in this file
+where the tool was too harsh rather than too generous. Anything between 7.5% and 9.4% was
+told it sat below a median it was above, lost the `+`, and lost a point of its "N of 5".
+One of this project's own eight survey rows is in that band: `wshobson/agents` at its pinned
+`c4b82b0` reads `x ... 7.7% (below the 9.4% public median)`, `1 of 5 ready` under the
+published 0.8.0, and `+ ... 7.7% (above the 7.5% public median)`, `2 of 5 ready` from this
+commit. The same staleness sat in this README's pasted sample, which had not been re-run
+since scorer 0.6.0 and so printed 15.6% for `obra/superpowers` at `3dcbd5c` a few screens
+above a table giving 13.1% for the same repository at the same commit.
+
+**What moved** (no survey figure; the instrument's own comparison and one pasted sample):
+
+| figure | published | corrected |
+|---|---|---|
+| `report`'s public median, the constant behind question 3's mark | 9.4% (scorer 0.6.0) | **7.5%** (scorer 0.10.0 - the table's own median) |
+| README sample, `obra/superpowers` at `3dcbd5c`, question 3 | 15.6%, above the 9.4% median | **13.1%, above the 7.5% median** |
+| `wshobson/agents` at `c4b82b0`, question 3 and score | `x` below the median, 1 of 5 | **`+` above the median, 2 of 5** |
+| survey table: every percentage, the median, the phantom counts | — | **unmoved** |
+
+Reproduce both sides: `pip install kibsu==0.8.0`, then `python -m kibsu report` against a
+clone of either repository checked out at the SHA above, prints the left column; the same
+command from this commit prints the right. The constant is now a pair - the median and the
+scorer it was measured with - and `tests/test_peer_median.py` fails while either half
+disagrees with the committed `evidence/`, computing the median through the survey's own
+function rather than a copy of it. An instrument change still lands before its
+re-measurement does, and in that window the two scorers honestly differ; `report` now says
+so in the finding itself instead of comparing in silence.
+
+**Three siblings from the same walk, no published figure involved:**
+
+- **An index with no history was replayed, and convicted.** `kibsu index` writes
+  `.kibsu/index.json`; a repository is free to gitignore it and build it on demand, as
+  kibsu-lab does. Question 5 replayed the last commits against that file anyway, and since
+  it had never been in a commit, every commit that added a doc "failed to update it" - 6 of
+  6 eligible in the lab, the 100% that `check.py`'s own backtest docstring calls a number
+  that "would mean nothing". Following this tool's quickstart turned `?` into an accusation
+  - run at 0.1.1 and at 0.8.0, same line both times (0.1.0 abstained, but only because of
+  the scoping bug in #2).
+  It reads `COULD NOT CHECK - ... has never been committed` now, with the read-only command
+  that shows it. A committed index left stale is still convicted; that is the negative control.
+- **"Of your last 200 commits" on a repository with twenty.** The line printed the replay's
+  cap as its denominator. It prints the commits actually walked.
+- **An installed kibsu did not answer to its name.** No console script was declared, so
+  `uvx kibsu` stopped at "does not provide any executables" (`pipx run` needs the same
+  declaration) and `pip install kibsu` left no `kibsu` command. The package declares one
+  now, bound to the same `main()` that `python -m kibsu` runs.
+- **The tool that writes this README's counts wrote a wrong one, and exited 0.** Found while
+  building this round, by the round's own tests. `tools/refresh_readme_counts.py` puts
+  `tools/` on the import path and not the clone root, so the test modules it discovers
+  imported whichever kibsu was pip-installed on the machine - here an older release. A new
+  test module needed a name that release lacked, failed to import, and unittest counted the
+  failure as one case: the tool reported 251 cases, wrote 251 into the README, and printed
+  "refreshed". The suite ran 258 and failed on the paragraph the tool had just produced.
+  Nothing was published - the guard caught its own companion - but a count is now refused,
+  exit 2, when any test module fails to load, and the clone root is on the path before
+  discovery. An unmeasurable count is "cannot tell", the same answer `?` gives.
+
+Not fixed here, and named so it is not mistaken for fixed: **kibsu-lab's README and CI are
+pinned to kibsu 0.1.0.** Its published baseline (53.7%, question 5 "could not check", a
+citation of #2 as an open limitation) reproduces only under that one version; under 0.8.0 a
+fresh clone following its Quickstart gets 47.8% and a different fifth line. The pin kept its
+CI green through nine releases. It is refreshed in the lab's own repository against the release
+that carries this round, so the block is re-captured once, not twice.
+
 ## 2026-09-01 — a pre-release audit of yesterday's three rounds (scorer 0.10.0)
 
 Before cutting the release carrying scorer 0.9.0, main was audited the way the survey repos
