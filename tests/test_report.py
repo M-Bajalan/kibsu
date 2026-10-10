@@ -26,7 +26,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from support import make_repo, run_tool, assert_repo_untouched
+from support import make_repo, run_git, run_tool, assert_repo_untouched
 
 
 class RootInstructionFileReportTests(unittest.TestCase):
@@ -140,6 +140,82 @@ class ReportTests(unittest.TestCase):
         self.assertNotEqual(continuity["mark"], "+", "must never read OK on unverifiable-only "
                                                       "evidence: %r" % continuity)
         self.assertEqual(continuity["mark"], "!", continuity)
+        assert_repo_untouched(repo)
+
+
+def _commit_all(repo, message):
+    """Stage everything and commit with an inline identity - never the machine's global config."""
+    rc, out, err = run_git(repo, "add", "-A")
+    assert rc == 0, "git add -A failed: %s" % (err or out)
+    rc, out, err = run_git(
+        repo,
+        "-c", "user.email=kibsu-tests@example.com",
+        "-c", "user.name=Kibsu Tests",
+        "commit", "-q", "-m", message,
+    )
+    assert rc == 0, "git commit failed: %s" % (err or out)
+
+
+def _write(repo, relpath, content):
+    full = os.path.join(repo, relpath.replace("/", os.sep))
+    if not os.path.isdir(os.path.dirname(full)):
+        os.makedirs(os.path.dirname(full))
+    with open(full, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(content)
+
+
+class HistoryReplayTests(unittest.TestCase):
+    """Question 5 replays commits against the index the repository claims to keep. Both tests
+    drive the same question; what differs is whether that index has any history to replay."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_report_history_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _history(self, repo):
+        exit_code, stdout, stderr = run_tool("report", repo, "--json")
+        result = json.loads(stdout)
+        return exit_code, next(f for f in result["findings"]
+                               if f["title"] == "Follow your own rules")
+
+    def test_an_index_that_was_never_committed_is_not_replayed(self):
+        """`kibsu index` writes .kibsu/index.json, and a repository is free to gitignore it and
+        build it on demand. Such an index has no history, so every commit that added a doc
+        "failed to update it" - check.py's own backtest docstring calls that number meaningless.
+        report used to print it anyway: following this tool's own quickstart turned Q5 from
+        `?` into an accusation of 100% of the eligible commits. It must say it could not check."""
+        repo = make_repo(self.tmpdir, {
+            ".gitignore": ".kibsu/index.json\n",
+            "docs/one.md": "---\ntype: doc\n---\n# One\n",
+        })
+        _write(repo, "docs/two.md", "---\ntype: doc\n---\n# Two\n")
+        _commit_all(repo, "add docs/two.md")
+        _write(repo, ".kibsu/index.json", '{"generated": true}\n')   # ignored, never committed
+
+        exit_code, history = self._history(repo)
+
+        self.assertEqual(history["mark"], "?", history)
+        self.assertIn("never been committed", history["detail"])
+        self.assertEqual(exit_code, 3, "a check that could not run must exit CANNOT_RUN")
+        assert_repo_untouched(repo)
+
+    def test_negative_control_a_committed_index_left_stale_is_convicted_with_the_real_count(self):
+        """The control for the test above: the same question against an index that DOES have
+        history must still convict - and the denominator is the commits actually replayed.
+        The line used to read "of your last 200 commits" on a repository that had two."""
+        repo = make_repo(self.tmpdir, {
+            "docs/index.json": '{"generated": true}\n',
+            "docs/one.md": "---\ntype: doc\n---\n# One\n",
+        })
+        _write(repo, "docs/two.md", "---\ntype: doc\n---\n# Two\n")
+        _commit_all(repo, "add docs/two.md without touching the index")
+
+        exit_code, history = self._history(repo)
+
+        self.assertEqual(history["mark"], "x", history)
+        self.assertIn("1 of your last 2 commits", history["detail"])
         assert_repo_untouched(repo)
 
 

@@ -32,6 +32,13 @@ dependencies = []
 [project.urls]
 Homepage = "https://github.com/M-Bajalan/kibsu"
 
+# `pip install kibsu` put no command on PATH through 0.8.0, so `uvx kibsu` answered "does not
+# provide any executables" (`pipx run` needs the same declaration) - the one-line trial a
+# stranger reaches for first.
+# Same main() that `python -m kibsu` calls; clone-and-run (CONTRIBUTING rule 3) is untouched.
+[project.scripts]
+kibsu = "kibsu.__main__:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["kibsu*"]

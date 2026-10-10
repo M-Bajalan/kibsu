@@ -21,7 +21,9 @@ import io
 import os
 import pathlib
 import re
+import shutil
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +35,36 @@ CLAIM_RE = re.compile(
 )
 
 
+class CannotCount(RuntimeError):
+    """Discovery could not import every test module, so there is no honest case count."""
+
+
+def count_cases(start_dir):
+    """The case count `python -m unittest discover -s tests` reports from the clone root.
+
+    That command gets two things for free which a function has to arrange. The clone root is
+    first on sys.path, so `import kibsu` means this checkout; called from tools/ instead, it
+    meant whatever kibsu happened to be pip-installed. And a test module that fails to import
+    is loud there - an E and exit 1 - whereas a bare countTestCases() takes unittest's
+    stand-in for the failed module as ONE case and returns a total that is quietly short.
+
+    Together those produced a wrong number with exit 0: on a machine carrying an older
+    installed kibsu, a test module importing a name that release lacked failed to load, the
+    count came back seven short, and tools/refresh_readme_counts.py wrote it into the README
+    and printed "refreshed" (2026-10-10; the suite then failed on the tool's own output). So
+    the root goes on the path, and a load error raises instead of being counted."""
+    if PACKAGE_ROOT not in sys.path:
+        sys.path.insert(0, PACKAGE_ROOT)
+    loader = unittest.TestLoader()
+    cases = loader.discover(start_dir).countTestCases()
+    if loader.errors:
+        raise CannotCount(
+            "cannot count the test cases - %d test module(s) failed to import, and unittest "
+            "counts each failed module as one case. First failure:\n%s"
+            % (len(loader.errors), loader.errors[0].strip()[-600:]))
+    return cases
+
+
 def measure():
     """The README's own verification commands, as functions - byte-for-byte the same logic
     the paragraph tells the reader to run."""
@@ -42,7 +74,7 @@ def measure():
 
     kibsu_files, kibsu_lines = count("kibsu")
     tests_files, tests_lines = count("tests")
-    cases = unittest.TestLoader().discover(os.path.join(PACKAGE_ROOT, "tests")).countTestCases()
+    cases = count_cases(os.path.join(PACKAGE_ROOT, "tests"))
     return {"kibsu_files": kibsu_files, "kibsu_lines": kibsu_lines,
             "tests_lines": tests_lines, "cases": cases}
 
@@ -77,6 +109,45 @@ class ReadmeCountGuardTests(unittest.TestCase):
         self.assertIsNotNone(parsed)
         self.assertNotEqual(parsed, measure(),
                             "the 2026-08-07 stale numbers must read as a mismatch")
+
+
+class CountCasesTests(unittest.TestCase):
+    """count_cases() must refuse a total it cannot stand behind."""
+
+    GOOD = ("import unittest\n\n\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_one(self):\n"
+            "        pass\n")
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="kibsu_test_count_cases_")
+        self._path = list(sys.path)
+        self._modules = set(sys.modules)
+
+    def tearDown(self):
+        # discover() puts its start dir on sys.path and imports the fixtures by bare name.
+        sys.path[:] = self._path
+        for name in set(sys.modules) - self._modules:
+            del sys.modules[name]
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _fixture(self, name, text):
+        with io.open(os.path.join(self.tmpdir, name), "w", encoding="utf-8") as fh:
+            fh.write(text)
+
+    def test_modules_that_all_import_are_counted(self):
+        self._fixture("test_kibsu_count_fixture_good.py", self.GOOD)
+        self.assertEqual(count_cases(self.tmpdir), 1)
+
+    def test_negative_control_a_module_that_fails_to_import_is_not_counted_as_one_case(self):
+        """Before the refusal this returned 2: the good module's one case, plus unittest's
+        stand-in for the module that never loaded."""
+        self._fixture("test_kibsu_count_fixture_good.py", self.GOOD)
+        self._fixture("test_kibsu_count_fixture_broken.py",
+                      "import kibsu_no_such_module_for_this_fixture\n")
+        with self.assertRaises(CannotCount) as caught:
+            count_cases(self.tmpdir)
+        self.assertIn("kibsu_no_such_module_for_this_fixture", str(caught.exception))
 
 
 if __name__ == "__main__":

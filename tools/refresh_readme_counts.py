@@ -50,7 +50,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 # The guard is the single source of the measurement; import it rather than restate it.
 sys.path.insert(0, os.path.join(ROOT, "tests"))
-from test_readme_counts import CLAIM_RE, claims, measure  # noqa: E402
+from test_readme_counts import CLAIM_RE, CannotCount, claims, measure  # noqa: E402
 
 README = os.path.join(ROOT, "README.md")
 
@@ -105,7 +105,13 @@ def main(argv=None):
             "delete the guard to make this pass.\n")
         return 2
 
-    truth = measure()
+    try:
+        truth = measure()
+    except CannotCount as exc:
+        # "I cannot tell", never a number: writing a count the measurement could not stand
+        # behind is how this tool once refreshed the README to a figure seven cases short.
+        sys.stderr.write("refresh_readme_counts: %s\n" % exc)
+        return 2
     if claimed == truth:
         print("README counts are already correct: "
               "{kibsu_lines:,} lines across {kibsu_files} files in kibsu/, plus "

@@ -23,6 +23,7 @@ import contextlib
 import io
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -136,6 +137,47 @@ class RefreshTests(unittest.TestCase):
 
         self.assertEqual(self._run([self.fixture])[0], 2)
         self.assertEqual(self._run(["--check", self.fixture])[0], 2)
+
+    def test_an_installed_kibsu_of_another_version_does_not_change_the_count(self):
+        """The tool is run as `python tools/refresh_readme_counts.py`, which puts tools/ on
+        sys.path and not the clone root - so the test modules it discovers used to import
+        whatever `kibsu` the environment had installed. A decoy package ahead of site-packages
+        stands in for that install here; run from another directory, with the decoy visible,
+        the tool must still measure THIS checkout and find its README correct. A subprocess on
+        purpose: the defect lives in how a fresh interpreter resolves `import kibsu`."""
+        decoy = os.path.join(self.tmpdir, "decoy")
+        os.makedirs(os.path.join(decoy, "kibsu"))
+        with io.open(os.path.join(decoy, "kibsu", "__init__.py"), "w", encoding="utf-8") as fh:
+            fh.write('__version__ = "0.0.0"\n')
+        env = dict(os.environ, PYTHONPATH=decoy)
+
+        proc = subprocess.run(
+            [sys.executable, os.path.join(PACKAGE_ROOT, "tools", "refresh_readme_counts.py"),
+             "--check"],
+            cwd=self.tmpdir, env=env, capture_output=True, text=True,
+            encoding="utf-8", errors="replace")
+
+        self.assertEqual(proc.returncode, 0, "stdout=%r stderr=%r" % (proc.stdout, proc.stderr))
+
+    def test_a_count_that_cannot_be_measured_is_an_error_not_a_number(self):
+        """Rule 4's control for the refusal: when the measurement says it cannot count, the
+        tool reports that (2) and writes nothing - it never falls back to a figure."""
+        stale = self._paragraph("4,111", "9", "3,258", "120")
+        self._write(stale)
+
+        def cannot():
+            raise guard.CannotCount("1 test module(s) failed to import")
+
+        real = tool.measure
+        tool.measure = cannot
+        try:
+            rc, _out, err = self._run([self.fixture])
+        finally:
+            tool.measure = real
+
+        self.assertEqual(rc, 2)
+        self.assertIn("failed to import", err)
+        self.assertEqual(self._read(), stale, "nothing may be written without a measurement")
 
 
 if __name__ == "__main__":

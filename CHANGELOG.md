@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+The front-door round (CORRECTIONS 2026-10-10): the published 0.8.0 was installed into an
+empty environment and both READMEs were followed as a stranger would. The scorer is untouched
+- still 0.10.0 - and no survey figure moves; what changes is what `report` says and how the
+package is reached. Consumer-observable: question 3's mark and the score can change for a
+repository between 7.5% and 9.4%, question 5's line changes for a repository whose index was
+never committed, and the install gains a `kibsu` command.
+
+- **`report` compares against the median the table publishes.** The constant behind question
+  3 sat at 9.4 (scorer 0.6.0) through releases 0.6.0-0.8.0 while the published median moved to
+  7.7 and 7.5. It is 7.5 now, stored with the scorer that measured it, and
+  `tests/test_peer_median.py` fails while the pair disagrees with `evidence/`. When the running
+  scorer differs from the median's, the finding says so.
+- **Question 5 abstains on an index that was never committed** instead of convicting every
+  commit that added a doc - the layout `kibsu index` itself produces when the file is
+  gitignored. A committed index left stale is still convicted.
+- **Question 5 counts the commits it actually replayed**, not the cap of 200.
+- **`pip install kibsu` provides a `kibsu` command**, so `uvx kibsu report .` and
+  `pipx run kibsu report .` work. `python -m kibsu` is unchanged and remains the form that
+  runs from a bare clone.
+- **README:** an install line (there was none), and the pasted sample re-run - it had shown
+  15.6% for a repository the table below it gave 13.1%.
+- **`tools/refresh_readme_counts.py` refuses a count it cannot measure.** Run on a machine with
+  an older kibsu pip-installed, it imported that copy during test discovery, lost a test
+  module to an import error, and wrote a case count seven short with exit 0. It measures this
+  checkout now, and exits 2 when any test module fails to load.
+- **`install.json` records when the install happened (#43, closes #36).** `installed_at`
+  carried the HEAD commit's timestamp; it is wall-clock now, with the commit time kept beside
+  it. Contributed by @HeaTTap - the project's second outside code contribution.
+
 ## 0.8.0 - 2026-09-05
 
 The pre-release audit round. Before this package was cut, `main` was audited the way the
