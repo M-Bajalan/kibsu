@@ -2,25 +2,52 @@
 
 ## Unreleased
 
+- **Scorer 0.11.0: what is counted is the sentence, not the line** (CORRECTIONS
+  2026-10-11). Through 0.10.0 a sentence hard-wrapped over three lines was scored once per
+  line that carried a directive word, and a line holding three sentences was scored once,
+  so a file's score moved when it was re-wrapped. The document is now read the way Markdown
+  renders it - the lines of a paragraph, list item or blockquote joined, by CommonMark's own
+  rules for what may end a paragraph - and every signal, genre included, is computed from
+  that. Each block is then cut into sentences, and a mandated file is read from one
+  sentence, not one line. A tick-box item counts once.
+  **Every published figure was re-measured at the same pinned SHAs.** The median moves
+  7.5% -> 7.6%; single collections move by up to 1.6 points in both directions (hard-wrapped
+  prose had been scored too low, long lines too high); in-scope mandated artifacts go
+  229 -> 172 and never-existed 96 -> 75, with every mention that left or arrived classified
+  by hand in CORRECTIONS. `evidence/` is regenerated, `report`'s public median is 7.6
+  (scorer 0.11.0), and PREREGISTRATION carries the re-measured column.
+  **Observable to consumers:** every percentage `audit`, `report` and `explain` print can
+  change for the same repository at the same commit; `audit --json` gains `logical_lines`
+  per unit, and `--lines` records gain `end_line`. The limit this corrects was disclosed in
+  the README the day `explain` showed it, before it was fixed.
+- **Where a soft line break falls no longer changes a number.** `tests/test_sentences.py`
+  holds it as a property over described documents at 29 widths, with a control showing a
+  line count does move on the same fixtures. The first draft's property test passed and was
+  wrong; an adversarial pass with an independent CommonMark parser as oracle found six ways
+  a re-wrap changed a count, and the reader was rewritten to the spec's interruption rules.
+  Two places side with the file's reader against the renderer, on purpose and tested: a
+  fence on the line under a tag is a fence, and a pipe table with a ragged delimiter row is
+  a table.
+- **The sentence scan is linear.** The draft's splitter went quadratic and its code-span
+  pattern cubic - one hostile line could hold a scan for minutes. Both are single passes
+  now, with timing tests.
+- **`explain` says "instruction", and lists whole sentences.** Its entries were physical
+  lines, fragments included; they are sentences now, shown at the line they start on. The
+  wording follows: `N instruction(s) can only be confirmed...`.
+- **A README sentence its own evidence had stopped supporting** ("Three of the eight mandate
+  zero artifacts") reads one of eight, and the survey table says what `—` means.
 - **`kibsu explain` - the lines behind the percentage.** `report` says "47.8% of your
   procedural instructions are verifiable" and stops; `explain` lists the lines that make up
   the rest, as `path:line  text`. Read-only. Only procedure units are listed by default - a
   doctrine unit's 0% is the genre working, and its lines are not a to-do list - with the
   units held back counted in the output. `--unit TEXT` narrows to one file, `--all-genres`
-  and `--full` lift the two limits, `--json` carries every instruction line with both
-  verdicts and the reason for each.
+  and `--full` lift the two limits, `--json` carries every instruction with both verdicts
+  and the reason for each.
 - **The list and the percentage are decided by one function.** `audit.checkable_because()`
-  is now the single place a line's verdict is made; `analyse()` counts from it and
-  `audit --json --lines` reports from it. The scorer is unchanged - still 0.10.0 - and so is
-  its default output: `audit --json` is byte-identical to 0.9.0's at three pinned
-  repositories (kibsu-lab `2d49abf`, obra/superpowers `3dcbd5c`, wshobson/agents `c4b82b0`),
-  so `evidence/` regenerates to the same files. At the same three, the lines `explain` lists
-  equal the gap in the headline exactly: 24, 331 and 1,292.
-- **A limit disclosed because the new command shows it (README, Honest limits).** The unit
-  is the line as written, so a sentence hard-wrapped over three lines is scored as each line
-  that carries a directive word. For repositories that hard-wrap their prose the reported
-  figure is therefore not a ceiling. No published figure is adjusted here; a sentence-level
-  count is a scorer round of its own.
+  is the single place a verdict is made; `analyse()` counts from it and
+  `audit --json --lines` reports from it. At three pinned repositories (kibsu-lab `2d49abf`,
+  obra/superpowers `3dcbd5c`, wshobson/agents `c4b82b0`) the entries `explain` lists equal
+  the gap in the headline exactly: 19, 306 and 1,412.
 
 ## 0.9.0 - 2026-10-11
 

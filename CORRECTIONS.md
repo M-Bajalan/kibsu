@@ -7,6 +7,174 @@ expects to keep finding errors in its own instrument; the alternative is not fin
 
 ---
 
+## 2026-10-11 — the scorer counted lines, and a line is not an instruction
+
+Scorer **0.11.0**. Every scorer through 0.10.0 judged the physical line. `kibsu explain`,
+merged earlier the same day, printed those lines for the first time, and its first listing showed
+the fault in five entries: three of them were halves of sentences. A sentence hard-wrapped
+over three lines was scored once for every line that carried a directive word; a line
+holding three sentences was scored once.
+
+So a file's score depended on where its editor broke lines. Measured before anything was
+changed, by re-wrapping the same text: the largest surveyed collection read 16.6% as
+written, 13.7% wrapped at 60 columns and 15.6% at 100, with 468 of its 699 procedure files
+moving; `anthropics/skills` read 7.4%, 3.8% and 5.6%.
+
+**Direction of the bias: both, and that is why a percentage hid it.**
+
+- *Hard-wrapped prose was scored too LOW.* One instruction became two or three, and the
+  fragments are nearly always claimable, because a continuation line rarely carries the
+  command. kibsu-lab, which hard-wraps its prose, reads 57.8% where it read 47.8%.
+- *Long lines were scored too HIGH.* A paragraph written as one line counted as one
+  instruction, and counted checkable if any sentence in it named a command or a file.
+  `anthropics/skills` across all genres reads 8.0% where it read 14.1%: 672 instructions
+  where the line count saw 498. The private origin workspace of the pre-registration, which
+  writes long lines, falls from 24.0% to 18.3%.
+
+Across the eight ranked collections the two errors nearly cancel - the median moves a tenth
+of a point - which is the least reassuring thing in this entry. A number that does not move
+when its instrument is rebuilt was not measuring what moved underneath it.
+
+**What changed in the instrument.** The document is normalised first: the lines of a
+paragraph, list item or blockquote are joined the way CommonMark joins them, and every
+signal - the genre signals as much as the instruction count - is computed from that. Each
+block is then cut into sentences (sentence punctuation, then a capital letter or a code
+span; an explicit hard break is a boundary too), and the sentence is what is judged. A
+mandated file is read from one sentence, not one line. A tick-box item counts once.
+
+**What moved** (same pinned SHAs, full history for the artifact column):
+
+| collection | instr | all% | proc% | never existed / mandated |
+|---|---|---|---|---|
+| davila7/claude-code-templates | 18,823 -> **20,099** | 15.7 -> **14.6** | 16.6 -> **15.6** | 73/172 -> **56/129** |
+| obra/superpowers | 418 -> **459** | 12.2 -> **11.8** | 13.1 -> **13.1** | 1/1 -> **1/1** |
+| contains-studio/agents | 737 -> **734** | 9.5 -> **9.5** | 9.7 -> **9.7** | 0/0 -> **0/0** |
+| sanjeed5/awesome-cursor-rules-mdc | 210 -> **230** | 6.2 -> **7.8** | 6.2 -> **7.8** | 1/2 -> **2/3** |
+| wshobson/agents | 1,918 -> **2,080** | 6.2 -> **6.2** | 7.7 -> **7.4** | 8/14 -> **8/18** |
+| vijaythecoder/awesome-claude-agents | 290 -> **293** | 8.6 -> **8.2** | 6.8 -> **6.7** | 0/1 -> **1/4** |
+| anthropics/skills | 498 -> **672** | 14.1 -> **8.0** | 7.4 -> **6.2** | 12/38 -> **6/16** |
+| VoltAgent/awesome-claude-code-subagents | 3,729 -> **3,742** | 1.7 -> **1.7** | 1.8 -> **1.7** | 1/1 -> **1/1** |
+
+| figure | published (0.10.0) | corrected (0.11.0) |
+|---|---|---|
+| median, procedure-only, 8 ranked | 7.5% | **7.6%** |
+| min / max | 1.8% / 16.6% | **1.7% / 15.6%** |
+| in-scope mandated artifacts, distinct | 229 | **172** |
+| ...of which never existed in any commit | 96 (42%) | **75 (44%)** |
+| units whose detected genre changed | — | **5 of 1,477** (davila7 2, obra 1, wshobson 2) |
+| below the floor, not ranked: 0xfurai / iannuttall | 62.5% of 16 / 14.5% of 76 | **62.5% of 16 / 14.1% of 78** |
+| `report`'s public median constant | 7.5 (scorer 0.10.0) | **7.6 (scorer 0.11.0)** |
+| kibsu-lab at `2d49abf`, procedure-only | 47.8% (22 of 46) | **57.8% (26 of 45)** |
+
+**The artifact column moved most, so it was classified by hand, mention by mention.** The
+mandate rule did not change: a file is mandated when an instruction carries an
+artifact verb (create, write, save, update...) and names it. What changed is that the
+instruction, the verb and the file must now share a sentence. Under the line count, a
+`never` in the fourth sentence of a long line made the whole line an instruction, and a
+`create` in the first made every file named anywhere on it a promise.
+
+*78 mentions left. 70 were false pairings.* Reading lists (`Start with
+shared/managed-agents-overview.md, then...`), detection patterns (`filenames like
+agent-openai.py or *-generic.py`), and example names (`e.g. a.py, b.py, app.py`) were all
+being reported as files the repository promised and never produced. 21 of the 27 phantoms
+that left the table were of this kind - they were never promises.
+
+*8 were real, and the stricter reading no longer sees them.* Named, because a count would
+hide which rule lost them:
+
+| lost mention | why the sentence is not read as an instruction, or not as a mandate |
+|---|---|
+| `<planning_dir>/claude-research.md` — "After collecting results..., combine them and write to..." | does not open with its verb, carries no modal |
+| `.mcp.json` — "To use Xquik as an MCP server..., add to `.mcp.json`" | same (still in scope through three other units) |
+| `02-pipelines.md` — "`02-pipelines.md` - For every flow..., write the end-to-end sequence" | opens with the file name |
+| `setup.ps1` — "**Pro Tip:** Create a `setup.sh` or `setup.ps1` script" | the imperative stands behind a label |
+| `SESSION.md`, `NEXT.md` — "**Rewrite `SESSION.md`**" | `rewrite` is not in the artifact-verb list; `appended` in the next sentence used to carry it |
+| `swarmvault.config.json` — "Set `profile.deepLintDefault: true` in..." | `set ... in` is not an artifact verb |
+| `dietary.json` — "Read `dietary.json`. Missing -> offer to create it" | the verb's object is a pronoun in the next sentence |
+
+Each of the eight was caught before by accident - a modal or a verb elsewhere on the same
+line - and each names a real gap in the instruction test or the verb list, now visible
+because the accident is gone. None is fixed here: they are vocabulary and grammar rounds,
+with a census each, not riders on a change of what is counted.
+
+*20 mentions arrived. 10 are real* - `Save this data immediately to timing.json` (four
+copies of one skill), two `Save to .seoagent/...` lines, a wrapped `Create or update
+README.md, docs/api.md, docs/architecture.md`, and one declared `Output format:` file. They
+were invisible because the sentence that carries them shared a line with one that is not an
+instruction, or was wrapped across two.
+
+*10 are false. Three of those mentions are two files that sit in the table above as never
+existed:*
+
+- `AGENTS.md` in sanjeed5, in two files (its row moves 1/2 -> 2/3 on this alone). The source
+  is an MDX page; its `export const meta = { ... description: "...plus AGENTS.md."` is four lines
+  that Markdown joins into one paragraph, and `export` is both an imperative and an
+  artifact verb. A JavaScript statement is being read as an instruction to export a file.
+- `reference/task-creation-template.md` in davila7: the artifact verb that matched is the
+  word `creation` inside the file's own name.
+- The other seven are files that exist: three `references/*.md` under a wrapped `**Output
+  format:**` label, a script named in `the CSV output format assets/thermal-sample.sh
+  writes`, `Read references/knowledge-base-pattern.md before creating the workspace`, a
+  `package.json` beside the path `scripts/generators/commands`, and `SKILL.md` in six
+  `✅`-led lines that Markdown runs together. They inflate the mandated count, not the
+  phantom count.
+
+Net, for the phantom line: of the 96 published, 21 were never promises; of the 75 now
+published, 2 are this round's own false positives, and 6 real ones are no longer counted.
+
+**A sentence on this page that its own evidence had stopped supporting.** The README said
+"Three of the eight mandate zero artifacts." Under scorer 0.10.0's committed `evidence/`
+that was already one of eight - a second collection mandated a single file, which exists,
+and its table cell read `—` where it should have read `0/1`. It reads one of eight now, and
+the table says what `—` means.
+
+**How the new reader was attacked before it was trusted.** The first draft shipped with a
+property test - re-wrap a document, nothing may change - and the test passed. Four review
+agents were then given the draft and one question each: the sentence splitter, the block
+reader, re-wrapping, and whether the units still meant anything. The re-wrap reviewer used
+a real CommonMark parser as an oracle and found the property false in six ways: a
+continuation line opening with `<path>`, `[x]`, `2024.`, `#12`, `|`, or four columns of
+indent was read as a new block. The property test had missed all six because its re-wrap
+helper asked the scorer which lines formed a block, so it could only try wraps the scorer
+already understood. Other passes found a sentence scan that went quadratic and a code-span
+pattern that went cubic (one hostile line could hold a scan for minutes), `"etc."` swallowing
+ninety-one real sentence ends, and a list number read as the end of a sentence.
+
+The reader was rewritten to CommonMark's interruption rules and the test rebuilt so that
+nothing in it parses Markdown: fixtures are described, laid out at 29 widths and four
+hanging indents, and a control proves the awkward tokens really land at line starts. A fuzz
+then re-wrapped all 1,477 surveyed files in 15 families, keeping only re-wraps the
+independent parser called the same document (973 file-by-family cases): **no instruction
+count, no checkable count and no sentence moved.** Nine cases in four files still move a
+genre signal, one of them far enough to change a genre, and all nine are in two places
+where the reader deliberately sides with the file's reader against the renderer - a fence
+on the line under a tag such as `<Good>` (CommonMark opens an HTML block there and turns
+the code into paragraphs), and a pipe table whose delimiter row has the wrong number of
+cells (1 table in 1,241; GFM calls it a paragraph).
+
+**What this round knows it leaves behind:**
+
+- Lines with no blank line, list marker or sentence punctuation between them are one
+  sentence, as a renderer would run them together.
+- An imperative behind a label (`**Pro tip:** Create...`) is seen only by its modal. Reading
+  the colon as a boundary was measured on a draft: about 2,000 more instructions in the
+  largest collection, nearly all claimable, and a median near 5.6%. It changes what an
+  instruction is, so it is a round of its own.
+- The boundary rule is conservative and knows English capitals only: a missed boundary
+  merges two sentences, which costs less than inventing an instruction.
+- The eight lost mandates and the two false phantoms above.
+
+Reproduce both sides: `pip install kibsu==0.9.0` measures with scorer 0.10.0 and prints the
+left columns; this commit prints the right. For the table, clone each collection in full,
+check out the SHA in its `evidence/` file, and run `SKILL_AUDIT_CLONES=<dir> python -m
+kibsu survey` - a shallow clone answers `UNKNOWN` for the artifact column, never a number.
+The old instrument was made to reproduce every published 0.10.0 figure at these pins,
+artifact column included, before the new column was believed. The property test is
+`tests/test_sentences.py`; the pre-registration's re-measured column is in
+[PREREGISTRATION.md](PREREGISTRATION.md), appended note of the same date.
+
+---
+
 ## 2026-10-10 — the front door: `report` compared against a median three scorers old
 
 Every earlier audit read this code against itself. This round did something else: it installed

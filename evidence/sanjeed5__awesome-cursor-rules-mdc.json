@@ -3,48 +3,78 @@
   "sha": "8fbf26908531c127a6076be0e55fbe17b57fb2d8",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.10.0",
+    "version": "0.11.0",
     "root": "<clone of sanjeed5/awesome-cursor-rules-mdc at 8fbf26908531>",
     "mode": "*.md (no instruction dir)",
     "all": {
       "lines": 1296,
-      "instructions": 210,
-      "checkable": 13,
-      "claimable": 197,
+      "instructions": 230,
+      "checkable": 18,
+      "claimable": 212,
       "runnable_fences": 6,
       "checkboxes": 0,
       "units": 5,
-      "pct": 6.190476190476191,
+      "pct": 7.826086956521739,
       "zero": 0
     },
     "procedure_only": {
       "lines": 1296,
-      "instructions": 210,
-      "checkable": 13,
-      "claimable": 197,
+      "instructions": 230,
+      "checkable": 18,
+      "claimable": 212,
       "runnable_fences": 6,
       "checkboxes": 0,
       "units": 5,
-      "pct": 6.190476190476191,
+      "pct": 7.826086956521739,
       "zero": 0
     },
     "by_genre": {
       "procedure": {
         "lines": 1296,
-        "instructions": 210,
-        "checkable": 13,
-        "claimable": 197,
+        "instructions": 230,
+        "checkable": 18,
+        "claimable": 212,
         "runnable_fences": 6,
         "checkboxes": 0,
         "units": 5,
-        "pct": 6.190476190476191,
+        "pct": 7.826086956521739,
         "zero": 0
       }
     },
     "artifacts": [
       {
         "skill": "cursor-rules-docs.md",
+        "artifact": "AGENTS.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "cursor-rules-docs.md",
         "artifact": "reactiveStorageService.tsx",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "cursor-rules-reference.md",
+        "artifact": "AGENTS.md",
         "in_tree": false,
         "in_history": false,
         "in_scope": true,
@@ -96,9 +126,9 @@
         "fences": 8,
         "runnable_fences": 3,
         "checkboxes": 0,
-        "instructions": 38,
-        "checkable": 2,
-        "claimable": 36,
+        "instructions": 44,
+        "checkable": 4,
+        "claimable": 40,
         "inline_cmds": 1,
         "steps": 10,
         "seq": 1,
@@ -106,8 +136,17 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 1,
-        "action": 37,
+        "action": 43,
         "mandated": [
+          {
+            "tok": "AGENTS.md",
+            "line": "export const meta = { title: \"Rules\", description: \"Configure persistent instructions with Project, Team, and User Rules, plus AGENTS.md.",
+            "lines": [
+              "export const meta = { title: \"Rules\", description: \"Configure persistent instructions with Project, Team, and User Rules, plus AGENTS.md."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
           {
             "tok": "reactiveStorageService.tsx",
             "line": "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`.",
@@ -120,10 +159,11 @@
         ],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 358,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 3.89,
-          "reference": 1.09,
+          "procedure": 4.19,
+          "reference": 1.17,
           "doctrine": 0.0
         },
         "genre": "procedure",
@@ -137,9 +177,9 @@
         "fences": 8,
         "runnable_fences": 3,
         "checkboxes": 0,
-        "instructions": 38,
-        "checkable": 2,
-        "claimable": 36,
+        "instructions": 44,
+        "checkable": 4,
+        "claimable": 40,
         "inline_cmds": 1,
         "steps": 10,
         "seq": 1,
@@ -147,8 +187,17 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 1,
-        "action": 37,
+        "action": 43,
         "mandated": [
+          {
+            "tok": "AGENTS.md",
+            "line": "export const meta = { title: \"Rules\", description: \"Configure persistent instructions with Project, Team, and User Rules, plus AGENTS.md.",
+            "lines": [
+              "export const meta = { title: \"Rules\", description: \"Configure persistent instructions with Project, Team, and User Rules, plus AGENTS.md."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
           {
             "tok": "reactiveStorageService.tsx",
             "line": "Add default value in `INIT_APPLICATION_USER_PERSISTENT_STORAGE` in `@reactiveStorageService.tsx`.",
@@ -161,10 +210,11 @@
         ],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 358,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 3.89,
-          "reference": 1.09,
+          "procedure": 4.19,
+          "reference": 1.17,
           "doctrine": 0.0
         },
         "genre": "procedure",
@@ -179,8 +229,8 @@
         "runnable_fences": 0,
         "checkboxes": 0,
         "instructions": 69,
-        "checkable": 5,
-        "claimable": 64,
+        "checkable": 6,
+        "claimable": 63,
         "inline_cmds": 5,
         "steps": 7,
         "seq": 0,
@@ -192,11 +242,12 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 203,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 1.64,
+          "procedure": 1.72,
           "reference": 0.0,
-          "doctrine": 1.5
+          "doctrine": 1.58
         },
         "genre": "procedure",
         "genre_source": "detected",
@@ -209,9 +260,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 39,
+        "instructions": 47,
         "checkable": 1,
-        "claimable": 38,
+        "claimable": 46,
         "inline_cmds": 0,
         "steps": 7,
         "seq": 0,
@@ -219,15 +270,16 @@
         "persona_hits": 0,
         "doctrine_hits": 1,
         "epistemic": 0,
-        "action": 39,
+        "action": 47,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 240,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 1.43,
+          "procedure": 1.46,
           "reference": 0.0,
-          "doctrine": 0.66
+          "doctrine": 0.67
         },
         "genre": "procedure",
         "genre_source": "detected",
@@ -264,6 +316,7 @@
         ],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 66,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 9.09,
@@ -279,10 +332,10 @@
     ],
     "exclusion_ledger": {},
     "phantom_counterfactual": {
-      "in_scope_pct": 66.7,
-      "in_scope_n": 3,
-      "all_pct": 66.7,
-      "all_n": 3
+      "in_scope_pct": 80.0,
+      "in_scope_n": 5,
+      "all_pct": 80.0,
+      "all_n": 5
     }
   }
 }

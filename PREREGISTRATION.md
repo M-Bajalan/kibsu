@@ -360,3 +360,61 @@ triggered, and the cycle-over-cycle procedure trend (24.0 → 25.8 → 26.6) is 
 was under 0.9.0. The previous columns above were verified against the 2026-08-31 (third)
 note's re-measured column before this table was written - the mechanical chaining check this
 file's 2026-09-01 correction note introduced.
+
+
+## Appended note — 2026-10-11: scorer 0.11.0 counts sentences, and both workspaces moved in opposite directions
+
+The standing clause fired for scorer 0.11.0 (see [CORRECTIONS.md](CORRECTIONS.md),
+2026-10-11 entry). This is the largest instrument change since this file was written: what
+is counted is no longer the physical line but the sentence, after the document is read the
+way Markdown renders it. Both workspaces re-measured at every pinned state:
+
+**Re-measurement, origin workspace (1a), same pinned states:**
+
+| pinned state | scorer 0.10.0 (previous column) | scorer 0.11.0 (re-measured) |
+|---|---|---|
+| baseline, procedure-only | 24.0% — 248/1,034, 36 units | **18.3% — 228/1,247, 36 units** |
+| baseline, doctrine | 0.0% — 0/45, 3 units | **0.0% — 0/42, 3 units** |
+| post-cycle-1, procedure-only | 25.8% — 294/1,139, 39 units | **20.3% — 274/1,348, 39 units** |
+| post-cycle-1, doctrine | 0.0% — 0/53, 3 units | **0.0% — 0/47, 3 units** |
+| post-cycle-2, procedure-only | 26.6% — 305/1,145, 39 units | **21.1% — 286/1,354, 39 units** |
+| post-cycle-2, doctrine | 0.0% — 0/53, 3 units | **0.0% — 0/47, 3 units** |
+
+**Re-measurement, kibsu-lab (1b) and the public survey:**
+
+| | scorer 0.10.0 (previous column) | scorer 0.11.0 (re-measured) |
+|---|---|---|
+| 1b kibsu-lab @ `8bec5ee`, procedure-only | 42.4% (14/33, 3 units) | **58.1% (18/31, 3 units)** |
+| 1b kibsu-lab @ `8bec5ee`, doctrine | 0.0% (0/9, 1 unit) | **0.0% (0/6, 1 unit)** |
+| public median (procedure-only), 8 ranked collections | 7.5% | **7.6%** |
+
+The two workspaces move in opposite directions, and for one reason. The origin workspace
+writes long lines: a paragraph of several sentences was one line, counted once, and counted
+checkable if any sentence in it named a command or a file. Read as sentences it holds about
+two hundred more instructions at every state, most of them claimable, and its percentage
+falls by five to six points. kibsu-lab hard-wraps its prose: one sentence was two or three
+lines, each scored separately and the tails nearly always claimable, so its percentage
+rises by sixteen. Neither workspace changed a character. The line count had been flattering
+the one and penalising the other. This file has always said the two baselines measure
+different things and must not be set side by side; a reader who did so anyway was partly
+comparing line-breaking habits.
+
+What that does to the experiment's reading:
+
+- **Clause 1 (procedure rises).** The direction holds at every state under the new
+  instrument: 18.3 → 20.3 → 21.1, where 0.10.0 read 24.0 → 25.8 → 26.6. The rise over two
+  cycles is 2.8 points instead of 2.6. The *level* is lower by five to six points
+  throughout, which this file never registered - it pre-registers a direction - but which a
+  reader comparing the origin workspace with the public median should now do against 18-21%,
+  not 24-27%.
+- **Clause 2 and clause 3 (doctrine stays at zero).** Exactly 0.0% at every state in both
+  workspaces, as under every instrument this project has shipped. The denominators fall
+  (45 → 42, 53 → 47, 9 → 6) because wrapped doctrine sentences are counted once. Clause 3
+  was never triggered.
+- **No genre changed** in either workspace at any pinned state: the unit counts are the
+  previous column's.
+
+As always for 1a, the origin figures are directional and cannot be checked from outside;
+1b can, at the commit named. The previous columns above were verified against the 2026-09-01
+note's re-measured column before this table was written - the old instrument was run at all
+four pinned states and reproduced each cell - per the mechanical chaining check.
