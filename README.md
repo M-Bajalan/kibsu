@@ -149,7 +149,10 @@ whole ruleset so you can argue with it (exit 0).
 
 A percentage tells you there is a gap. It does not tell you where to look. `explain` lists the
 instructions behind `report`'s number as `path:line  text` — the shape an editor or a terminal
-turns into a link:
+turns into a link. (`explain` ships from package 0.10.0, which is also the first to carry scorer
+0.11.0 and count sentences. The two numbering lines are easy to cross: scorer 0.10.0 shipped in
+package 0.9.0, so `pip install kibsu==0.9.0` still measures in lines and prints the older
+figures.)
 
 ```bash
 python -m kibsu explain /path/to/any/repo

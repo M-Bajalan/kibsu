@@ -3,4 +3,4 @@
 See README.md for the tool's purpose and PROVENANCE.md for how it was built.
 """
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
