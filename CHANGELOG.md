@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+- **`kibsu explain` - the lines behind the percentage.** `report` says "47.8% of your
+  procedural instructions are verifiable" and stops; `explain` lists the lines that make up
+  the rest, as `path:line  text`. Read-only. Only procedure units are listed by default - a
+  doctrine unit's 0% is the genre working, and its lines are not a to-do list - with the
+  units held back counted in the output. `--unit TEXT` narrows to one file, `--all-genres`
+  and `--full` lift the two limits, `--json` carries every instruction line with both
+  verdicts and the reason for each.
+- **The list and the percentage are decided by one function.** `audit.checkable_because()`
+  is now the single place a line's verdict is made; `analyse()` counts from it and
+  `audit --json --lines` reports from it. The scorer is unchanged - still 0.10.0 - and so is
+  its default output: `audit --json` is byte-identical to 0.9.0's at three pinned
+  repositories (kibsu-lab `2d49abf`, obra/superpowers `3dcbd5c`, wshobson/agents `c4b82b0`),
+  so `evidence/` regenerates to the same files. At the same three, the lines `explain` lists
+  equal the gap in the headline exactly: 24, 331 and 1,292.
+- **A limit disclosed because the new command shows it (README, Honest limits).** The unit
+  is the line as written, so a sentence hard-wrapped over three lines is scored as each line
+  that carries a directive word. For repositories that hard-wrap their prose the reported
+  figure is therefore not a ceiling. No published figure is adjusted here; a sentence-level
+  count is a scorer round of its own.
+
 ## 0.9.0 - 2026-10-11
 
 The front-door round (CORRECTIONS 2026-10-10): the published 0.8.0 was installed into an
