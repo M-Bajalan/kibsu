@@ -7,15 +7,17 @@ An instruction is CHECKABLE if a reviewer could tell from the repo alone whether
 runs a command, produces or edits a named file, or is a tick-box. It is CLAIMABLE if the only
 evidence is the agent saying so.
 
-v0.11.0 is THE SENTENCE UNIT. Through 0.10.0 the unit was the physical line, so a sentence
-hard-wrapped over three lines was scored once per line that carried a directive word and a
-line holding three sentences was scored once: the score moved when a file was re-wrapped.
-The document is now normalised first - the wrapped lines of a paragraph, list item or
-blockquote are one logical line, as Markdown renders them - and every signal, genre
+v0.11.0 COUNTS SENTENCES. Through 0.10.0 what was counted was the physical line, so a
+sentence hard-wrapped over three lines was scored once per line that carried a directive
+word and a line holding three sentences was scored once: the score moved when a file was
+re-wrapped. The document is now normalised first - the wrapped lines of a paragraph, list
+item or blockquote are one logical line, as Markdown renders them - and every signal, genre
 included, is computed from that. A block is then cut into sentences, and the sentence is
-what is judged. Re-wrapping a document changes nothing: tested over every file of the ten
-pinned survey repositories at four widths. Found by `kibsu explain`, which printed the
-units for the first time. Re-measure indexed in CORRECTIONS.md.
+what is judged. Where a soft line break falls inside a block no longer changes anything:
+held by a property test over described documents at 29 widths, after an adversarial pass
+with an independent CommonMark parser as its oracle re-wrapped every file of the ten pinned
+survey repositories and drove out the cases where it did. Found by `kibsu explain`, which
+printed the judged lines for the first time. Re-measure indexed in CORRECTIONS.md.
 
 v0.10.0 is three refinements from the pre-release adversarial pass, two of them measured
 nulls at the pinned states: the directory-prefix scope check is case-insensitive again
@@ -120,6 +122,7 @@ EXIT CODES
   python -m kibsu audit <dir> [--json] [--definitions] [--artifacts] [--limit N]
 """
 import argparse
+import bisect
 import io
 import json
 import os
@@ -148,7 +151,8 @@ BINARIES = r"(?:python3?|py|pip3?|git|npm|npx|pnpm|yarn|node|deno|bun|pytest|tox
            r"ruff|black|mypy|vitest|jest|cypress|playwright|bundle|composer|php|dart|flutter|swift)"
 INLINE_CMD = re.compile(r"`\s*" + BINARIES + r"\b[^`]*`")
 BARE_CMD = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)?" + BINARIES + r"\b\s+\S")
-CHECKBOX = re.compile(r"^\s*(?:[-*+]\s*)?(?:\[[ xX]\]|[□☐☑☒])")
+# `[X](https://x.com/a)` is a link whose text is X, not a ticked box: no "(" or "[" may follow.
+CHECKBOX = re.compile(r"^\s*(?:[-*+]\s*)?(?:\[[ xX]\](?![(\[])|[□☐☑☒])")
 # A fence-looking line: a run of 3+ backticks OR 3+ tildes (CommonMark section 4.5), plus
 # whatever follows on the line (the candidate info string / closer test happens in analyse()).
 FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
@@ -358,20 +362,25 @@ VALID_DECLARED_SCOPES = ("user-project", "repo")
 DEFINITIONS = """
 METRIC DEFINITIONS (contest them - that is the point)
 
-  unit         a SENTENCE, as of scorer 0.11.0 - not a physical line. The document is read the
-               way Markdown renders it: the wrapped lines of a paragraph, list item or
-               blockquote are joined first, then the block is cut after sentence-final
+  sentence     what is counted, as of scorer 0.11.0 - not the physical line. The document is
+               read the way Markdown renders it: the wrapped lines of a paragraph, list item
+               or blockquote are joined first, then the block is cut after sentence-final
                punctuation that is followed by a capital letter or a code span. A table row
-               is one unit; a tick-box item is one unit however many sentences it holds (one
-               box, one promise); headings and fenced code are never units. Re-wrapping a
-               file therefore changes nothing - not a count, not a genre. Two consequences
-               worth knowing: lines with no blank line, list marker or sentence punctuation
-               between them are ONE unit, exactly as Markdown would run them together; and
-               the cut is conservative (a missed boundary merges two sentences, which is
-               cheaper than inventing one), so "e.g. Foo", a lone initial chain "J. K." and a
-               sentence opening in lower case are left whole. The boundary rule knows English
-               capitals only - the same limit the verb list has always had.
-  instruction  a unit telling the agent to do something: opens with an
+               counts once; a tick-box item counts once however many sentences it holds (one
+               box, one promise); headings and fenced code are never counted. Where a soft
+               line break falls inside a block therefore changes nothing - not a count, not a
+               genre. A HARD break (two trailing spaces, or a backslash) is a boundary: the
+               author asked for a new line and the page shows one. Three consequences worth
+               knowing: lines with no blank line, list marker or sentence punctuation
+               between them are ONE sentence, exactly as Markdown would run them together; the
+               cut is conservative (a missed boundary merges two sentences, which is cheaper
+               than inventing one), so "e.g. Foo", a run of initials "J. K." and a
+               sentence opening in lower case are left whole; and in two places the file is
+               read as its READER sees it, not as a renderer would - a fence on the line
+               under a tag (`<Good>` then ```) is a fence, and a pipe table is a table even
+               when its delimiter row has the wrong number of cells. The boundary rule knows
+               English capitals only - the same limit the verb list has always had.
+  instruction  a sentence (see above) telling the agent to do something: opens with an
                imperative verb, or carries a modal (must / should / always / never / required /
                do not / mandatory / ensure / make sure - any capitalisation; "Must run the
                tests" counts the same as "MUST run the tests").
@@ -419,6 +428,12 @@ METRIC DEFINITIONS (contest them - that is the point)
                to exist as written. As of 0.7.0 the mandated filename may be wrapped in
                backticks, double or single quotes, or nothing at all (issue #75), and every
                mention of a mandate counts toward its scope, not only the first (issue #76).
+               As of 0.11.0 a mandate is read from ONE SENTENCE: the sentence must itself be
+               an instruction, carry an artifact verb (create, write, save, update...) and name
+               the file. Through 0.10.0 the three only had to share a physical line, so a
+               `never` in one sentence and a `create` in another made every file named on a
+               long line a promise. Known cost: an instruction that does not open with its
+               verb ("After collecting the results, write to `out.md`") is not seen.
 
   templated    the mandated token contains a wildcard (`*`, `?`) or a `{...}` placeholder
                segment, either of which expands to "any run of non-slash characters" when
@@ -522,61 +537,134 @@ def _mention_clean(mention):
     return scaffold_scope_reason(mention) is None and not USER_SCOPE_LINE.search(mention)
 
 
-# ---- the unit: a sentence, not a line (scorer 0.11.0) ---------------------------------------
-# Through 0.10.0 the unit was the physical line. A sentence hard-wrapped over three lines was
+# ---- what is counted: the sentence, not the line (scorer 0.11.0) ----------------------------
+# Through 0.10.0 the scorer counted physical lines. A sentence hard-wrapped over three lines was
 # scored once for every line that carried a directive word, so re-wrapping a file changed its
 # score with no change in content - measured before this was written: 468 of 699 procedure
 # files in the largest surveyed collection moved between a 60- and a 100-column wrap.
 #
 # Two steps, and only the second is a judgement call:
-#   1. BLOCKS. Consecutive lines of one paragraph, list item or blockquote are one piece of
-#      text - a line break inside a block is whitespace, which is what Markdown itself says.
-#      Tables rows, HTML lines and indented code stay one line each. Blank lines, headings and
-#      fences end a block (analyse() cuts the runs there).
-#   2. SENTENCES. A paragraph, list item or quote is cut after sentence-final punctuation
-#      followed by whitespace and a capital letter or a code span. Deliberately conservative:
-#      a missed boundary merges two sentences into one unit, a false one invents an
-#      instruction, and the first error is the cheaper one.
+#   1. BLOCKS, read the way CommonMark reads them. The lines of one paragraph, list item or
+#      blockquote are one piece of text - a soft line break is whitespace. What may END a
+#      paragraph is what a renderer lets end it and nothing looser: a blank line, an ATX
+#      heading (`# ` with its space - `#123` is prose), a fence, a bullet, a list numbered 1
+#      (only inside a list may `2.` start an item), a quote marker, a table row with its
+#      delimiter row, a block-level HTML tag. A line that merely STARTS like one of those -
+#      `<path>`, `[x]`, `2024.`, `|`, anything indented four columns under a paragraph - is a
+#      continuation. The first draft of this reader was looser than the renderer in six such
+#      places, and an adversarial pass with a real CommonMark parser as its oracle found every
+#      one: each was a re-wrap that changed a count. That is why this follows the spec's
+#      interruption rules rather than a set of prefixes.
+#      Two places side with the READER of the file against the renderer, on purpose. A fence
+#      on the line under a tag (`<Good>` then ```) is a fence: CommonMark opens an HTML block
+#      there and turns the code after the first blank line into paragraphs. And a row of
+#      pipes over a delimiter row is a table even when the two disagree on the number of
+#      cells, which GFM refuses (1 table in 1,241 across the survey). An agent is handed the
+#      text, not the rendered page, and in both it sees what the author meant.
+#   2. SENTENCES. A block is cut after sentence-final punctuation followed by whitespace and a
+#      capital letter or a code span. Deliberately conservative: a missed boundary merges two
+#      sentences into one, a false one invents an instruction, and the first error is the
+#      cheaper one. An explicit hard break (two trailing spaces, or a backslash) is a boundary
+#      too - the author asked for a new line and the page shows one.
 # A tick-box item is not cut: one box is one promise, ticked once.
-LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+\S")
-QUOTE_LINE = re.compile(r"^\s{0,3}>\s?")
-RULE_LINE = re.compile(r"^\s{0,3}([-*_=])(?:\s*\1){2,}\s*$")
-HTML_LINE = re.compile(r"^\s{0,3}<[/!A-Za-z]")
-CODE_INDENT = re.compile(r"^(?: {4,}|\t)")
-CODE_SPAN = re.compile(r"(`+)(?:(?!\1).)+?\1")
+ATX_HEADING = re.compile(r"^ {0,3}#{1,6}(?:[ \t]|$)")
+QUOTE_PREFIX = re.compile(r"^ {0,3}>(?:[ \t]{0,3}>)*[ \t]?")
+BULLET_ITEM = re.compile(r"^\s*[-*+]\s+\S")
+ORDERED_ITEM = re.compile(r"^\s*(\d{1,9})[.)]\s+\S")
+RULE_LINE = re.compile(r"^ {0,3}([-*_=])(?:[ \t]*\1){2,}[ \t]*$")
+TABLE_DELIMITER = re.compile(r"^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$")
+# One tag and nothing else on the line: the start of an HTML block, when no paragraph is open.
+STANDALONE_TAG = re.compile(r"^ {0,3}(?:</?[A-Za-z][^<>]*>|<!--.*)\s*$")
+# The tags CommonMark lets interrupt a paragraph (its HTML block start conditions 1-6, the
+# ones a prompt file is at all likely to carry). Any other `<...>` under a paragraph is inline.
+BLOCK_HTML = re.compile(r"^ {0,3}</?(?:address|article|aside|blockquote|details|dialog|div|dl|"
+                        r"fieldset|figure|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|pre|"
+                        r"script|section|style|summary|table|tbody|td|th|thead|tr|ul)"
+                        r"(?:[\s/>]|$)", re.I)
+_TICKS = re.compile(r"`+")
 # Sentence-final punctuation, any closing quote / bracket / emphasis, then the gap. What
 # follows the gap is tested in split_sentences(): it must open a sentence.
-SENTENCE_END = re.compile(r"([.!?])[\"')\]*_]*(\s+)")
-SENTENCE_OPENERS = "*_\"'(["
-# A full stop after one of these is not the end of a sentence. Short on purpose - see step 2.
-ABBREVIATIONS = frozenset(("e.g", "i.e", "eg", "ie", "etc", "vs", "cf", "approx", "no", "fig",
-                           "st", "mr", "mrs", "ms", "dr", "inc", "ltd", "co"))
-_BEFORE_STOP = re.compile(r"([A-Za-z][A-Za-z.]*)\.[\"')\]*_]*$")
-# "J. K. Rowling": a capital letter and a full stop is an initial when another initial stands
-# beside it. A lone one is not - "choose option A. Then run it" ends a sentence at "A.".
-_INITIAL_BEFORE = re.compile(r"(?:^|\s)[A-Z]\.\s+[A-Z]$")
-_INITIAL_AFTER = re.compile(r"^[A-Z]\.(?:\s|$)")
+SENTENCE_END = re.compile("([.!?…])[\"')\\]*_”’]*(\\s+)")
+_OPENS_SENTENCE = re.compile("[*_\"'(\\[“‘]*(.)", re.S)
+# A full stop after one of these is not the end of a sentence. Short on purpose, and each
+# entry is one that is normally FOLLOWED by a capital: "etc." was here once and swallowed
+# ninety-one real sentence ends in the survey corpus, because what follows "etc." usually is
+# a new sentence; "No." and "Fig." are followed by digits and never reach this test at all.
+ABBREVIATIONS = frozenset(("e.g", "i.e", "eg", "ie", "vs", "cf", "al", "st", "mr", "mrs", "ms",
+                           "dr", "prof", "jr", "sr", "inc", "ltd", "co"))
+# The whole word before the stop - "ms" in "47ms" is not the title "Ms."
+_WORD_BEFORE = re.compile(r"(?:^|[^A-Za-z0-9.])([A-Za-z](?:[A-Za-z.]*[A-Za-z])?)$")
+_DOTTED = re.compile(r"^(?:[A-Za-z]\.)+[A-Za-z]$")              # U.S, N.B, a.m
+# "J. K. Rowling": a capital and a full stop is an initial when another initial stands beside
+# it. A lone one is not - "choose option A. Then run it" ends a sentence at "A.".
+_INITIAL_BEFORE = re.compile(r"(?:^|[\s(])[A-Z]\.\s+$")
+_INITIAL_AFTER = re.compile(r"[A-Z]\.(?:[\s,]|$)")
+# "1. Run the tests." - the stop after a list number is the marker's, not a sentence's. So
+# is the one in "**3. Identify thresholds**", which the first draft cut into an instruction.
+_NUMBER_MARKER = re.compile(r"^\s*(?:[-*+>]\s+)*[*_]*\d{1,9}$")
+_BOLD_NUMBER = re.compile(r"(?:^|\s)[*_]+\d{1,3}$")          # "... **3." mid-block
+_LOOKBACK = 48
+
+
+def mask_code_spans(text):
+    """`text` with every code span blanked to NUL characters of the same length, so offsets
+    still line up. One pass: a run of N backticks closes at the next run of exactly N, which
+    is CommonMark's rule. (The pattern this replaces was a backtracking regex that went cubic
+    on a long run of backticks - one hostile line could hold a scan for minutes.)"""
+    runs = [(m.start(), m.end()) for m in _TICKS.finditer(text)]
+    if len(runs) < 2:
+        return text
+    same = {}
+    for idx, (a, b) in enumerate(runs):
+        same.setdefault(b - a, []).append(idx)
+    ptr = dict.fromkeys(same, 0)
+    out, last, i = [], 0, 0
+    while i < len(runs):
+        a, b = runs[i]
+        cand, p = same[b - a], ptr[b - a]
+        while p < len(cand) and cand[p] <= i:
+            p += 1
+        ptr[b - a] = p
+        if p < len(cand):
+            end = runs[cand[p]][1]
+            out.append(text[last:a])
+            out.append("\x00" * (end - a))
+            last = end
+            i = cand[p] + 1
+        else:
+            i += 1
+    out.append(text[last:])
+    return "".join(out)
 
 
 def split_sentences(text):
     """[(start, end)] offsets of each sentence in `text`. Code spans never contain a boundary
     (`README.md. Then` inside backticks is a name), and a boundary needs a capital letter or
-    a code span after it - "see docs/a.md for more" and "v1.2 is out" are left whole."""
-    masked = CODE_SPAN.sub(lambda m: "\x00" * len(m.group(0)), text)
+    a code span after it - "see docs/a.md for more" and "v1.2 is out" are left whole.
+
+    Linear in the length of the text: every test looks at a bounded window before the stop
+    and matches forward from a position, never slicing the remainder. The first draft sliced,
+    and a 40 KB unbroken block took a minute."""
+    masked = mask_code_spans(text)
     spans, start = [], 0
     for m in SENTENCE_END.finditer(masked):
-        nxt = masked[m.end():].lstrip(SENTENCE_OPENERS)[:1]
+        opener = _OPENS_SENTENCE.match(masked, m.end())
+        nxt = opener.group(1) if opener else ""
         if not (nxt == "\x00" or nxt.isupper()):
             continue
+        stop = m.start(1)
         if m.group(1) == ".":
-            head = masked[start:m.start(2)]
-            before = _BEFORE_STOP.search(head)
-            word = (before.group(1) if before else "").rstrip(".")
-            if word.lower() in ABBREVIATIONS:
+            if stop - start <= 16 and _NUMBER_MARKER.match(masked[start:stop]):
+                continue
+            head = masked[max(start, stop - _LOOKBACK):stop]
+            if _BOLD_NUMBER.search(head):
+                continue
+            before = _WORD_BEFORE.search(head)
+            word = before.group(1) if before else ""
+            if word.lower() in ABBREVIATIONS or _DOTTED.match(word):
                 continue
             if len(word) == 1 and word.isupper() and (
-                    _INITIAL_BEFORE.search(head[:m.start(1) - start])
-                    or _INITIAL_AFTER.match(masked[m.end():])):
+                    _INITIAL_BEFORE.search(head[:-1]) or _INITIAL_AFTER.match(masked, m.end())):
                 continue
         spans.append((start, m.start(2)))
         start = m.end()
@@ -584,86 +672,197 @@ def split_sentences(text):
     return spans
 
 
-def iter_blocks(run):
-    """The blocks of one run of consecutive non-blank, non-heading, non-fence lines.
+def _indent(text):
+    lead = text[:len(text) - len(text.lstrip(" \t"))]
+    return lead.count(" ") + 4 * lead.count("\t")
 
-    `run` is [(line_number, text)]. Yields (kind, pieces): kind is "para", "item" or "quote"
-    for a block whose wrapped lines belong together, "single" for a line that stands alone (a
-    table row, an HTML line, indented code) and "rule" for a horizontal rule. `pieces` is
-    [(line_number, text)], continuation lines stripped of their indentation and quote marker."""
-    blocks, cur = [], None
-    for no, ln in run:
-        if ln.lstrip().startswith("|") or HTML_LINE.match(ln):
-            cur = None
-            blocks.append(("single", [(no, ln.rstrip())]))
-            continue
-        if RULE_LINE.match(ln):
-            cur = None
-            blocks.append(("rule", [(no, ln.rstrip())]))
-            continue
-        quote = QUOTE_LINE.match(ln)
-        if quote:
-            content = ln[quote.end():]
-            if not content.strip():
-                cur = None
-                blocks.append(("rule", [(no, ln.rstrip())]))
-            elif (cur is not None and cur[0] == "quote"
-                  and not (LIST_ITEM.match(content) or CHECKBOX.match(content))):
-                cur[1].append((no, content.strip()))
-            else:
-                cur = ("quote", [(no, ln.rstrip())])
-                blocks.append(cur)
-            continue
-        if LIST_ITEM.match(ln) or CHECKBOX.match(ln):
-            cur = ("item", [(no, ln.rstrip())])
-            blocks.append(cur)
-        elif cur is None and CODE_INDENT.match(ln):
-            blocks.append(("single", [(no, ln.rstrip())]))
-        elif cur is not None:
-            cur[1].append((no, ln.strip()))        # a wrapped continuation of the open block
+
+def _interrupts(text):
+    """Would this line start a new block even with a paragraph open above it?"""
+    if _indent(text) >= 4:
+        return False            # four columns in is indented code, and that never interrupts
+    if ATX_HEADING.match(text) or RULE_LINE.match(text) or BULLET_ITEM.match(text):
+        return True
+    fence = FENCE_RE.match(text)
+    if fence and not (fence.group(1)[0] == "`" and "`" in fence.group(2)):
+        return True
+    ordered = ORDERED_ITEM.match(text)
+    return bool(ordered and int(ordered.group(1)) == 1) or bool(BLOCK_HTML.match(text))
+
+
+def read_blocks(lines):
+    """The document as a list of [kind, pieces, extra], in order - one entry per LOGICAL line.
+
+    kind    "blank" | "heading" | "rule" | "fence-open" (extra: its language) | "fence" (a
+            line inside one, or its closer) | "single" (a table row, an HTML tag line,
+            indented code: one line, never joined) | "para" | "item" (extra: True when it is a
+            tick-box item).
+    pieces  [(line_number, text, hard_break)]. For "para" and "item" the continuation lines
+            are stripped of indentation and of blockquote markers.
+
+    Blockquote markers are read off first and the rest of the line parsed as it would be
+    anywhere: a fence, a list or a tick-box inside a quote is a fence, a list, a tick-box."""
+    out = []
+    cur = None                  # the open paragraph or list item, if any
+    cur_depth = 0               # blockquote depth of the open container
+    list_open = False           # inside a list: an indented paragraph after a blank continues it
+    in_table = False
+    in_fence, fence_char, fence_len, fence_depth = False, "", 0, 0
+    total = len(lines)
+
+    def unquote(line):
+        q = QUOTE_PREFIX.match(line)
+        return (q.group(0).count(">"), line[q.end():]) if q else (0, line)
+
+    for i, raw in enumerate(lines):
+        no = i + 1
+        ln = raw.rstrip("\r")
+        hard = ln.endswith("  ") or ln.endswith("\\")
+        if in_fence and not fence_depth:
+            depth, text = 0, ln                 # inside a plain fence a `>` is just content
         else:
-            cur = ("para", [(no, ln.rstrip())])
-            blocks.append(cur)
-    return blocks
+            depth, text = unquote(ln)
+
+        if in_fence:
+            if fence_depth and depth < fence_depth:
+                in_fence = False                # the quote ended, and its fence with it
+            else:
+                f = FENCE_RE.match(text)
+                if (f and f.group(1)[0] == fence_char and len(f.group(1)) >= fence_len
+                        and not f.group(2).strip()):
+                    in_fence = False
+                out.append(["fence", [(no, ln, False)], None])
+                continue
+
+        indent = _indent(text)
+        under_para = cur is not None and cur[0] == "para" and not list_open
+        f = FENCE_RE.match(text)
+        if (f and not (f.group(1)[0] == "`" and "`" in f.group(2))
+                and not (under_para and depth == cur_depth and indent >= 4)):
+            # Backticks in the info string mean a code span, not a fence (```x``` is inline),
+            # and four columns of indent under a paragraph is a continuation line.
+            cur, in_table = None, False
+            in_fence, fence_char, fence_len, fence_depth = True, f.group(1)[0], len(f.group(1)), depth
+            cur_depth = depth
+            lang = (re.match(r"^\s*([\w+-]*)", f.group(2)).group(1) or "").lower()
+            out.append(["fence-open", [(no, ln, False)], lang])
+            continue
+
+        if depth > cur_depth:                   # a blockquote opens
+            cur, in_table, list_open, cur_depth = None, False, False, depth
+        elif depth < cur_depth:
+            if cur is not None and text.strip() and not _interrupts(text):
+                cur[1].append((no, text.strip(), hard))     # lazy continuation of the quote
+                continue
+            cur, in_table, list_open, cur_depth = None, False, False, depth
+
+        if not text.strip():
+            cur, in_table = None, False
+            out.append(["blank", [(no, ln, False)], None])
+            continue
+        if under_para and indent >= 4:
+            cur[1].append((no, text.strip(), hard))
+            continue
+        if ATX_HEADING.match(text):
+            cur, in_table, list_open = None, False, False
+            out.append(["heading", [(no, text, False)], None])
+            continue
+        if RULE_LINE.match(text):
+            cur, in_table = None, False
+            out.append(["rule", [(no, text, False)], None])
+            continue
+        if text.lstrip().startswith("|"):
+            after = unquote(lines[i + 1].rstrip("\r"))[1] if i + 1 < total else ""
+            if in_table or cur is None or ("|" in after and TABLE_DELIMITER.match(after)):
+                cur, in_table = None, True
+                out.append(["single", [(no, text.rstrip(), False)], None])
+                continue
+        else:
+            in_table = False
+        if (cur is None and STANDALONE_TAG.match(text)) or (cur is not None and BLOCK_HTML.match(text)):
+            cur = None
+            out.append(["single", [(no, text.rstrip(), False)], None])
+            continue
+        ordered = ORDERED_ITEM.match(text)
+        if BULLET_ITEM.match(text) or (ordered and (
+                cur is None or list_open or cur[0] == "item" or int(ordered.group(1)) == 1)):
+            in_table, list_open = False, True
+            cur = ["item", [(no, text.rstrip(), hard)], bool(CHECKBOX.match(text))]
+            out.append(cur)
+            continue
+        if cur is None and CHECKBOX.match(text):
+            # A tick-box with no list marker. Only where a block starts: mid-paragraph,
+            # "[x]" is a mention of one ("mark [x] when done"), and Markdown agrees.
+            cur = ["item", [(no, text.rstrip(), hard)], True]
+            out.append(cur)
+            continue
+        if cur is None and indent >= 4 and not list_open:
+            out.append(["single", [(no, text.rstrip(), False)], None])
+            continue
+        if cur is not None:
+            cur[1].append((no, text.strip(), hard))         # a wrapped continuation
+            continue
+        if indent < 2:
+            list_open = False                   # a flush paragraph after a blank ends the list
+        cur = ["para", [(no, text.rstrip(), hard)], False]
+        out.append(cur)
+    return out
 
 
 def block_text(pieces):
-    """A block as Markdown renders it: its lines joined by single spaces."""
-    return " ".join(p for _, p in pieces)
+    """A block as Markdown renders it: its lines joined, runs of whitespace collapsed. The
+    collapse matters as much as the join - "do  not" on one line and "do" / "not" on two are
+    the same words, and a pattern that wants one space has to see one either way."""
+    return " ".join(" ".join(t for _, t, _ in pieces).split())
 
 
-def block_units(kind, pieces):
-    """The units of one block: (first_line, last_line, text). A sentence wrapped over three
-    lines comes back once, with the line it starts on and the line it ends on."""
-    if kind == "rule":
+def _segment_sentences(segment):
+    """The sentences of a run of lines with no hard break between them."""
+    parts = [(no, " ".join(t.split())) for no, t, _ in segment]
+    parts = [(no, t) for no, t in parts if t]
+    if not parts:
         return
-    if kind == "single":
-        yield pieces[0][0], pieces[0][0], pieces[0][1]
-        return
-    text = block_text(pieces)
-    if CHECKBOX.match(text):
-        yield pieces[0][0], pieces[-1][0], text
-        return
-    # Where each physical line begins inside the joined text, to give a sentence its lines.
-    starts, pos = [], 0
-    for no, piece in pieces:
-        starts.append((pos, no))
-        pos += len(piece) + 1
-
-    def line_at(offset):
-        hit = starts[0][1]
-        for at, no in starts:
-            if at > offset:
-                break
-            hit = no
-        return hit
-
+    text = " ".join(t for _, t in parts)
+    offsets, numbers, pos = [], [], 0
+    for no, t in parts:
+        offsets.append(pos)
+        numbers.append(no)
+        pos += len(t) + 1
     for a, b in split_sentences(text):
-        sentence = text[a:b]
-        if not sentence.strip():
+        sentence = text[a:b].strip()
+        if not sentence:
             continue
-        lead = len(sentence) - len(sentence.lstrip())
-        yield line_at(a + lead), line_at(max(a + lead, b - 1)), sentence.rstrip()
+        lead = a + (len(text[a:b]) - len(text[a:b].lstrip()))
+        first = numbers[bisect.bisect_right(offsets, lead) - 1]
+        last = numbers[bisect.bisect_right(offsets, max(lead, b - 1)) - 1]
+        yield first, last, sentence
+
+
+def block_sentences(kind, pieces, extra):
+    """What one block contributes to the count: (first_line, last_line, text, is_tick_box). A
+    sentence wrapped over three lines comes back once, with the line it starts on and the
+    line it ends on. (Not called a "unit": in this file a unit is a skill file.)
+
+    Whether an entry is a tick-box is the BLOCK's property, decided where the block was read.
+    It is not re-tested on the text: a later sentence that happens to open with "[X]" is a
+    sentence, not a box."""
+    if kind == "single":
+        yield pieces[0][0], pieces[0][0], pieces[0][1], bool(CHECKBOX.match(pieces[0][1]))
+        return
+    if kind not in ("para", "item"):
+        return
+    if extra:                                   # a tick-box item: one box, counted once
+        yield pieces[0][0], pieces[-1][0], block_text(pieces), True
+        return
+    segment = []
+    for piece in pieces:
+        segment.append(piece)
+        if piece[2]:                            # an explicit hard break ends the sentence
+            for first, last, sentence in _segment_sentences(segment):
+                yield first, last, sentence, False
+            segment = []
+    for first, last, sentence in _segment_sentences(segment):
+        yield first, last, sentence, False
 
 
 def checkable_because(ln, is_box, n_inline):
@@ -711,32 +910,23 @@ def analyse(text, keep_lines=False):
              persona_hits=0, doctrine_hits=0, epistemic=0, action=0, mandated=[],
              length_cap_dropped=0,
              declared_scope=(fm_scope if fm_scope in VALID_DECLARED_SCOPES else None))
-    if any(r.search(fm) for r in PERSONA_RE):
+    # YAML folds a wrapped scalar into one line, so the persona test reads it folded: a
+    # description broken across two lines is the same description.
+    if any(r.search(re.sub(r"\n[ \t]+", " ", fm)) for r in PERSONA_RE):
         o["persona_hits"] += 2
-    # CommonMark-aligned fence tracking (fixes public issue #13 and its ~~~ sibling). A fence
-    # OPENS on a run of 3+ backticks or 3+ tildes, and records the delimiter char, the run
-    # length, and the info string (lang). While inside, a line CLOSES the fence only if it
-    # repeats the SAME delimiter char, with a run at least as long as the opener, and carries
-    # NO info string (a bare closer) - section 4.5. The old code was a plain boolean that
-    # toggled on ANY ```-looking line: no delimiter check, no length check, no info-string
-    # check, and no ~~~ support at all. That meant a fenced EXAMPLE that itself contained a
-    # fence (e.g. a ```md block showing a ```bash snippet) flipped the state early and let the
-    # example's checkboxes/instructions/mandated artifacts leak into the real counts. Any
-    # fence-looking line that fails the closer test is just fence CONTENT - skip it exactly
-    # like the rest of the fence body, don't toggle.
-    in_fence, fence_char, fence_len, lang = False, "", 0, ""
-    # NORMALISE FIRST. The document is read the way Markdown renders it: the wrapped lines of
-    # a paragraph, list item or blockquote are one logical line. Everything below - the genre
-    # signals as much as the instruction counts - is computed from logical lines, so no part
-    # of the result can depend on where an editor happened to break a line. A document whose
-    # blocks are each one line already is its own normal form: for it, nothing here differs
-    # from the line-by-line reading through 0.10.0.
-    #
-    # PASS 1 walks the physical lines only to find fences, headings and blank lines; between
-    # those it hands each RUN of lines to iter_blocks().
-    blocks, run = [], []
-    logical = 0
+    if lines and lines[0].strip() and not lines[0].strip("- \t"):
+        lines[0] = ""           # the tail of a frontmatter closer longer than `---`
 
+    # NORMALISE FIRST. The document is read the way Markdown renders it (read_blocks): the
+    # wrapped lines of a paragraph, list item or blockquote are one logical line. Everything
+    # below - the genre signals as much as the instruction counts - is computed from logical
+    # lines, so no part of the result depends on where an editor happened to break a line. A
+    # document whose blocks are each one line already is its own normal form: for it, nothing
+    # here differs from the line-by-line reading through 0.10.0.
+    #
+    # Fence tracking is CommonMark's (public issue #13 and its ~~~ sibling): a fence opens on
+    # 3+ backticks or tildes and closes only on the SAME character, a run at least as long,
+    # and no info string. A fence-looking line that fails that test is fence content.
     def signals(text):
         if TABLE.match(text):
             o["tables"] += 1
@@ -749,54 +939,27 @@ def analyse(text, keep_lines=False):
         if SEQ.match(text):
             o["seq"] += 1
 
-    def close_run():
-        nonlocal logical
-        for kind, pieces in iter_blocks(run):
-            logical += 1
-            text = block_text(pieces)
+    counted, logical = [], 0
+    for kind, pieces, extra in read_blocks(lines):
+        logical += 1
+        if kind == "fence-open":
+            o["fences"] += 1
+            if extra in RUNNABLE_LANGS:
+                o["runnable_fences"] += 1
+        elif kind == "heading":
+            signals(pieces[0][1])       # a heading can carry a step number or a sequence word
+        elif kind in ("single", "para", "item"):
+            text = pieces[0][1] if kind == "single" else block_text(pieces)
             signals(text)
             o["inline_cmds"] += len(INLINE_CMD.findall(text))
             if CHECKBOX.match(text):
                 o["checkboxes"] += 1
-            blocks.append((kind, pieces))
-        del run[:]
-
-    for body_line, ln in enumerate(lines, 1):
-        f = FENCE_RE.match(ln)
-        if f:
-            fence_run, rest = f.group(1), f.group(2)
-            if in_fence:
-                if fence_run[0] == fence_char and len(fence_run) >= fence_len and not rest.strip():
-                    in_fence, fence_char, fence_len, lang = False, "", 0, ""
-                # else: fence-looking but not a valid closer (wrong char, too short, or carries
-                # an info string) - it's content inside the still-open fence, fall through to
-                # "if in_fence: continue" below like any other line in the fence body.
-            else:
-                in_fence, fence_char, fence_len = True, fence_run[0], len(fence_run)
-                lang = (re.match(r"^\s*([\w+-]*)", rest).group(1) or "").lower()
-                o["fences"] += 1
-                if lang in RUNNABLE_LANGS:
-                    o["runnable_fences"] += 1
-            close_run()
-            logical += 1
-            continue
-        if in_fence:
-            logical += 1
-            continue
-        if ln.lstrip().startswith("#") or not ln.strip():
-            close_run()
-            logical += 1
-            signals(ln)             # a heading can carry a step number or a sequence word
-            continue
-        run.append((body_line, ln))
-    close_run()
+            counted.extend(block_sentences(kind, pieces, extra))
     o["logical_lines"] = logical
 
-    # PASS 2, per unit: is it an instruction, can it be checked, does it mandate a file.
-    for first_line, last_line, ln in (u for kind, pieces in blocks
-                                      for u in block_units(kind, pieces)):
+    # PASS 2, per sentence: is it an instruction, can it be checked, does it mandate a file.
+    for first_line, last_line, ln, is_box in counted:
         n_inline = len(INLINE_CMD.findall(ln))
-        is_box = bool(CHECKBOX.match(ln))
         imperative = bool(IMPERATIVE.match(ln)) and not NOUN_OPENER_RE.match(ln)
         if not (is_box or imperative or MODALS.search(ln)):
             continue

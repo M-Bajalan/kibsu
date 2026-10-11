@@ -5,9 +5,10 @@ explain  v1.0.0  -  the lines behind the percentage.
 
 WHAT THIS IS FOR
   `report` says "47.8% of your procedural instructions are verifiable". `audit` breaks that
-  down to units. Neither says WHICH lines, so a reader who accepts the number has nothing to
-  do with it. This prints them, as `path:line  text` - the shape an editor or a terminal turns
-  into a link, and the shape `grep -n` has always used.
+  down to units. Neither says WHICH instructions, so a reader who accepts the number has
+  nothing to do with it. This prints them, as `path:line  text` - the shape an editor or a
+  terminal turns into a link, and the shape `grep -n` has always used. What is listed is what
+  the scorer counts: a sentence, shown whole at the line it starts on (scorer 0.11.0).
 
 WHAT IT IS NOT
   Not a second opinion. The verdict on every line is the scorer's own (audit.py's
@@ -125,10 +126,10 @@ def render(result, all_genres, full, unit_filter):
     if not listed:
         print("  Every instruction in scope can be checked - nothing to list.")
     elif shown == total:
-        print("  %d line(s) can only be confirmed by the agent saying so:" % total)
+        print("  %d instruction(s) can only be confirmed by the agent saying so:" % total)
     else:
         # Never let a capped listing read as the whole of it.
-        print("  %d line(s) can only be confirmed by the agent saying so. Showing %d - "
+        print("  %d instruction(s) can only be confirmed by the agent saying so. Showing %d - "
               "--full lists all:" % (total, shown))
     for u in shown_units:
         tag = "" if u["genre"] == "procedure" else "   [%s]" % u["genre"]
@@ -142,17 +143,19 @@ def render(result, all_genres, full, unit_filter):
                   % (len(lines) - LINES_PER_UNIT, unit_hint(u["file"])))
     if len(listed) > len(shown_units):
         rest = listed[len(shown_units):]
-        print("\n  ... %d more file(s) holding %d line(s) (--full lists everything)"
+        print("\n  ... %d more file(s) holding %d instruction(s) (--full lists everything)"
               % (len(rest), sum(u["claimable"] for u in rest)))
 
     print(rule)
-    print("  A line is CHECKABLE when a reviewer could confirm it from the repository alone: it")
-    print("  is a tick-box, names a command to run, names a file, or names an exit code, a diff")
-    print("  or an assertion. `python -m kibsu audit <dir> --definitions` prints the whole rule.")
-    print("  Not every line should be. Judgement has nothing to check, and rewriting it as")
+    print("  An instruction is CHECKABLE when a reviewer could confirm it from the repository")
+    print("  alone: it is a tick-box, names a command to run, names a file, or names an exit")
+    print("  code, a diff or an assertion. `python -m kibsu audit <dir> --definitions` prints the")
+    print("  whole rule.")
+    print("  Not every one should be. Judgement has nothing to check, and rewriting it as")
     print("  ceremony improves the number and worsens the instruction.")
-    print("  The unit is the SENTENCE: one wrapped over three lines is one entry, shown whole at")
-    print("  the line it starts on. Re-wrapping a file changes neither this list nor the number.")
+    print("  What is counted is the SENTENCE, not the line: one wrapped over three lines is one")
+    print("  entry, shown whole at the line it starts on. Where a paragraph's lines break")
+    print("  changes neither this list nor the number.")
     if not all_genres:
         held = {}
         for u in result["units"]:

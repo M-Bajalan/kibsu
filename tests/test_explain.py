@@ -230,7 +230,7 @@ class ExplainTests(unittest.TestCase):
 
         self.assertEqual(capped.count("rules.md:"), explain.LINES_PER_UNIT)
         self.assertIn("%d more" % (15 - explain.LINES_PER_UNIT), capped)
-        self.assertIn("15 line(s)", capped)
+        self.assertIn("15 instruction(s)", capped)
         self.assertIn("Showing %d" % explain.LINES_PER_UNIT, capped,
                       "a capped listing must not read as the whole of it")
         self.assertEqual(full.count("rules.md:"), 15)

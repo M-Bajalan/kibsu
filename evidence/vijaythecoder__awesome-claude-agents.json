@@ -3,52 +3,52 @@
   "sha": "2050f3c60fcfea497f7b6b3ec6566cc316367a7e",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.10.0",
+    "version": "0.11.0",
     "root": "<clone of vijaythecoder/awesome-claude-agents at 2050f3c60fcf>",
     "mode": "instruction-dir/*.md",
     "all": {
       "lines": 20749,
-      "instructions": 290,
-      "checkable": 25,
-      "claimable": 265,
+      "instructions": 293,
+      "checkable": 24,
+      "claimable": 269,
       "runnable_fences": 96,
       "checkboxes": 5,
       "units": 33,
-      "pct": 8.620689655172415,
-      "zero": 18
+      "pct": 8.19112627986348,
+      "zero": 17
     },
     "procedure_only": {
       "lines": 19531,
-      "instructions": 236,
+      "instructions": 239,
       "checkable": 16,
-      "claimable": 220,
+      "claimable": 223,
       "runnable_fences": 96,
       "checkboxes": 5,
       "units": 26,
-      "pct": 6.779661016949152,
-      "zero": 16
+      "pct": 6.694560669456067,
+      "zero": 15
     },
     "by_genre": {
       "procedure": {
         "lines": 19531,
-        "instructions": 236,
+        "instructions": 239,
         "checkable": 16,
-        "claimable": 220,
+        "claimable": 223,
         "runnable_fences": 96,
         "checkboxes": 5,
         "units": 26,
-        "pct": 6.779661016949152,
-        "zero": 16
+        "pct": 6.694560669456067,
+        "zero": 15
       },
       "persona": {
         "lines": 976,
         "instructions": 32,
-        "checkable": 8,
-        "claimable": 24,
+        "checkable": 7,
+        "claimable": 25,
         "runnable_fences": 0,
         "checkboxes": 0,
         "units": 4,
-        "pct": 25.0,
+        "pct": 21.875,
         "zero": 0
       },
       "reference": {
@@ -64,6 +64,51 @@
       }
     },
     "artifacts": [
+      {
+        "skill": "agents/core/documentation-specialist.md",
+        "artifact": "README.md",
+        "in_tree": true,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 1,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "agents/core/documentation-specialist.md",
+        "artifact": "docs/api.md",
+        "in_tree": false,
+        "in_history": false,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 0,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": true,
+        "mentions_truncated": false
+      },
+      {
+        "skill": "agents/core/documentation-specialist.md",
+        "artifact": "docs/architecture.md",
+        "in_tree": false,
+        "in_history": true,
+        "in_scope": true,
+        "out_of_scope_reason": null,
+        "out_of_scope_class": null,
+        "templated": false,
+        "match_count": 1,
+        "unverifiable_pattern": false,
+        "unverifiable_reason": null,
+        "phantom": false,
+        "mentions_truncated": false
+      },
       {
         "skill": "agents/orchestrators/team-configurator.md",
         "artifact": "CLAUDE.md",
@@ -88,9 +133,9 @@
         "fences": 2,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 8,
+        "instructions": 9,
         "checkable": 0,
-        "claimable": 8,
+        "claimable": 9,
         "inline_cmds": 0,
         "steps": 16,
         "seq": 0,
@@ -98,10 +143,11 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 8,
+        "action": 9,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 87,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 9.2,
@@ -119,9 +165,9 @@
         "fences": 1,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 3,
+        "instructions": 4,
         "checkable": 0,
-        "claimable": 3,
+        "claimable": 4,
         "inline_cmds": 3,
         "steps": 5,
         "seq": 0,
@@ -129,13 +175,14 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 3,
+        "action": 4,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 68,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 2.94,
+          "procedure": 3.68,
           "reference": 0.0,
           "doctrine": 0.0
         },
@@ -150,9 +197,9 @@
         "fences": 4,
         "runnable_fences": 1,
         "checkboxes": 0,
-        "instructions": 9,
-        "checkable": 0,
-        "claimable": 9,
+        "instructions": 8,
+        "checkable": 1,
+        "claimable": 7,
         "inline_cmds": 0,
         "steps": 6,
         "seq": 0,
@@ -160,14 +207,43 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 9,
-        "mandated": [],
+        "action": 8,
+        "mandated": [
+          {
+            "tok": "README.md",
+            "line": "6. **Write/Update Files** \u2022 Create or update `README.md`, `docs/api.md`, `docs/architecture.md`, etc. using `Write` or `Edit`.",
+            "lines": [
+              "6. **Write/Update Files** \u2022 Create or update `README.md`, `docs/api.md`, `docs/architecture.md`, etc. using `Write` or `Edit`."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "docs/api.md",
+            "line": "6. **Write/Update Files** \u2022 Create or update `README.md`, `docs/api.md`, `docs/architecture.md`, etc. using `Write` or `Edit`.",
+            "lines": [
+              "6. **Write/Update Files** \u2022 Create or update `README.md`, `docs/api.md`, `docs/architecture.md`, etc. using `Write` or `Edit`."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          },
+          {
+            "tok": "docs/architecture.md",
+            "line": "6. **Write/Update Files** \u2022 Create or update `README.md`, `docs/api.md`, `docs/architecture.md`, etc. using `Write` or `Edit`.",
+            "lines": [
+              "6. **Write/Update Files** \u2022 Create or update `README.md`, `docs/api.md`, `docs/architecture.md`, etc. using `Write` or `Edit`."
+            ],
+            "any_clean": true,
+            "mentions_truncated": false
+          }
+        ],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 86,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 6.19,
-          "reference": 2.89,
+          "procedure": 6.98,
+          "reference": 3.26,
           "doctrine": 0.0
         },
         "genre": "procedure",
@@ -195,9 +271,10 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 56,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 3.12,
+          "procedure": 3.57,
           "reference": 0.0,
           "doctrine": 0.0
         },
@@ -212,9 +289,9 @@
         "fences": 1,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 8,
+        "instructions": 7,
         "checkable": 1,
-        "claimable": 7,
+        "claimable": 6,
         "inline_cmds": 2,
         "steps": 5,
         "seq": 0,
@@ -222,14 +299,15 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 8,
+        "action": 7,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 61,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 3.97,
-          "reference": 7.78,
+          "procedure": 4.1,
+          "reference": 8.03,
           "doctrine": 0.0
         },
         "genre": "reference",
@@ -267,10 +345,11 @@
         ],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 46,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 6.0,
-          "reference": 5.6,
+          "procedure": 6.52,
+          "reference": 6.09,
           "doctrine": 0.0
         },
         "genre": "procedure",
@@ -284,9 +363,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 11,
+        "instructions": 13,
         "checkable": 0,
-        "claimable": 11,
+        "claimable": 13,
         "inline_cmds": 0,
         "steps": 5,
         "seq": 0,
@@ -294,13 +373,14 @@
         "persona_hits": 0,
         "doctrine_hits": 0,
         "epistemic": 1,
-        "action": 10,
+        "action": 12,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 87,
         "genre_scores": {
           "persona": 0.0,
-          "procedure": 2.53,
+          "procedure": 2.87,
           "reference": 0.0,
           "doctrine": 0.0
         },
@@ -329,6 +409,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 801,
         "genre_scores": {
           "persona": 0.37,
           "procedure": 3.43,
@@ -360,6 +441,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 872,
         "genre_scores": {
           "persona": 0.34,
           "procedure": 3.5,
@@ -391,6 +473,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 825,
         "genre_scores": {
           "persona": 1.09,
           "procedure": 2.97,
@@ -408,9 +491,9 @@
         "fences": 5,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 24,
-        "checkable": 2,
-        "claimable": 22,
+        "instructions": 25,
+        "checkable": 1,
+        "claimable": 24,
         "inline_cmds": 0,
         "steps": 10,
         "seq": 0,
@@ -418,10 +501,11 @@
         "persona_hits": 0,
         "doctrine_hits": 1,
         "epistemic": 0,
-        "action": 24,
+        "action": 25,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 171,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 2.92,
@@ -453,6 +537,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 71,
         "genre_scores": {
           "persona": 4.23,
           "procedure": 5.63,
@@ -484,6 +569,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1304,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.23,
@@ -515,6 +601,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1504,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.26,
@@ -546,6 +633,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1070,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.5,
@@ -577,6 +665,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1333,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.39,
@@ -608,6 +697,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1788,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.03,
@@ -639,6 +729,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1654,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 2.03,
@@ -670,6 +761,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1785,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 0.84,
@@ -701,6 +793,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1660,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.33,
@@ -732,6 +825,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 1528,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 1.64,
@@ -763,6 +857,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 687,
         "genre_scores": {
           "persona": 1.31,
           "procedure": 3.57,
@@ -794,6 +889,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 940,
         "genre_scores": {
           "persona": 0.32,
           "procedure": 3.24,
@@ -825,6 +921,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 873,
         "genre_scores": {
           "persona": 0.34,
           "procedure": 3.84,
@@ -856,6 +953,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 39,
         "genre_scores": {
           "persona": 7.69,
           "procedure": 0.0,
@@ -874,8 +972,8 @@
         "runnable_fences": 0,
         "checkboxes": 0,
         "instructions": 11,
-        "checkable": 4,
-        "claimable": 7,
+        "checkable": 3,
+        "claimable": 8,
         "inline_cmds": 0,
         "steps": 12,
         "seq": 0,
@@ -887,6 +985,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 139,
         "genre_scores": {
           "persona": 6.47,
           "procedure": 4.32,
@@ -918,6 +1017,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 96,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 2.08,
@@ -949,6 +1049,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 717,
         "genre_scores": {
           "persona": 1.26,
           "procedure": 0.49,
@@ -980,6 +1081,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 31,
         "genre_scores": {
           "persona": 9.68,
           "procedure": 11.29,
@@ -1011,6 +1113,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 81,
         "genre_scores": {
           "persona": 3.7,
           "procedure": 3.09,
@@ -1042,10 +1145,11 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 78,
         "genre_scores": {
-          "persona": 3.26,
-          "procedure": 3.26,
-          "reference": 6.09,
+          "persona": 3.85,
+          "procedure": 3.85,
+          "reference": 7.18,
           "doctrine": 0.0
         },
         "genre": "reference",
@@ -1073,6 +1177,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 62,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 5.65,
@@ -1104,6 +1209,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 81,
         "genre_scores": {
           "persona": 0.0,
           "procedure": 15.43,
@@ -1119,10 +1225,10 @@
     ],
     "exclusion_ledger": {},
     "phantom_counterfactual": {
-      "in_scope_pct": 0.0,
-      "in_scope_n": 1,
-      "all_pct": 0.0,
-      "all_n": 1
+      "in_scope_pct": 25.0,
+      "in_scope_n": 4,
+      "all_pct": 25.0,
+      "all_n": 4
     }
   }
 }

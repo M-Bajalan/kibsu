@@ -3,41 +3,41 @@
   "sha": "a5a480c324cac64b9c569bca0b2f297d517240cb",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.10.0",
+    "version": "0.11.0",
     "root": "<clone of contains-studio/agents at a5a480c324ca>",
     "mode": "*.md (no instruction dir)",
     "all": {
       "lines": 5728,
-      "instructions": 737,
+      "instructions": 734,
       "checkable": 70,
-      "claimable": 667,
+      "claimable": 664,
       "runnable_fences": 5,
       "checkboxes": 64,
       "units": 37,
-      "pct": 9.49796472184532,
+      "pct": 9.536784741144414,
       "zero": 25
     },
     "procedure_only": {
       "lines": 5529,
-      "instructions": 714,
+      "instructions": 711,
       "checkable": 69,
-      "claimable": 645,
+      "claimable": 642,
       "runnable_fences": 5,
       "checkboxes": 64,
       "units": 34,
-      "pct": 9.663865546218487,
+      "pct": 9.70464135021097,
       "zero": 23
     },
     "by_genre": {
       "procedure": {
         "lines": 5529,
-        "instructions": 714,
+        "instructions": 711,
         "checkable": 69,
-        "claimable": 645,
+        "claimable": 642,
         "runnable_fences": 5,
         "checkboxes": 64,
         "units": 34,
-        "pct": 9.663865546218487,
+        "pct": 9.70464135021097,
         "zero": 23
       },
       "doctrine": {
@@ -86,6 +86,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 21,
         "genre_scores": {
           "persona": 28.57,
           "procedure": 4.76,
@@ -117,6 +118,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 120,
         "genre_scores": {
           "persona": 2.5,
           "procedure": 7.5,
@@ -148,6 +150,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 249,
         "genre_scores": {
           "persona": 1.2,
           "procedure": 14.86,
@@ -179,6 +182,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 148,
         "genre_scores": {
           "persona": 2.03,
           "procedure": 18.92,
@@ -210,6 +214,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 181,
         "genre_scores": {
           "persona": 1.66,
           "procedure": 4.7,
@@ -241,6 +246,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 242,
         "genre_scores": {
           "persona": 2.48,
           "procedure": 9.92,
@@ -258,9 +264,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 6,
-        "instructions": 17,
+        "instructions": 18,
         "checkable": 6,
-        "claimable": 11,
+        "claimable": 12,
         "inline_cmds": 0,
         "steps": 13,
         "seq": 0,
@@ -268,10 +274,11 @@
         "persona_hits": 1,
         "doctrine_hits": 4,
         "epistemic": 0,
-        "action": 17,
+        "action": 18,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 119,
         "genre_scores": {
           "persona": 2.52,
           "procedure": 15.55,
@@ -303,6 +310,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 95,
         "genre_scores": {
           "persona": 3.16,
           "procedure": 3.16,
@@ -334,6 +342,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 86,
         "genre_scores": {
           "persona": 3.49,
           "procedure": 3.49,
@@ -365,6 +374,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 95,
         "genre_scores": {
           "persona": 3.16,
           "procedure": 3.16,
@@ -396,6 +406,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 85,
         "genre_scores": {
           "persona": 3.53,
           "procedure": 3.53,
@@ -427,6 +438,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 85,
         "genre_scores": {
           "persona": 3.53,
           "procedure": 3.53,
@@ -458,6 +470,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 85,
         "genre_scores": {
           "persona": 3.53,
           "procedure": 3.53,
@@ -475,9 +488,9 @@
         "fences": 0,
         "runnable_fences": 0,
         "checkboxes": 0,
-        "instructions": 39,
+        "instructions": 40,
         "checkable": 3,
-        "claimable": 36,
+        "claimable": 37,
         "inline_cmds": 0,
         "steps": 7,
         "seq": 0,
@@ -485,10 +498,11 @@
         "persona_hits": 1,
         "doctrine_hits": 0,
         "epistemic": 1,
-        "action": 38,
+        "action": 39,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 92,
         "genre_scores": {
           "persona": 3.26,
           "procedure": 3.8,
@@ -520,6 +534,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 151,
         "genre_scores": {
           "persona": 1.99,
           "procedure": 9.6,
@@ -551,6 +566,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 203,
         "genre_scores": {
           "persona": 1.48,
           "procedure": 5.67,
@@ -582,6 +598,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 212,
         "genre_scores": {
           "persona": 1.42,
           "procedure": 5.66,
@@ -613,6 +630,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 148,
         "genre_scores": {
           "persona": 2.03,
           "procedure": 5.07,
@@ -644,6 +662,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 191,
         "genre_scores": {
           "persona": 1.57,
           "procedure": 5.5,
@@ -675,6 +694,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 111,
         "genre_scores": {
           "persona": 2.7,
           "procedure": 5.41,
@@ -706,6 +726,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 169,
         "genre_scores": {
           "persona": 1.78,
           "procedure": 5.33,
@@ -737,6 +758,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 134,
         "genre_scores": {
           "persona": 4.48,
           "procedure": 4.48,
@@ -768,6 +790,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 97,
         "genre_scores": {
           "persona": 6.19,
           "procedure": 6.19,
@@ -799,6 +822,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 93,
         "genre_scores": {
           "persona": 6.45,
           "procedure": 5.91,
@@ -830,6 +854,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 125,
         "genre_scores": {
           "persona": 2.4,
           "procedure": 4.8,
@@ -861,6 +886,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 150,
         "genre_scores": {
           "persona": 2.0,
           "procedure": 15.33,
@@ -892,6 +918,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 163,
         "genre_scores": {
           "persona": 1.84,
           "procedure": 1.84,
@@ -923,6 +950,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 175,
         "genre_scores": {
           "persona": 1.71,
           "procedure": 8.57,
@@ -954,6 +982,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 264,
         "genre_scores": {
           "persona": 1.14,
           "procedure": 6.44,
@@ -985,6 +1014,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 190,
         "genre_scores": {
           "persona": 1.58,
           "procedure": 7.89,
@@ -1002,9 +1032,9 @@
         "fences": 1,
         "runnable_fences": 0,
         "checkboxes": 10,
-        "instructions": 35,
+        "instructions": 30,
         "checkable": 10,
-        "claimable": 25,
+        "claimable": 20,
         "inline_cmds": 0,
         "steps": 47,
         "seq": 0,
@@ -1012,13 +1042,14 @@
         "persona_hits": 1,
         "doctrine_hits": 0,
         "epistemic": 0,
-        "action": 35,
+        "action": 30,
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 225,
         "genre_scores": {
-          "persona": 1.3,
-          "procedure": 18.91,
+          "persona": 1.33,
+          "procedure": 19.33,
           "reference": 0.0,
           "doctrine": 0.0
         },
@@ -1047,6 +1078,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 157,
         "genre_scores": {
           "persona": 1.91,
           "procedure": 7.64,
@@ -1078,6 +1110,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 185,
         "genre_scores": {
           "persona": 1.62,
           "procedure": 4.59,
@@ -1109,6 +1142,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 248,
         "genre_scores": {
           "persona": 1.21,
           "procedure": 9.48,
@@ -1140,6 +1174,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 244,
         "genre_scores": {
           "persona": 1.23,
           "procedure": 3.07,
@@ -1171,6 +1206,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 175,
         "genre_scores": {
           "persona": 1.71,
           "procedure": 4.86,
@@ -1202,6 +1238,7 @@
         "mandated": [],
         "length_cap_dropped": 0,
         "declared_scope": null,
+        "logical_lines": 210,
         "genre_scores": {
           "persona": 1.43,
           "procedure": 13.81,
