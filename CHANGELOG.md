@@ -1,13 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 - 2026-10-11
 
 The front-door round (CORRECTIONS 2026-10-10): the published 0.8.0 was installed into an
 empty environment and both READMEs were followed as a stranger would. The scorer is untouched
 - still 0.10.0 - and no survey figure moves; what changes is what `report` says and how the
-package is reached. Consumer-observable: question 3's mark and the score can change for a
-repository between 7.5% and 9.4%, question 5's line changes for a repository whose index was
-never committed, and the install gains a `kibsu` command.
+package is reached. Minor version, not patch, because three changes are observable to
+consumers: question 3's mark and the score can change for a repository between 7.5% and
+9.4%, question 5's line changes for a repository whose index was never committed, and the
+install gains a `kibsu` command.
 
 - **`report` compares against the median the table publishes.** The constant behind question
   3 sat at 9.4 (scorer 0.6.0) through releases 0.6.0-0.8.0 while the published median moved to

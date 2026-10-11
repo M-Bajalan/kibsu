@@ -35,9 +35,9 @@ python -m kibsu report /path/to/any/repo
 Or try it without installing anything into your environment: `uvx kibsu report /path/to/any/repo`
 (`pipx run kibsu report ...` is the same idea). `kibsu ...` and `python -m kibsu ...` are the
 same program; this page writes the long form because it is the one that also works from a
-bare clone, with no install at all. One honesty note: the short `kibsu` command needs a
-release newer than 0.8.0 — through 0.8.0 the package declared no command, and `uvx kibsu`
-answered "does not provide any executables" (see [CORRECTIONS.md](CORRECTIONS.md), 2026-10-10).
+bare clone, with no install at all. One honesty note: the short `kibsu` command ships from
+0.9.0 — through 0.8.0 the package declared no command, and `uvx kibsu` answered "does not
+provide any executables" (see [CORRECTIONS.md](CORRECTIONS.md), 2026-10-10).
 
 `report` is one of twelve subcommands — `python -m kibsu --help` lists them all. It is
 the one to start with, and the only one you need to read this page.
