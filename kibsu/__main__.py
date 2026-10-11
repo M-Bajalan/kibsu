@@ -31,7 +31,8 @@ def _scorer_version():
 # subparsers here: argparse.REMAINDER does not reliably swallow a bare "--help" as the very
 # first token of a subparser with no other options defined, so dispatch for these is
 # done by slicing sys.argv directly, before kibsu's own top-level parser ever runs.
-_FORWARDED = ("discover", "index", "install", "tokens", "check", "report", "guide", "audit", "learn", "gate")
+_FORWARDED = ("discover", "index", "install", "tokens", "check", "report", "explain", "guide", "audit",
+              "learn", "gate")
 
 
 def _forward(subcommand, extra_args):
@@ -83,6 +84,7 @@ _SUBCOMMANDS = {
     "check": ("check the repo against its own index - the pre-commit gate (needs an index - "
               "see the index tool)", None),
     "report": ("read-only readiness report: what an agent cannot do here yet", None),
+    "explain": ("the lines behind report's percentage: which instructions nobody can check", None),
     "guide": ("what an agent actually has to remember, vs. what a mechanism enforces", None),
     "audit": ("measure the checkable:claimable ratio of an agent skill set", None),
     "learn": ("does the shared knowledge base still tell the truth - dangling links, rotted "

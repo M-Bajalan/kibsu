@@ -18,8 +18,8 @@ anyone could actually verify were followed, and which ones only work when a huma
 The read-only commands write nothing — run one, then run `git status`. Four commands write
 on purpose and say so before they do: `index` (the index file), `install` and
 `gate --install` (vendored tools plus hook wiring, reversible), `check --receipt` (a
-receipt file). Everything else — `report`, `audit`, `discover`, `survey`, `guide`, `learn`,
-`tokens` — reads only.
+receipt file). Everything else — `report`, `explain`, `audit`, `discover`, `survey`, `guide`,
+`learn`, `tokens` — reads only.
 
 ---
 
@@ -39,7 +39,7 @@ bare clone, with no install at all. One honesty note: the short `kibsu` command 
 0.9.0 — through 0.8.0 the package declared no command, and `uvx kibsu` answered "does not
 provide any executables" (see [CORRECTIONS.md](CORRECTIONS.md), 2026-10-10).
 
-`report` is one of twelve subcommands — `python -m kibsu --help` lists them all. It is
+`report` is one of thirteen subcommands — `python -m kibsu --help` lists them all. It is
 the one to start with, and the only one you need to read this page.
 
 Real output, against a public repository at commit `3dcbd5c`:
@@ -139,6 +139,72 @@ Everything else is **CLAIMABLE**: the only evidence it happened is the agent say
 checkable — a bare path mention counts, a bare command word counts. Reported figures are therefore
 **ceilings**. The true numbers are lower. `python -m kibsu audit <dir> --definitions` prints the
 whole ruleset so you can argue with it (exit 0).
+
+### Which lines
+
+A percentage tells you there is a gap. It does not tell you where to look. `explain` lists the
+lines behind `report`'s number as `path:line  text` — the shape an editor or a terminal turns
+into a link:
+
+```bash
+python -m kibsu explain /path/to/any/repo
+python -m kibsu explain /path/to/any/repo --unit planner    # one file at a time
+```
+
+Real output, for one unit of [kibsu-lab](https://github.com/M-Bajalan/kibsu-lab) at commit
+`2d49abf`:
+
+```
+  THE LINES BEHIND THE NUMBER
+  /tmp/kibsu-lab
+  --------------------------------------------------------------------------
+  47.8% of your procedural instructions are verifiable: 22 of 46.
+  5 line(s) can only be confirmed by the agent saying so:
+
+  skills/planner/SKILL.md   5 of 8 cannot be checked
+    skills/planner/SKILL.md:21  Create `docs/plans/<YYYY-MM-DD>-<slug>.md` with this shape:
+    skills/planner/SKILL.md:45  Do not start Phase 2 until Phase 1's verify command has actually been run and its
+    skills/planner/SKILL.md:47  verify step passed, not when you believe it should pass.
+    skills/planner/SKILL.md:52  that must exist), that is a planning defect: redesign the phase into something
+    skills/planner/SKILL.md:54  read before the plan continues. Never soften a checker to make an unclear phase pass.
+  --------------------------------------------------------------------------
+  A line is CHECKABLE when a reviewer could confirm it from the repository alone: it
+  is a tick-box, names a command to run, names a file, or names an exit code, a diff
+  or an assertion. `python -m kibsu audit <dir> --definitions` prints the whole rule.
+  Not every line should be. Judgement has nothing to check, and rewriting it as
+  ceremony improves the number and worsens the instruction.
+  The unit is the LINE as written: a sentence wrapped over three lines appears as each
+  line that carries a directive word, fragments included. That is what the percentage
+  counts too - if an entry reads like half a sentence, it was scored as one.
+  2 doctrine unit(s) not listed - checkability is not a fair test of them (--all-genres lists them).
+  Nothing was written to this repo - run `git status` to confirm.
+```
+
+Reproduce it — the second line of the block is your clone's path; this one was run on Windows
+and is written here as the path the commands below use:
+
+```bash
+git clone https://github.com/M-Bajalan/kibsu-lab /tmp/kibsu-lab && cd /tmp/kibsu-lab && git checkout 2d49abf
+python -m kibsu explain /tmp/kibsu-lab --unit planner
+```
+
+The verdict on every line is the scorer's own, read back: one function decides both the
+percentage and the list, so the two cannot disagree. The number of lines listed is exactly the
+gap in the headline — 24 for this repository's `22 of 46` — and a test compares the two
+against a separate `audit` run rather than against `explain`'s own arithmetic.
+
+**Read that sample twice, because most of it is the instrument talking, not the repository.**
+Line 21 names a file and is listed anyway: `docs/plans/<YYYY-MM-DD>-<slug>.md` is a path shape
+the scorer does not recognise. Lines 47 and 52 are the tails of sentences that begin on the
+line above, and line 54 opens with one: the unit is the line as written, so hard-wrapped prose
+is counted in fragments. A percentage hid both. Printing the lines is what shows them, and
+both are in [Honest limits](#honest-limits).
+
+Only **procedure** units are listed by default. A doctrine unit's 0% is the genre working,
+and a list of its lines would read as a to-do list for the one change that makes things worse.
+The output says how many units were held back; `--all-genres` lists them, `--full` lifts the
+display caps, and `--json` carries every instruction line with both verdicts and the reason
+for each.
 
 ### Genres, and why they matter
 
@@ -302,8 +368,8 @@ One line rather than a heredoc, because a heredoc is a bash construct and this l
 to work in PowerShell too — a "verify it yourself" section that only verifies on Unix
 is half a claim.
 
-**It is small enough to actually read.** 6,018 lines across 14 files in `kibsu/`, plus
-6,423 lines of tests running 262 cases. That is an evening, not a quarter. Count it
+**It is small enough to actually read.** 6,277 lines across 15 files in `kibsu/`, plus
+6,716 lines of tests running 277 cases. That is an evening, not a quarter. Count it
 yourself rather than believing this paragraph — this is the third revision of these
 numbers to ship after the code had already grown past them ([#29](https://github.com/M-Bajalan/kibsu/issues/29)
 indexes the incident), so the commands below outrank the prose above them - and as of #29's fix the test
@@ -336,8 +402,8 @@ crash. (Pointed at this repository it returns 3, and the reason is stated in
 **The diagnostic commands do not write to your repository.** This is the design constraint
 everything else bends around — scoped honestly: `index`, `install`/`gate --install`, and
 `check --receipt` write exactly the artifacts they exist to write, opt-in, named in their
-own `--help`; every diagnostic (`report`, `audit`, `discover`, `survey`, `guide`, `learn`)
-writes nothing, and that claim is two commands to falsify:
+own `--help`; every diagnostic (`report`, `explain`, `audit`, `discover`, `survey`, `guide`,
+`learn`) writes nothing, and that claim is two commands to falsify:
 
 ```bash
 python -m kibsu report /path/to/your/repo
@@ -396,6 +462,18 @@ Read these before quoting anything above.
   enforceability of that repo is higher than 13.1%. This is the strongest counter-example to the
   entire approach, and it belongs at the top of the limits rather than buried at the bottom.
 - **The metric is a heuristic.** Biased generous by design. Ceilings, not measurements.
+- **The unit is the line as written, and for hard-wrapped prose that is not a ceiling.** A
+  sentence wrapped over three lines is scored as each line that carries a directive word
+  (`never`, `must`, `do not`...), so one instruction can be counted two or three times - and
+  the fragments are nearly always claimable, because a continuation line rarely carries the
+  command. A repository that writes one instruction per line is barely touched. One that
+  hard-wraps its prose, as [kibsu-lab](https://github.com/M-Bajalan/kibsu-lab) does, is scored
+  *below* what a sentence-level count would give, which runs against the line above this one.
+  `explain` is what made it visible. It is disclosed here before it is corrected: a
+  sentence-level count is a scorer round of its own, with a re-measurement at the pinned SHAs,
+  and **no figure on this page has been adjusted for it.** A smaller sibling from the same
+  listing: a templated path written with angle brackets (`docs/plans/<date>-<slug>.md`) is
+  not read as naming a file.
 - **Persona collections are not badly written**, they are a different genre. Scoring them on
   checkability was the first mistake this tool made.
 - **Low checkability has not been shown to produce worse outcomes.** Nobody has demonstrated that.

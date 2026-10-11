@@ -499,8 +499,38 @@ def _mention_clean(mention):
     return scaffold_scope_reason(mention) is None and not USER_SCOPE_LINE.search(mention)
 
 
-def analyse(text):
+def checkable_because(ln, is_box, n_inline):
+    """Every reason an instruction line counts as CHECKABLE; empty means CLAIMABLE.
+
+    The four classes are the ones --definitions has always named: tick-box | runnable command |
+    names a concrete file | exit code / diff / assertion. This is the ONE place the verdict is
+    decided - analyse() counts from it and `explain` prints from it - so the list a reader is
+    shown cannot be judged by a different rule than the percentage it explains. It returns
+    every class that applies rather than stopping at the first: the verdict is the same either
+    way, and "why was this counted" is the question a reader arguing with the metric asks."""
+    why = []
+    if is_box:
+        why.append("tick-box")
+    if n_inline > 0 or BARE_CMD.match(ln):
+        why.append("command")
+    if PATHY.search(ln):
+        why.append("file")
+    if EXITY.search(ln):
+        why.append("exit/diff/assertion")
+    return why
+
+
+def analyse(text, keep_lines=False):
+    """keep_lines=True also returns `line_records`: one entry per instruction line, with the
+    line's number IN THE FILE (not in the frontmatter-stripped body), its verdict and the
+    reasons for it. Observation only - no count is computed from the records, and the default
+    output carries no such key, because `evidence/` is regenerated from it."""
     body, fm = strip_frontmatter(text)
+    # The body starts partway down the file whenever there is frontmatter. Count the lines the
+    # strip removed, so a record can point at the line an editor would open.
+    stripped = text.lstrip("﻿")
+    line_offset = stripped[:len(stripped) - len(body)].count("\n")
+    records = []
     m = re.search(r"^\s*genre\s*:\s*([A-Za-z]+)\s*(?:#.*)?$", fm, re.M)
     fm_genre = m.group(1) if m else None
     # DECLARED SCOPE: `scope: user-project` / `scope: repo` in frontmatter. Parsed here,
@@ -528,7 +558,7 @@ def analyse(text):
     # fence-looking line that fails the closer test is just fence CONTENT - skip it exactly
     # like the rest of the fence body, don't toggle.
     in_fence, fence_char, fence_len, lang = False, "", 0, ""
-    for ln in lines:
+    for body_line, ln in enumerate(lines, 1):
         f = FENCE_RE.match(ln)
         if f:
             run, rest = f.group(1), f.group(2)
@@ -571,9 +601,14 @@ def analyse(text):
             continue
         o["instructions"] += 1
         o["epistemic" if EPISTEMIC.match(ln) else "action"] += 1
-        checkable = (is_box or n_inline > 0 or bool(BARE_CMD.match(ln))
-                     or bool(PATHY.search(ln)) or bool(EXITY.search(ln)))
+        why = checkable_because(ln, is_box, n_inline)
+        checkable = bool(why)
         o["checkable" if checkable else "claimable"] += 1
+        if keep_lines:
+            records.append({"line": line_offset + body_line, "text": ln.rstrip(),
+                            "verdict": "checkable" if checkable else "claimable", "why": why,
+                            "kind": ("tick-box" if is_box else
+                                     "imperative" if imperative else "modal")})
         if ARTIFACT_VERB.search(ln):
             for m in file_tokens(ln):
                 # Strip a leading "./" as a PREFIX. lstrip("./\\") takes a character SET and
@@ -661,6 +696,8 @@ def analyse(text):
         o["genre"], o["genre_source"] = detected, "detected"
         o["genre_conflict"] = False
     o["genre_detected"] = detected
+    if keep_lines:
+        o["line_records"] = records
     return o
 
 
@@ -987,6 +1024,10 @@ def main():
     ap.add_argument("--artifacts", action="store_true", help="find mandated artifacts and hunt for them")
     ap.add_argument("--limit", type=int, default=12)
     ap.add_argument("--include-archived", action="store_true")
+    ap.add_argument("--lines", action="store_true",
+                    help="with --json: add every instruction line, its file line number and "
+                         "its verdict to each unit (what `explain` prints). Off by default - "
+                         "no count depends on it and the default output is unchanged")
     a = ap.parse_args()
     global INCLUDE_ARCHIVED
     INCLUDE_ARCHIVED = a.include_archived
@@ -1012,9 +1053,13 @@ def main():
             t = io.open(p, encoding="utf-8", errors="replace").read()
         except Exception:
             continue
-        r = analyse(t)
+        r = analyse(t, keep_lines=a.lines)
         rel = os.path.relpath(p, root).replace("\\", "/")
         r["skill"] = (os.path.dirname(rel) or rel) if mode == "SKILL.md" else rel
+        if a.lines:
+            # "skill" names the UNIT, which under the SKILL.md layout is the directory. A
+            # line number is only useful beside the file it counts in.
+            r["file"] = rel
         rows.append(r)
 
     def agg(rs):
