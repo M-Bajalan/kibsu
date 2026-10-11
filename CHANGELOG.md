@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 - 2026-10-11
+
+The sentence round (CORRECTIONS 2026-10-11), and the command that found it. This package
+carries **scorer 0.11.0** - the two numbering lines are easy to cross: scorer 0.10.0 shipped
+in package 0.9.0. Minor version, not patch, because three changes are observable to
+consumers: every percentage `audit`, `report` and `explain` print can change for the same
+repository at the same commit (the scorer counts sentences, not lines); `report` compares
+against a public median of 7.6% instead of 7.5%; and there is a new command, `kibsu explain`.
 
 - **Scorer 0.11.0: what is counted is the sentence, not the line** (CORRECTIONS
   2026-10-11). Through 0.10.0 a sentence hard-wrapped over three lines was scored once per
