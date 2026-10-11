@@ -151,9 +151,8 @@ def render(result, all_genres, full, unit_filter):
     print("  or an assertion. `python -m kibsu audit <dir> --definitions` prints the whole rule.")
     print("  Not every line should be. Judgement has nothing to check, and rewriting it as")
     print("  ceremony improves the number and worsens the instruction.")
-    print("  The unit is the LINE as written: a sentence wrapped over three lines appears as each")
-    print("  line that carries a directive word, fragments included. That is what the percentage")
-    print("  counts too - if an entry reads like half a sentence, it was scored as one.")
+    print("  The unit is the SENTENCE: one wrapped over three lines is one entry, shown whole at")
+    print("  the line it starts on. Re-wrapping a file changes neither this list nor the number.")
     if not all_genres:
         held = {}
         for u in result["units"]:
