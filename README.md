@@ -395,8 +395,8 @@ One line rather than a heredoc, because a heredoc is a bash construct and this l
 to work in PowerShell too — a "verify it yourself" section that only verifies on Unix
 is half a claim.
 
-**It is small enough to actually read.** 6,644 lines across 15 files in `kibsu/`, plus
-7,217 lines of tests running 316 cases. That is an evening, not a quarter. Count it
+**It is small enough to actually read.** 6,700 lines across 15 files in `kibsu/`, plus
+7,377 lines of tests running 327 cases. That is an evening, not a quarter. Count it
 yourself rather than believing this paragraph — this is the third revision of these
 numbers to ship after the code had already grown past them ([#29](https://github.com/M-Bajalan/kibsu/issues/29)
 indexes the incident), so the commands below outrank the prose above them - and as of #29's fix the test
