@@ -424,6 +424,32 @@ class BlockTests(unittest.TestCase):
         flush = "# T\n\n> - You must cite the paper\n- never the preprint.\n"
         self.assertEqual(self._texts(flush), ["- You must cite the paper", "- never the preprint."])
 
+    def test_a_quote_that_opens_under_a_paragraph_reads_as_it_would_alone(self):
+        """A quote interrupts the paragraph above it, so what is quoted reads the same with or
+        without that paragraph. Under scorer 0.11.0 (package 0.10.0), a quoted line four columns
+        in was appended to the paragraph the quote had just closed: TypeError, and `audit`,
+        `report` and `explain` lost the whole repository to one file."""
+        quote = ">     make build\n> Never skip the build.\n"
+        alone = self._texts("# T\n\n" + quote)
+        self.assertEqual(alone, ["make build", "Never skip the build."])
+        self.assertEqual(self._texts("# T\n\nYou must read the guide.\n" + quote),
+                         ["You must read the guide."] + alone)
+
+    def test_no_change_of_container_can_crash_the_reader(self):
+        """Every opener x every quote depth x indents 0-6 x every kind of next line. The crash
+        above was one cell of this grid; a reader that keeps a stale answer about which block
+        is open fails here, not in a user's repository."""
+        openers = ["Intro line", "- item", "1. item", "> quoted", ">> deep", "| a | b |", "    code"]
+        prefixes = ["", ">", "> ", ">>", "> > "]
+        bodies = ["x", "- x", "2. x", "```", "| a |", "[ ] x"]
+        for opener in openers:
+            for prefix in prefixes:
+                for indent in range(7):
+                    for body in bodies:
+                        doc = "%s\n%s%s%s\n" % (opener, prefix, " " * indent, body)
+                        with self.subTest(doc=doc):
+                            audit.analyse(doc, keep_lines=True)
+
     def test_a_fence_under_a_tag_line_is_a_fence(self):
         """DELIBERATE, and not CommonMark: there, `<Good>` opens an HTML block that swallows
         the fence line, and the code after the first blank line turns into paragraphs. The

@@ -755,6 +755,10 @@ def read_blocks(lines):
                 cur[1].append((no, text.strip(), hard))     # lazy continuation of the quote
                 continue
             cur, in_table, list_open, cur_depth = None, False, False, depth
+        # Asked again: a quote that opened or closed on this line has just closed the paragraph,
+        # so the answer taken above is stale. Kept stale, "Intro\n>     code" appended the
+        # quoted line to a paragraph that no longer existed (TypeError, the whole audit lost).
+        under_para = cur is not None and cur[0] == "para" and not list_open
 
         if not text.strip():
             cur, in_table = None, False
