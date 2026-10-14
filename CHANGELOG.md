@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- **Four guards that could not fail now can** (#111). Each was added in #95 and passed with
+  the thing it guards broken:
+  - `report`'s `--peer-median` default could go back to the stale 9.4 - the drift #95 fixed -
+    and dropping the `median_note()` call from `main()` stayed green too. `report` is now run
+    end to end and its printed "public median" read back; a copy of the package whose scorer
+    reports another version must carry the cross-scorer note.
+  - `assertIs(median, survey.median)` was true by construction (both names came from one
+    import). It is replaced by a run of `survey.main()` itself on the committed evidence: the
+    median it prints must equal `report.PEER_MEDIAN`, and with `median()` swapped for a
+    stand-in the printout must follow - a `main()` with its own correct arithmetic now fails.
+  - Which way an exact tie goes was unpinned, and `>` -> `>=` stayed green. A repository at the
+    median is not marked ready: the rule is that it beats the median.
+  - The console-script test installs nothing. CI's artifact round trip now installs the built
+    wheel into an empty virtualenv and runs `kibsu --version`; a wheel built without
+    `[project.scripts]` must fail the same check.
+  Tests and CI only: no output of the tool changes.
+
 ## 0.10.0 - 2026-10-11
 
 The sentence round (CORRECTIONS 2026-10-11), and the command that found it. This package

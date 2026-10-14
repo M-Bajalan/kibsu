@@ -108,6 +108,37 @@ jobs:
           # --sdist-suite: extract it and run that suite, exactly as CONTRIBUTING tells a
           # reader to - the check that would have caught the live 0.7.0 sdist.
           python tools/assert_dist_roundtrip.py dist --sdist-contents --sdist-suite
+      # The console script, installed (#111). tests/test_console_script.py reads the declaration
+      # in pyproject.toml; it installs nothing, so it would pass a wheel that puts no `kibsu` on
+      # PATH - 0.8.0's defect, where `uvx kibsu` found no executable. This installs the wheel
+      # that came through the round trip into an empty virtualenv (--no-index: kibsu has no
+      # dependencies, so nothing is fetched) and asks the command its version. Its negative
+      # control builds the same tree without [project.scripts] and the same check must fail.
+      - name: Installed wheel answers to its own name
+        run: |
+          set -euo pipefail
+          want="kibsu $(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)"
+          check() {
+            rm -rf "$1" && python -m venv "$1"
+            "$1/bin/python" -m pip install --quiet --no-index "$2"
+            got="$("$1/bin/kibsu" --version 2>&1)" || { echo "no working kibsu command: $got"; return 1; }
+            echo "kibsu --version -> $got"
+            case "$got" in "$want "*) return 0 ;; *) echo "expected '$want ...'"; return 1 ;; esac
+          }
+          check /tmp/kibsu-venv dist/*.whl
+          rm -rf /tmp/noscript && mkdir -p /tmp/noscript
+          git archive HEAD | tar -x -C /tmp/noscript
+          sed -i '/^\[project\.scripts\]/,/^kibsu = /d' /tmp/noscript/pyproject.toml
+          if grep -q 'project.scripts' /tmp/noscript/pyproject.toml; then
+            echo "could not remove [project.scripts] for the negative control"; exit 1
+          fi
+          python -m pip install --quiet build==1.5.0
+          python -m build --wheel --outdir /tmp/noscript/dist /tmp/noscript
+          if check /tmp/noscript-venv /tmp/noscript/dist/*.whl; then
+            echo "NEGATIVE CONTROL FAILED - a wheel with no console script passed the check."
+            exit 1
+          fi
+          echo "Negative control OK: a wheel with no console script fails the check."
       - name: Negative control · the assertion must be able to fail
         env:
           EXPECT_SDIST: ${{ needs.build-and-upload.outputs.sha_sdist }}
