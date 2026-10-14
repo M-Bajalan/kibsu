@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **Three patterns that were not linear now are** (#114). kibsu reads repositories it did not
+  write, up to 5 MB per file, and one odd file could hold `audit`, `report`, `explain` and
+  `survey` for minutes or hours, with no timeout and nothing printed:
+  - **Link stripping was quadratic** on a sentence holding many `[a](b` with no `)` after
+    them. 20,000 lines took about nine seconds, a regression of 0.10.0, whose scorer reads
+    the whole joined paragraph rather than one line.
+  - **File-name extraction was cubic** on one long run of path characters with no extension
+    in it (`a*a*a*...`): 3 KB took ten seconds. Pre-existing.
+  - **The "names a file" test was quadratic** on the same kind of run (`a.a.a....`): 40 KB
+    took 85 seconds. Pre-existing, and found while sizing the timing tests for the other
+    two.
+  Each pattern is kept as the definition, and is now computed by a linear form that tests
+  hold to the same answer on hand-picked and 20,000 generated inputs each. Each new timing
+  test was run against the code it guards against first: 28 to 42 seconds against a
+  10-second bound, where the new code takes well under one.
+  **No output changes:** `evidence/` regenerated with the new forms is byte-identical, every
+  one of the 6,490 Markdown files in the ten pinned repositories gives the same `audit`
+  result record for record, and the survey runs in the same time.
+
 ## 0.10.0 - 2026-10-11
 
 The sentence round (CORRECTIONS 2026-10-11), and the command that found it. This package

@@ -38,6 +38,7 @@ the start of a line - otherwise a pass would mean only that the hard cases were 
 Per CONTRIBUTING rule 4 the property has a control: the same fixtures, counted by a crude
 line count, DO move between wraps."""
 import os
+import random
 import re
 import sys
 import time
@@ -495,6 +496,77 @@ class LinearTimeTests(unittest.TestCase):
     def test_one_block_of_many_lines(self):
         doc = "# T\n\n" + "".join("Run it %d. Then stop.\n" % i for i in range(16000))
         self.assertLess(self._timed(doc), self.BOUND)
+
+    # Issue #114: four more, each on a sentence that carries a file verb - the common case,
+    # since file_tokens() and the "names a file" test read every such sentence. Each was run
+    # against the code it guards against first and took 28 to 42 seconds; each takes well
+    # under one now.
+    def test_many_links_that_never_close(self):
+        """`[a](b` with no `)` after it: the link pattern scanned to the end of the sentence
+        from every `[`. Under scorer 0.11.0 the sentence is the whole joined paragraph."""
+        self.assertLess(self._timed("Create the file\n" + "[a](b\n" * 40000), self.BOUND)
+
+    def test_one_long_run_of_path_characters(self):
+        """The file-token pattern tried every start and every split of the run: cubic."""
+        self.assertLess(self._timed("Create " + "a*" * 2000 + "\n"), self.BOUND)
+
+    def test_many_dots_that_end_no_file_name(self):
+        """The names-a-file test re-scanned the run from every start: quadratic."""
+        self.assertLess(self._timed("Create the file " + "a." * 15000 + "\n"), self.BOUND)
+
+    def test_many_brackets_before_one_close(self):
+        """Every `[` before the next `]` fails together, so the link scan must not look for
+        that `]` again from each of them - here that would be two million searches of up to
+        two megabytes: about forty seconds, where one search takes under one."""
+        self.assertLess(self._timed("Create the file " + "[" * 2000000 + "] now.\n"),
+                        self.BOUND)
+
+
+class SameAnswerTests(unittest.TestCase):
+    """Issue #114 replaced three patterns with linear forms. Each must return exactly what the
+    pattern it replaces returned - the output is published, and `evidence/` regenerated with
+    the linear forms is byte-identical. Checked on hand-picked inputs and on generated ones,
+    seeded, over the characters the patterns care about."""
+    OLD_PATHY = re.compile(r"[`\"']?[\w./\\*-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|"
+                           r"toml|ini|cfg|txt|csv|lock)\b", re.I)
+    PIECES = ["a", "Z", "é", "_", "1", ".", "/", "\\", "*", "[", "]", "{", "}", "-", " ", "`",
+              '"', "'", "md", "MD", "json", "yml", "py", "ts", "tsx", "lock", ".md", ".ts",
+              ".tsx", "(", ")", "](", "x", ",", "http://", "www."]
+    HAND = ["`a.md`b.md`", "x/.md", "a.tsx", "a.ts-x", "[README.md](./README.md)", "[a [b](x)",
+            "don't.md", "pages/[id].md", "*.md", "{a,b}.md", "a.md.md", ".md", "C:\\x\\y.ps1",
+            "see https://x.io/a.md", "'a.yaml'", '"b.json"', "a*b.md*c.md", "a.md/", "[a](b",
+            "[x](y) and [z](w) then [", "](", "a.mdx", "README.MD,", "x.lock"]
+
+    def _generated(self, seed, n):
+        rng = random.Random(seed)
+        for _ in range(n):
+            yield "".join(rng.choice(self.PIECES) for _ in range(rng.randint(0, 40)))
+
+    def _cases(self, seed):
+        return self.HAND + list(self._generated(seed, 20000))
+
+    def test_file_tokens_are_what_FILE_TOKEN_finds(self):
+        for text in self._cases(1):
+            want = [next(g for g in groups if g) for groups in audit.FILE_TOKEN.findall(text)]
+            self.assertEqual(audit._scan_file_tokens(text), want, repr(text))
+
+    def test_links_are_stripped_as_the_link_pattern_strips_them(self):
+        for text in self._cases(2):
+            want = audit._MDLINK.sub(lambda m: " %s %s " % (m.group(1), m.group(2)), text)
+            self.assertEqual(audit.strip_links(text), want, repr(text))
+
+    def test_a_sentence_names_a_file_exactly_where_it_did(self):
+        for text in self._cases(3):
+            self.assertEqual(bool(audit.PATHY.search(text)), bool(self.OLD_PATHY.search(text)),
+                             repr(text))
+
+    def test_negative_control_the_generated_inputs_are_not_all_misses(self):
+        """If almost nothing generated were a file name or a link, the three tests above would
+        pass on an implementation that returns nothing."""
+        cases = self._cases(1)
+        self.assertGreater(sum(1 for t in cases if audit.FILE_TOKEN.search(t)), len(cases) // 3)
+        self.assertGreater(sum(1 for t in cases if audit._MDLINK.search(t)), len(cases) // 50)
+        self.assertGreater(sum(1 for t in cases if self.OLD_PATHY.search(t)), len(cases) // 3)
 
 
 if __name__ == "__main__":
