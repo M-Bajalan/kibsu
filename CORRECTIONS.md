@@ -7,6 +7,112 @@ expects to keep finding errors in its own instrument; the alternative is not fin
 
 ---
 
+## 2026-10-14 — five places a soft line break still moved a count (scorer 0.12.0)
+
+Scorer **0.12.0**. The 2026-10-11 round's acceptance property - where a soft line break falls
+inside a block changes no number - was published without qualification, and it was not
+true. [Issue #113](https://github.com/M-Bajalan/kibsu/issues/113) found five places where
+the reader took a continuation line for the start of a block, where CommonMark reads it as
+more text of the block above. markdown-it-py, cmark-gfm and commonmark.py agree on every
+case below.
+
+| shape | one line | re-wrapped | what 0.11.0 read in the re-wrap |
+|---|---|---|---|
+| a number inside a list item | `- Never reuse the schema from 2024. Then...` | `...from` / `  2024. Then...` | a second item, numbered 2024, and a step |
+| an escaped backslash at a line end | `...copy the file to C:\\ and then...` | `...to C:\\` / `and then...` | a hard break: two sentences |
+| a bullet four columns past an item's text | `- You must run the build + test steps.` | `...the build` / `      + test steps.` | a sub-item: two sentences |
+| a `\|`-led line with no delimiter row | `\| Never skip this step, and always...` | `\| Never skip this step,` / `and always...` | a table row, then a new paragraph |
+
+The fifth is the same misreading from the other side. On a line that leaves a quote, the
+reader let only `1.` open a list, so in `1. If:` / `   > Note the version.` / `2. Run...` /
+`3. Run...` every later step was read as a lazy continuation of the quote: one step where
+the list has three. The rule is CommonMark's: only a list that would interrupt a paragraph
+must start at 1, and a line that has left the quote is not tested against the quote's
+paragraph. The same rule decides shape 1 from the other side. Written flush left, outside
+the item, `2024. Then...` does start a list, and it still does.
+
+**Why the property test passed.** Its wrap helper refused to break before any number at the
+start of a list item's continuation line. CommonMark refuses only a lazy one, written
+outside the item, so the helper never tried the wraps that broke shape 1. With the refusal
+matched to CommonMark's, the suite went red at widths 14, 20 and 62, on the shipped fixture:
+"Always read step 2. Then decide." was read as an item numbered 2. The helper now refuses
+exactly what CommonMark refuses. It also wraps items two and five columns past their text.
+The fixture carries every shape, and a new control fails unless each shape is really reached
+by some wrap. Each pair above has its own test, with a negative control on the side where
+CommonMark says the two documents differ. One mutant the issue named survived the whole
+0.11.0 suite: `_interrupts()` ignoring list numbers. It no longer survives.
+
+**What changed in the reader.**
+
+- A backslash hard break needs an odd run of trailing backslashes. Two trailing spaces
+  still make one.
+- A table row needs a delimiter row under it, or a table already open. Before, any `|`-led
+  line with nothing open was a row.
+- The reader tracks the text column of each open list item. A line four or more columns past
+  the text of the block's container continues the block, whatever it opens with: indented
+  code cannot interrupt a paragraph. That covers a bullet, a fence or a number.
+- A list number opens an item only where nothing is open, on a line outside the open block's
+  container (`2.` at the margin under `1. ...` is the next item), or when it is 1.
+- On a line leaving a quote, any list number opens a list.
+- #107's crash fix is carried. A quote opening under a paragraph had closed it, and the
+  reader then appended to it. The reader re-tests its answer, so that crash cannot come back
+  in a merged history.
+
+**Direction of the bias: none that a published figure shows.** Re-measured at the same
+pinned SHAs, every `evidence/` file changes in one field, the scorer version. The survey
+table, the median, the phantom line and every row are unmoved, and so is `report`'s public
+median: 7.6, now labelled scorer 0.12.0.
+
+Underneath, 14 of the 6,490 Markdown files in the ten pinned repositories read differently.
+None of them is a surveyed unit, and none changes an instruction or checkable count:
+
+- **11 rule files** in sanjeed5's `rules-v0-deprecated/` folder are YAML dumps. A bullet
+  `- |-` is followed by `  5. Testing:`, two columns in, inside the item. CommonMark reads it
+  as text of the item, and so does 0.12.0. Each loses a step, and the detected genre
+  changes from procedure to mixed.
+- **1 more rule file** of the same kind loses its step without a genre change.
+- **1 davila7 reference file** loses 3 steps. Its `1.` lines sit twenty columns into a list
+  item's text, which CommonMark reads as continuation.
+- **1 davila7 template** has bullets inside an HTML comment, six columns into a list item.
+  They now continue the item, as markdown-it reads them. The logical line count and the
+  genre scores move; the genre does not.
+
+In every one of the 14, the new reading is markdown-it's.
+
+The issue also quoted a block-start comparison from an earlier review pass: 67 list items
+lost in 22 of about 2,300 files. That pass did not keep its file list, and this round could
+not reproduce the figure on the pinned corpus, where no file shows shape 5 at all. It is
+not repeated here as a measurement.
+
+**The pre-registration.** The public workspace kibsu-lab reads the same under 0.12.0 at both
+pinned commits:
+
+- `8bec5ee`: 58.1%, 18 of 31, 3 units; doctrine 0 of 6.
+- `2d49abf`: 57.8%, 26 of 45.
+
+The old instrument reproduced each before the new one was run. The private origin workspace
+was not reachable from where this round was run, and is not re-measured here; see the
+appended note in [PREREGISTRATION.md](PREREGISTRATION.md).
+
+**What this round knows it leaves behind:**
+
+- After a blank line, a paragraph under a list item but indented less than the item's text
+  (`1. foo`, blank, `  bar`) is still read as part of the list. CommonMark closes the list
+  there, so a `2.` under it continues the paragraph instead of opening an item. Unchanged
+  from 0.11.0. No re-wrap reaches it, and changing it would change what counts as a step.
+- An empty list item (a bullet with nothing after it) is not read as an item. Unchanged.
+- The two deliberate places from the 2026-10-11 entry stand. A fence on the line under a tag
+  is a fence, and a pipe table with a ragged delimiter row is a table. Shape 4 is not a
+  third: a `|`-led line with no delimiter row is prose, as GFM reads it.
+
+Reproduce both sides. kibsu 0.10.0 from PyPI (scorer 0.11.0) prints the left column of every
+pair; this commit prints the right. The pairs are `tests/test_sentences.py`, in BlockTests
+under the issue number. For the survey, check out the SHA in each `evidence/` file and run
+`SKILL_AUDIT_CLONES=<dir> python -m kibsu survey`. The old instrument reproduced all ten
+committed evidence files byte for byte before the new one was believed.
+
+---
+
 ## 2026-10-11 — the scorer counted lines, and a line is not an instruction
 
 Scorer **0.11.0**. Every scorer through 0.10.0 judged the physical line. `kibsu explain`,

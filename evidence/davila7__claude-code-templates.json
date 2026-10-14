@@ -3,7 +3,7 @@
   "sha": "91d14a7249884ea722c08518d2c8492e49ce188e",
   "measured_by": "skill_audit",
   "result": {
-    "version": "0.11.0",
+    "version": "0.12.0",
     "root": "<clone of davila7/claude-code-templates at 91d14a724988>",
     "mode": "SKILL.md",
     "all": {

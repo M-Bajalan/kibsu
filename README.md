@@ -58,9 +58,10 @@ Real output, against a public repository at commit `3dcbd5c`:
   Nothing was written to this repo - run `git status` to confirm.
 ```
 
-> That block was last re-run against `3dcbd5c` on 2026-10-11, with scorer 0.11.0 — the
-> fifth re-paste it has needed, each one recorded. One figure moved this time: the median it
-> is compared against, 7.5% to 7.6%, when the survey was re-measured in sentences instead of
+> That block was last re-run against `3dcbd5c` on 2026-10-14, with scorer 0.12.0, and every
+> line reproduced, so it was not re-pasted. It was last re-pasted on 2026-10-11, with scorer
+> 0.11.0 — the fifth re-paste it has needed, each one recorded. One figure moved that time:
+> the median it is compared against, 7.5% to 7.6%, when the survey was re-measured in sentences instead of
 > lines (see [CORRECTIONS.md](CORRECTIONS.md), 2026-10-11). The repository's own 13.1% did
 > not move, though what stands under it did: 46 of 352 sentences in 9 procedure units, where
 > the line count had 50 of 381 in 10. The re-paste before it (2026-10-10, scorer 0.10.0)
@@ -297,8 +298,12 @@ SKILL_AUDIT_CLONES=/path/to/pinned-clones python -m kibsu survey
 `instr` counts sentences, not lines, as of scorer 0.11.0. The phantom column is
 *never existed / mandated in scope*; `—` means the collection mandates nothing in scope.
 
-> **These figures were re-measured 2026-10-11 with scorer 0.11.0, at the same pinned SHAs.**
-> The 0.11.0 round changed what is counted: the sentence, not the physical line. The
+> **These figures were re-measured 2026-10-14 with scorer 0.12.0, at the same pinned SHAs,
+> and none of them moved.** The 0.12.0 round closed five places where a soft line break still
+> moved a count (issue #113). Across the 6,490 Markdown files of the ten pinned repositories,
+> 14 now read differently, none of them a surveyed unit and none in an instruction count
+> ([CORRECTIONS.md](CORRECTIONS.md), 2026-10-14). Before it,
+> the 0.11.0 round (2026-10-11) changed what is counted: the sentence, not the physical line. The
 > median barely moved (7.5 -> 7.6) and that is not the result. Underneath it, individual
 > collections moved by up to 1.6 points in both directions, and the mandated-artifact
 > column moved most of all (229 -> 172 in scope, 96 -> 75 never existed): under the line

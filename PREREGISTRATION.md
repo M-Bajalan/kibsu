@@ -418,3 +418,32 @@ As always for 1a, the origin figures are directional and cannot be checked from 
 1b can, at the commit named. The previous columns above were verified against the 2026-09-01
 note's re-measured column before this table was written - the old instrument was run at all
 four pinned states and reproduced each cell - per the mechanical chaining check.
+
+
+## Appended note — 2026-10-14: scorer 0.12.0 closes five re-wrap cases; kibsu-lab does not move, the origin workspace is not yet re-measured
+
+The standing clause fired for scorer 0.12.0 (see [CORRECTIONS.md](CORRECTIONS.md), 2026-10-14
+entry). The previous note's instrument promised that where a soft line break falls changes
+no number; it was false in five places, each a continuation line read as the start of a
+block (issue #113), and 0.12.0 closes them.
+
+**kibsu-lab (1b) and the public survey: every figure in the 2026-10-11 note reproduces under
+0.12.0 to the digit.**
+
+| | scorer 0.11.0 (previous column) | scorer 0.12.0 (re-measured) |
+|---|---|---|
+| 1b kibsu-lab @ `8bec5ee`, procedure-only | 58.1% (18/31, 3 units) | **58.1% (18/31, 3 units)** |
+| 1b kibsu-lab @ `8bec5ee`, doctrine | 0.0% (0/6, 1 unit) | **0.0% (0/6, 1 unit)** |
+| public median (procedure-only), 8 ranked collections | 7.6% | **7.6%** |
+
+The previous column was reproduced first. The 0.11.0 instrument was run at `8bec5ee` and gave
+each cell before the new one was run, per the mechanical chaining check.
+
+**The origin workspace (1a) is not re-measured in this note.** It is private, and this round
+was run where it is not reachable. The clause is not met for 1a until it is. The owner must
+re-measure the three pinned states with scorer 0.12.0, running `kibsu audit <skills dir>
+--json --artifacts` at each, and append the result here, a null result included. That must
+happen before a package carrying scorer 0.12.0 is released. Until then the latest 1a column is the
+2026-10-11 one, measured with 0.11.0. Saying so is the point: a note that claimed both
+workspaces were re-measured when one was not would be the defect this file exists to
+prevent.
