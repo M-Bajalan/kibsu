@@ -11,7 +11,10 @@ first claim is "run it and see" was unreachable by the shortest way of running i
 What is checked is the declaration and that it resolves: `[project.scripts]` names `kibsu`,
 and the target is the same callable `python -m kibsu` runs - not a second entry point that
 could come to behave differently. The file is read as text because tomllib arrived in 3.11
-and the floor is 3.8.
+and the floor is 3.8. Nothing here installs anything (#111): the installed half - the built
+wheel, in an empty virtualenv, answering `kibsu --version` with its own version - is a step in
+.github/workflows/roundtrip.yml, with a negative control that builds the wheel without
+[project.scripts] and must fail.
 
 Per CONTRIBUTING rule 4 each check has a negative control driven through the same function."""
 import importlib
