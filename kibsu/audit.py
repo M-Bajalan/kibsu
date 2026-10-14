@@ -583,6 +583,9 @@ QUOTE_PREFIX = re.compile(r"^ {0,3}>(?:[ \t]{0,3}>)*[ \t]?")
 BULLET_ITEM = re.compile(r"^\s*[-*+]\s+\S")
 ORDERED_ITEM = re.compile(r"^\s*(\d{1,9})[.)]\s+\S")
 LIST_MARKER = re.compile(r"^(\s*)([-*+]|\d{1,9}[.)])(\s+)")
+# A line's leading quote markers, indentation and list marker: where a tab's width depends on
+# the column it starts at, so it is expanded there, before anything is measured.
+_LINE_LEAD = re.compile(r"[ \t>]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)?")
 RULE_LINE = re.compile(r"^ {0,3}([-*_=])(?:[ \t]*\1){2,}[ \t]*$")
 TABLE_DELIMITER = re.compile(r"^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$")
 # One tag and nothing else on the line: the start of an HTML block, when no paragraph is open.
@@ -698,6 +701,15 @@ def _content_column(text):
     return _indent(m.group(1)) + len(m.group(2)) + (gap if gap <= 4 else 1)
 
 
+def _closes_paragraph(text):
+    """Would CommonMark, reading `text` inside a list item - columns counted from the item's
+    text - open a quote, a heading or a rule, which end the paragraph before them? The reader
+    keeps such a line in the item, because its patterns count columns from the page, so it
+    must stop treating the item as an open paragraph. An HTML block or a fence is not one of
+    these: those swallow the lines after them, as a paragraph does."""
+    return bool(text.lstrip().startswith(">") or ATX_HEADING.match(text) or RULE_LINE.match(text))
+
+
 def _interrupts(text):
     """Would this line, leaving a quote, open a block rather than continue the quote lazily?
 
@@ -733,8 +745,10 @@ def read_blocks(lines):
     cur = None                  # the open paragraph or list item, if any
     cur_depth = 0               # blockquote depth of the open container
     cur_col = 0                 # the column the open block's container starts its text at
+    cur_para = False            # the open block is a paragraph, as far as the reader can tell
     list_open = False           # inside a list: an indented paragraph after a blank continues it
-    item_cols = []              # with a list open: the text column of each item, outermost first
+    items = []                  # with a list open: (marker column, text column, over-indented)
+                                # of each item, outermost first
     in_table = False
     in_fence, fence_char, fence_len, fence_depth = False, "", 0, 0
     total = len(lines)
@@ -745,18 +759,23 @@ def read_blocks(lines):
 
     def container_column(indent):
         """For a block opening at `indent`: the text column of the innermost list item it sits
-        in (0 outside a list). Items it is not inside are closed by it."""
-        nonlocal item_cols
+        in. 0 outside a list; its own indent when a list is open but no item holds it (CommonMark
+        would close the list there - see CORRECTIONS 2026-10-14). Items it is not inside are
+        closed by it."""
+        nonlocal items
         if not list_open:
             return 0
-        item_cols = [c for c in item_cols if c <= indent]
-        return item_cols[-1] if item_cols else indent
+        items = [it for it in items if it[1] <= indent]
+        return items[-1][1] if items else indent
 
     for i, raw in enumerate(lines):
         no = i + 1
         ln = raw.rstrip("\r")
         # `\\` at a line end is a backslash, escaped: only an odd run ends in a hard break.
         hard = ln.endswith("  ") or (len(ln) - len(ln.rstrip("\\"))) % 2 == 1
+        lead = _LINE_LEAD.match(ln).group(0)
+        if "\t" in lead:
+            ln = lead.expandtabs(4) + ln[len(lead):]    # "-\tx" puts x at column 4, not 5
         if in_fence and not fence_depth:
             depth, text = 0, ln                 # inside a plain fence a `>` is just content
         else:
@@ -774,13 +793,21 @@ def read_blocks(lines):
                 continue
 
         indent = _indent(text)
-        # Four columns past the text of its container, a line would be indented code, and
-        # indented code cannot interrupt a paragraph: under one, the line continues it,
-        # whatever it opens with - a bullet, a fence, a number (issue #113). The container is
-        # the list item the open block sits in, or the page; for a line that leaves a quote
-        # it is the page.
-        deep = (cur is not None and depth <= cur_depth
-                and indent >= (cur_col if depth == cur_depth else 0) + 4)
+        # The text column of the innermost list item this line sits in, or the page's 0 - and
+        # the page's for a line that leaves a quote. Never left of the open block's own column
+        # when the line is inside it, nor of the marker of an over-indented item the line
+        # stands beside: a file indented four columns throughout is code to CommonMark, but the
+        # reader reads its bullets as a list, and in that list the next bullet is the next
+        # item, not more of this one.
+        base = 0
+        if list_open and depth == cur_depth:
+            base = max([c for _, c, _ in items if c <= indent]
+                       + [m for m, _, over in items if over and m <= indent]
+                       + [cur_col if cur is not None and cur_col <= indent else 0])
+        # Four columns past that, a line would be indented code, and indented code cannot
+        # interrupt a paragraph: under one, the line continues it, whatever it opens with - a
+        # bullet, a fence, a number (issue #113).
+        deep = cur is not None and depth <= cur_depth and indent >= base + 4
         f = FENCE_RE.match(text)
         if f and not (f.group(1)[0] == "`" and "`" in f.group(2)) and not deep:
             # Backticks in the info string mean a code span, not a fence (```x``` is inline).
@@ -804,8 +831,9 @@ def read_blocks(lines):
             out.append(["blank", [(no, ln, False)], None])
             continue
         if deep and cur is not None:
-            # (cur is re-tested: a quote that opened on this line has closed the paragraph,
-            # and "Intro\n>     code" once appended to one that no longer existed.)
+            # (A line that opens a quote is never deep, and that quote has closed the
+            # paragraph; cur is re-tested anyway, because appending to a block that no longer
+            # existed - "Intro\n>     code" - was #107's crash.)
             cur[1].append((no, text.strip(), hard))
             continue
         if ATX_HEADING.match(text):
@@ -835,11 +863,21 @@ def read_blocks(lines):
         # block's container ("2." at the margin under "1. ..." is the next item), or when it
         # is 1. Inside the container a paragraph is open, and only a list numbered 1 may
         # interrupt one: "...from\n  2024. Then" under "- " continues the item (issue #113).
+        # Where the open block is not known to be a paragraph - an item whose text is a quote,
+        # a heading or another list, or indented code - any number opens, as before 0.12.0.
         if BULLET_ITEM.match(text) or (ordered and (
-                cur is None or indent < cur_col or int(ordered.group(1)) == 1)):
-            item_cols = ([c for c in item_cols if c <= indent] if list_open else [])
-            item_cols.append(_content_column(text))
-            cur_col = item_cols[-1]
+                cur is None or not cur_para or indent < cur_col or int(ordered.group(1)) == 1)):
+            items = ([it for it in items if it[1] <= indent] if list_open else [])
+            # Over-indented: four or more columns past the text it sits in. CommonMark would
+            # read the marker as code; the reader, leniently, as a list.
+            items.append((indent, _content_column(text), indent >= (items[-1][1] if items else 0) + 4))
+            cur_col = items[-1][1]
+            marker = LIST_MARKER.match(text)
+            body = text[marker.end():]
+            # Five spaces after the marker make the item's text code; and an item can open
+            # with a quote, a heading or another list instead of a paragraph.
+            cur_para = not (_indent(marker.group(3)) > 4 or _closes_paragraph(body)
+                            or BULLET_ITEM.match(body) or ORDERED_ITEM.match(body))
             in_table, list_open = False, True
             cur = ["item", [(no, text.rstrip(), hard)], bool(CHECKBOX.match(text))]
             out.append(cur)
@@ -847,7 +885,7 @@ def read_blocks(lines):
         if cur is None and CHECKBOX.match(text):
             # A tick-box with no list marker. Only where a block starts: mid-paragraph,
             # "[x]" is a mention of one ("mark [x] when done"), and Markdown agrees.
-            cur_col = container_column(indent)
+            cur_col, cur_para = container_column(indent), True
             cur = ["item", [(no, text.rstrip(), hard)], True]
             out.append(cur)
             continue
@@ -855,11 +893,18 @@ def read_blocks(lines):
             out.append(["single", [(no, text.rstrip(), False)], None])
             continue
         if cur is not None:
+            if indent >= 4 and indent < base + 4 and _closes_paragraph(text[base:]):
+                cur_para = False    # a quote or heading inside an item: unseen, but it closes
             cur[1].append((no, text.strip(), hard))         # a wrapped continuation
             continue
         if indent < 2:
             list_open = False                   # a flush paragraph after a blank ends the list
         cur_col = container_column(indent)
+        # In a list, a block four columns past its item's text is indented code; less than
+        # that, but four from the page, it can be a quote or heading the page-measured
+        # patterns did not see. Either way it is not a paragraph a number must leave open.
+        cur_para = not (list_open and (indent >= cur_col + 4 or (
+            indent >= 4 and _closes_paragraph(text[cur_col:]))))
         cur = ["para", [(no, text.rstrip(), hard)], False]
         out.append(cur)
     return out

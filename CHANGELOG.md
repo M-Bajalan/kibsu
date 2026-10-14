@@ -12,7 +12,10 @@
   - a `|`-led line with no delimiter row;
   - a list after a quote inside an item.
   The property test had refused the wraps that showed the first; it now refuses only what
-  CommonMark refuses.
+  CommonMark refuses. An adversarial review against three CommonMark parsers then caught
+  the first draft swallowing the next numbered item. That happened after an item that
+  opens with a quote, a heading or code, and after a tab following a quote marker. Both
+  are fixed, and the review's tests are in the suite.
   **Re-measured at the pinned SHAs: no published figure moves.** 14 of the 6,490 Markdown
   files in the ten pinned repositories read differently. None is a surveyed unit, and
   none changes an instruction count. `evidence/` changes only its scorer version.

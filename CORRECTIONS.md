@@ -52,11 +52,44 @@ CommonMark says the two documents differ. One mutant the issue named survived th
   the text of the block's container continues the block, whatever it opens with: indented
   code cannot interrupt a paragraph. That covers a bullet, a fence or a number.
 - A list number opens an item only where nothing is open, on a line outside the open block's
-  container (`2.` at the margin under `1. ...` is the next item), or when it is 1.
+  container (`2.` at the margin under `1. ...` is the next item), or when it is 1 - and only
+  where the reader knows a paragraph is open. An item can open with a quote, a heading,
+  another list or indented code instead, and the reader's patterns, which count columns from
+  the page, do not see those inside an item. After such an item any number opens one, as
+  before.
+- A tab is as wide as the column it starts at (`-\tx` puts `x` at column 4, not 5).
 - On a line leaving a quote, any list number opens a list.
 - #107's crash fix is carried. A quote opening under a paragraph had closed it, and the
   reader then appended to it. The reader re-tests its answer, so that crash cannot come back
   in a merged history.
+
+**How the new reader was attacked before it was trusted.** An adversarial review ran the
+first draft against the three parsers on about 1.5 million generated documents, and on
+mutants of the reader against the suite.
+
+- **Crashes:** none.
+- **Performance:** linear.
+- **A regression of the draft's own.** Its item rule assumed the open block was a paragraph.
+  Where an item opened with a quote, a heading or code, it swallowed the next numbered item,
+  which 0.11.0 had read right by accident. That was 7 documents in 800,000, and 0 of 4,806
+  real files. A tab after a quote marker did the same in 41.
+- **A wide marker.** `100.` and `-` followed by four spaces put the item's text past column
+  4. A line four columns in is text there, and neither reader saw that.
+- **19 of 41 mutants lived.**
+
+All of it is fixed above. `ContainerTests` in `tests/test_sentences.py` is the review's tests
+plus one for each regression. They fail on the draft and on 0.11.0 where each was wrong, and
+every behaviour-changing mutant now dies. One mutant lives: dropping the quote-depth guard on
+the four-column rule. It is closer to the parsers on some documents and farther on others,
+and is left as it was.
+
+One fix of the review's own was wrong on real files, and the corpus caught it. Measuring
+every line against the page folded each bullet of a file indented four columns throughout
+into the one before. One surveyed agent file went from 19 instructions to 2. The next bullet
+beside an item is the next item now, and a test holds it.
+
+Across the 6,490 corpus files, the reviewed reader and the first draft give identical
+results, record for record. The figures below are the reviewed reader's.
 
 **Direction of the bias: none that a published figure shows.** Re-measured at the same
 pinned SHAs, every `evidence/` file changes in one field, the scorer version. The survey
@@ -101,6 +134,26 @@ appended note in [PREREGISTRATION.md](PREREGISTRATION.md).
   there, so a `2.` under it continues the paragraph instead of opening an item. Unchanged
   from 0.11.0. No re-wrap reaches it, and changing it would change what counts as a step.
 - An empty list item (a bullet with nothing after it) is not read as an item. Unchanged.
+- An item whose text is itself a list marker (`- 1. foo`) is one item to the reader, not two.
+  The next number still opens an item, as before.
+- A `|`-led line at the margin under a list item, over a delimiter row, is read as a table.
+  CommonMark reads it as more of the item. Inside a quote, the delimiter row is looked for
+  without its quote marker. Both are unchanged.
+- Fences:
+  - A closing fence indented four or more columns closes the fence. CommonMark leaves it
+    open.
+  - A fence opener indented four or more columns opens one. CommonMark reads it as code.
+  - A fence left open inside a list item runs to the end of the file. CommonMark ends it
+    with the item.
+  All three are unchanged.
+- A blockquote inside a list item (`- > Note...`) is read as the item's text, so its lines
+  are not joined the way the quote's are. Unchanged.
+- A line that is one tag (`<ROLE_RULES>`) is read as an HTML line even where CommonMark,
+  which allows no underscore in a tag name, reads text. Unchanged.
+- Smaller cases, each unchanged:
+  - two quote markers with four spaces between them;
+  - a lazy `===` under a quote, read as a rule;
+  - a tick-box `[ ]` split across two lines.
 - The two deliberate places from the 2026-10-11 entry stand. A fence on the line under a tag
   is a fence, and a pipe table with a ragged delimiter row is a table. Shape 4 is not a
   third: a `|`-led line with no delimiter row is prose, as GFM reads it.
