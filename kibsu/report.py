@@ -52,7 +52,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 VERSION = "1.1.0"
 PEER_MEDIAN = 7.6           # procedure-only checkability, 8 public collections, SHA-pinned.
-PEER_MEDIAN_SCORER = "0.11.0"   # the scorer that median was measured with. The pair is a
+PEER_MEDIAN_SCORER = "0.12.0"   # the scorer that median was measured with. The pair is a
                             # published figure living inside code: tests/test_peer_median.py
                             # fails while either half disagrees with evidence/ (it sat at 9.4,
                             # scorer 0.6.0, through three releases - CORRECTIONS.md, 2026-10-10).

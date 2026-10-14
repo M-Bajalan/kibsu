@@ -31,9 +31,17 @@ So nothing here parses Markdown to decide how to wrap it. A fixture is DESCRIBED
 paragraph with this text", "a list item with this marker and this text" - and render() lays
 it out at a width and a hanging indent. The only breaks it refuses are the ones CommonMark
 itself says would start a new block (a continuation line opening with a bullet, `> `, `# `,
-a fence, a list numbered 1, a block-level HTML tag). Every other token is fair game, and
-test_the_wraps_really_put_awkward_tokens_at_line_starts proves the awkward ones do land at
-the start of a line - otherwise a pass would mean only that the hard cases were never tried.
+a fence, a list numbered 1, a block-level HTML tag - and on a LAZY line, written outside the
+list item or quote it continues, a list of any number). Four columns past the text of its
+container, a line can open nothing, so there nothing is refused. Every other token is fair
+game, and test_the_wraps_really_put_awkward_tokens_at_line_starts proves the awkward ones do
+land at the start of a line - otherwise a pass would mean only that the hard cases were never
+tried.
+
+Until scorer 0.12.0 the helper also refused any number at the start of a list item's
+continuation line. CommonMark refuses only a lazy one, so the helper never tried the wraps
+that broke the reader there (issue #113): "Always read step 2. Then decide." was read as an
+item numbered 2. The refusal now matches CommonMark's, and nothing more.
 
 Per CONTRIBUTING rule 4 the property has a control: the same fixtures, counted by a crude
 line count, DO move between wraps."""
@@ -61,10 +69,15 @@ RELEASE = [
              "phase pass. Pass the path as <path> and never as a relative name. Mark the item "
              "[x] when it is done and never before. Never reuse the schema from 2024. Then "
              "update the docs. Always list the codes (#REF!, #DIV/0!, #N/A) in the report. "
-             "You must use a | b as the separator, e.g. Foo | Bar."),
+             "You must use a | b as the separator, e.g. Foo | Bar. You must copy the file "
+             "to C:\\\\ and never delete the source file."),
+    ("blank",),
+    ("para", "| Never skip this step, and always read the log before you tag."),
     ("blank",),
     ("item", "- ", "Run `python -m unittest discover -s tests` and read the exit code, not "
                    "the text. Then write the result to `docs/release-notes.md`."),
+    ("item", "- ", "Never reuse the schema from 2024. Then run the build + test steps and "
+                   "never skip them."),
     ("blank",),
     ("listpara", "You must run the whole suite and never skip the slow tests, even when the "
                  "change looks small. Always read step 2. Then decide."),
@@ -76,7 +89,7 @@ RELEASE = [
     ("item", "2. ", "Never tag before the merge commit exists. Choose option A. Then push."),
     ("blank",),
     ("quote", "Always check the published artifact, not the workflow that built it. The "
-              "workflow can be green while the artifact is wrong."),
+              "workflow can be green while the artifact is wrong. Read step 3. Then decide."),
     ("blank",),
     ("rows", ["| step | rule |", "|---|---|", "| Tag | Never tag before the merge commit |"]),
     ("blank",),
@@ -111,19 +124,25 @@ WIDTHS = list(range(14, 96, 3)) + [10 ** 6]
 HANGS = (0, 2, 4, 7)
 
 
-def wrap(text, width, first, rest, in_list):
+def wrap(text, width, first, rest, deep=False, lazy=False):
     """Greedy wrap of one block's text. `first` prefixes the first line, `rest` every
     continuation line. A break is refused only where CommonMark would read the continuation
-    line as the start of a new block."""
+    line as the start of a new block.
+
+    deep    the continuation lines sit four or more columns past the text of their container,
+            where nothing can open: every break is allowed.
+    lazy    they sit outside their container (a list item's or a quote's line written flush
+            left). The paragraph is not what the line is tested against there, so ANY number
+            opens a list: flush under "- schema from", "2024. Then" is an item numbered 2024."""
     lines, cur = [], first
     words = text.split()
     for n, word in enumerate(words):
         if n == 0:
             cur += word
             continue
-        opens = STARTS_BLOCK.match(word) or (in_list and ANY_NUMBER_MARKER.match(word))
-        if len(rest) >= 4 and not in_list:
-            opens = None        # four columns under a paragraph is a continuation, whatever it is
+        opens = STARTS_BLOCK.match(word) or (lazy and ANY_NUMBER_MARKER.match(word))
+        if deep:
+            opens = None
         if len(cur) + 1 + len(word) > width and not opens:
             lines.append(cur)
             cur = rest + word
@@ -133,26 +152,36 @@ def wrap(text, width, first, rest, in_list):
     return lines
 
 
+def render_block(block, width, hang):
+    """One described block as lines, laid out at `width` with its continuation lines `hang`
+    deep."""
+    kind = block[0]
+    if kind == "blank":
+        return [""]
+    if kind == "heading":
+        return [block[1]]
+    if kind == "para":
+        return wrap(block[1], width, "", " " * hang, deep=hang >= 4)
+    if kind in ("item", "box"):
+        marker, text = block[1], block[2]
+        # Lazy at hang 0; aligned with the text at 2; two and five columns past it at 4 and
+        # 7. The item's text starts after the list marker - for "- [ ] " that is column 2, so
+        # an aligned tick-box line is already four columns past it.
+        content = len(re.match(r"\s*(?:[-+*]|\d+[.)])\s+", marker).group(0))
+        rest = " " * (len(marker) + hang - 2) if hang else ""
+        return wrap(text, width, marker, rest,
+                    deep=bool(hang) and len(rest) - content >= 4, lazy=not hang)
+    if kind == "listpara":                                      # under "- ": two columns in
+        return wrap(block[1], width, "    ", "    ")
+    if kind == "quote":
+        return wrap(block[1], width, "> ", "> " if hang else "", lazy=not hang)
+    return list(block[1])                                       # rows, fence: never wrapped
+
+
 def render(frontmatter, blocks, width, hang):
     out = list(frontmatter)
     for block in blocks:
-        kind = block[0]
-        if kind == "blank":
-            out.append("")
-        elif kind == "heading":
-            out.append(block[1])
-        elif kind == "para":
-            out.extend(wrap(block[1], width, "", " " * hang, False))
-        elif kind in ("item", "box"):
-            marker, text = block[1], block[2]
-            rest = " " * len(marker) if hang else ""            # aligned, or a lazy line
-            out.extend(wrap(text, width, marker, rest, True))
-        elif kind == "listpara":
-            out.extend(wrap(block[1], width, "    ", "    ", True))
-        elif kind == "quote":
-            out.extend(wrap(block[1], width, "> ", "> " if hang else "", False))
-        else:                                                    # rows, fence: never wrapped
-            out.extend(block[1])
+        out.extend(render_block(block, width, hang))
     return "\n".join(out) + "\n"
 
 
@@ -198,6 +227,38 @@ class RewrapInvarianceTests(unittest.TestCase):
                         if first == token:
                             seen.add(token)
         self.assertEqual(seen, {"<path>", "[x]", "2024.", "(#REF!,", "#DIV/0!,", "|", "2."})
+
+    def test_the_wraps_really_reach_the_shapes_of_issue_113(self):
+        """The five places scorer 0.11.0 still moved a count. Each is a line the old helper
+        never produced, or a line end it never produced. If none of them appears, the
+        property test above passes for want of trying."""
+        front, blocks = FIXTURES["release"]
+        reached = set()
+        for width in WIDTHS:
+            for hang in HANGS:
+                for block in blocks:
+                    lines = render_block(block, width, hang)
+                    kind = block[0]
+                    # Only continuation lines count, and only in the block named: the RELEASE
+                    # paragraph also holds "2024.", so a check on any indented line would pass
+                    # with the list item removed from the fixture.
+                    for n, line in enumerate(lines[1:], 1):
+                        first = line.lstrip()
+                        if kind == "item" and line.startswith("  ") and first.startswith("2024. "):
+                            reached.add("a number inside a list item")
+                        if kind == "listpara" and first.startswith("2. "):
+                            reached.add("a number inside a list paragraph")
+                        if kind == "item" and line.startswith("      ") and first.startswith("+ "):
+                            reached.add("a bullet four columns past an item's text")
+                        if kind == "para" and lines[0].startswith("| Never"):
+                            reached.add("a pipe-led line with prose under it")
+                    if any(line.endswith("C:\\\\") for line in lines[:-1]):
+                        reached.add("an escaped backslash at a line end")
+        self.assertEqual(reached, {"a number inside a list item",
+                                   "a number inside a list paragraph",
+                                   "an escaped backslash at a line end",
+                                   "a bullet four columns past an item's text",
+                                   "a pipe-led line with prose under it"})
 
     def test_negative_control_a_line_count_does_move_on_these_fixtures(self):
         """If the fixtures could not expose a line count, the test above would prove nothing."""
@@ -424,6 +485,115 @@ class BlockTests(unittest.TestCase):
         flush = "# T\n\n> - You must cite the paper\n- never the preprint.\n"
         self.assertEqual(self._texts(flush), ["- You must cite the paper", "- never the preprint."])
 
+    def test_a_quote_that_opens_under_a_paragraph_reads_as_it_would_alone(self):
+        """A quote interrupts the paragraph above it, so what is quoted reads the same with or
+        without that paragraph. Under scorer 0.11.0 (package 0.10.0), a quoted line four columns
+        in was appended to the paragraph the quote had just closed: TypeError, and `audit`,
+        `report` and `explain` lost the whole repository to one file."""
+        quote = ">     make build\n> Never skip the build.\n"
+        alone = self._texts("# T\n\n" + quote)
+        self.assertEqual(alone, ["make build", "Never skip the build."])
+        self.assertEqual(self._texts("# T\n\nYou must read the guide.\n" + quote),
+                         ["You must read the guide."] + alone)
+
+    def test_no_change_of_container_can_crash_the_reader(self):
+        """Every opener x every quote depth x indents 0-6 x every kind of next line. The crash
+        above was one cell of this grid; a reader that keeps a stale answer about which block
+        is open fails here, not in a user's repository."""
+        openers = ["Intro line", "- item", "1. item", "> quoted", ">> deep", "| a | b |", "    code"]
+        prefixes = ["", ">", "> ", ">>", "> > "]
+        bodies = ["x", "- x", "2. x", "```", "| a |", "[ ] x"]
+        for opener in openers:
+            for prefix in prefixes:
+                for indent in range(7):
+                    for body in bodies:
+                        doc = "%s\n%s%s%s\n" % (opener, prefix, " " * indent, body)
+                        with self.subTest(doc=doc):
+                            audit.analyse(doc, keep_lines=True)
+
+    # Issue #113: five places where a soft line break still moved a count under scorer
+    # 0.11.0. In each pair the two documents are one document to CommonMark (markdown-it-py,
+    # cmark-gfm and commonmark.py agree on every pair), so they must be one to the scorer.
+    def _same(self, one_line, wrapped):
+        a, b = audit.analyse(one_line, keep_lines=True), audit.analyse(wrapped, keep_lines=True)
+        self.assertEqual([rec["text"] for rec in a["line_records"]],
+                         [rec["text"] for rec in b["line_records"]])
+        for key in ("instructions", "checkable", "steps", "seq", "tables", "logical_lines"):
+            self.assertEqual(a[key], b[key], key)
+        return a
+
+    def test_a_number_inside_a_list_item_continues_it(self):
+        """Only a list numbered 1 may interrupt a paragraph, and a list item's paragraph is a
+        paragraph. Scorer 0.11.0 opened an item on any number under an item."""
+        r = self._same("- Never reuse the schema from 2024. Then update the docs.\n",
+                       "- Never reuse the schema from\n  2024. Then update the docs.\n")
+        self.assertEqual((r["instructions"], r["steps"]), (1, 0))
+        self._same("1. You must read step 2. Then decide.\n",
+                   "1. You must read step\n   2. Then decide.\n")
+        self._same("- Run it.\n\n    You must read step 2. Then decide.\n",
+                   "- Run it.\n\n    You must read step\n    2. Then decide.\n")
+
+    def test_negative_control_a_lazy_number_line_does_start_a_list(self):
+        """Written flush left, the same line is outside the item, and there CommonMark lets
+        any number start a list - so these are NOT re-wraps, and the counts differ."""
+        one = audit.analyse("- Never reuse the schema from 2024. Then update the docs.\n")
+        lazy = audit.analyse("- Never reuse the schema from\n2024. Then update the docs.\n")
+        self.assertEqual((one["steps"], lazy["steps"]), (0, 1))
+        quoted = audit.analyse("> Never reuse the schema from\n2024. Then update the docs.\n")
+        self.assertEqual(quoted["steps"], 1)
+        # And `1.`, the one number that may interrupt anything: ignoring it on a line that
+        # leaves a quote survived the whole 0.11.0 suite (issue #113).
+        quoted_one = audit.analyse("> Note the schema.\n1. Then update the docs.\n")
+        self.assertEqual(quoted_one["steps"], 1)
+        listed = "# T\n\n1. You must run it.\n2. Never skip it.\n"
+        self.assertEqual(self._texts(listed), ["1. You must run it.", "2. Never skip it."])
+
+    def test_an_escaped_backslash_at_a_line_end_is_not_a_hard_break(self):
+        """`\\\\` is one backslash, escaped. Only an odd run of them ends in a hard break."""
+        r = self._same("You must copy the file to C:\\\\ and then never delete the source.\n",
+                       "You must copy the file to C:\\\\\nand then never delete the source.\n")
+        self.assertEqual(r["instructions"], 1)
+        odd = self._texts("# T\n\nYou must copy it to C:\\\\\\\nand never delete it.\n")
+        self.assertEqual(len(odd), 2, "three backslashes: an escaped one, then a hard break")
+
+    def test_a_bullet_four_columns_past_an_items_text_continues_it(self):
+        """Four columns past the text of its item, a line is indented code to CommonMark,
+        and indented code cannot interrupt a paragraph."""
+        r = self._same("- You must run the build + test steps. Never skip them.\n",
+                       "- You must run the build\n      + test steps. Never skip them.\n")
+        self.assertEqual(r["instructions"], 2)
+        self._same("- You must run the build ``` and the tests.\n",
+                   "- You must run the build\n      ``` and the tests.\n")
+
+    def test_negative_control_three_columns_past_an_items_text_is_a_sub_item(self):
+        r = audit.analyse("- You must run the build\n     + test steps. Never skip them.\n",
+                          keep_lines=True)
+        self.assertEqual([rec["text"] for rec in r["line_records"]],
+                         ["- You must run the build", "+ test steps.", "Never skip them."])
+
+    def test_a_pipe_led_line_with_no_delimiter_row_is_prose(self):
+        """A table needs its delimiter row - under a paragraph (the negative control above)
+        and with nothing open alike. Scorer 0.11.0 read a lone `|`-led line as a table row
+        and the line under it as a new paragraph."""
+        r = self._same("| Never skip this step, and always read the log.\n",
+                       "| Never skip this step,\nand always read the log.\n")
+        self.assertEqual(r["instructions"], 1)
+
+    def test_a_quote_inside_an_item_does_not_swallow_the_items_after_it(self):
+        """A line that leaves a quote continues it lazily only if it would not open a block
+        there, and outside a paragraph's own container any number opens a list. Scorer
+        0.11.0 knew only `1.`, and swallowed every later step into the quote."""
+        with_quote = audit.analyse("1. If:\n   > Note the version.\n2. Run `x --version`.\n"
+                                   "3. Run `x init`.\n", keep_lines=True)
+        without = audit.analyse("1. If:\n2. Run `x --version`.\n3. Run `x init`.\n")
+        self.assertEqual((with_quote["steps"], without["steps"]), (3, 3))
+        self.assertEqual([rec["text"] for rec in with_quote["line_records"]],
+                         ["Note the version.", "2. Run `x --version`.", "3. Run `x init`."])
+
+    def test_negative_control_prose_after_a_quote_still_continues_it(self):
+        self.assertEqual(self._texts("# T\n\n> You must note the\nversion first.\n"),
+                         ["You must note the version first."])
+
     def test_a_fence_under_a_tag_line_is_a_fence(self):
         """DELIBERATE, and not CommonMark: there, `<Good>` opens an HTML block that swallows
         the fence line, and the code after the first blank line turns into paragraphs. The
@@ -450,6 +620,117 @@ class BlockTests(unittest.TestCase):
         c = audit.analyse("# T\n\nStop and ask the owner when in  doubt.\n")
         d = audit.analyse("# T\n\nStop and ask the owner when in\ndoubt.\n")
         self.assertEqual((c["doctrine_hits"], d["doctrine_hits"]), (1, 1))
+
+
+class ContainerTests(unittest.TestCase):
+    """Where a list item's text starts, and whether the reader knows a paragraph is open in it.
+
+    Scorer 0.12.0 measures a continuation line against the text column of the list item it
+    sits in, so the column has to be right: the gap after the marker, a tab, a nested item, a
+    list paragraph after a blank line. And a number may continue an item only where the item
+    holds an open paragraph: an item can open with a quote, a heading or another list, or with
+    indented code, and the reader's page-measured patterns do not see those as blocks. The
+    first draft of 0.12.0 swallowed the next item in each case, where 0.11.0's "any number
+    under an item opens one" had been right by accident. Every expectation here is what
+    markdown-it-py, cmark-gfm and commonmark.py render; the tests were written by an
+    adversarial review that ran mutants of the reader against the suite."""
+
+    def _kinds(self, doc):
+        return [k for k, _, _ in audit.read_blocks(doc.split("\n")) if k != "blank"]
+
+    def test_the_gap_after_the_marker_sets_the_items_column(self):
+        self.assertEqual(self._kinds("-   Run the build\n   2. Then test.\n"), ["item", "item"])
+        self.assertEqual(self._kinds("-   Run the build\n    2. Then test.\n"), ["item"])
+
+    def test_five_spaces_after_the_marker_put_the_column_one_past_it(self):
+        self.assertEqual(self._kinds("-      Run the build\n         + more steps.\n"), ["item"])
+
+    def test_a_list_paragraph_is_measured_against_its_item(self):
+        self.assertEqual(self._kinds("- a\n\n  para text\n     + x\n"), ["item", "para", "item"])
+        self.assertEqual(self._kinds("- a\n  - b\n\n  para text\n  2. more text\n"),
+                         ["item", "item", "para"])
+
+    def test_a_nested_items_column_includes_its_own_indent(self):
+        self.assertEqual(self._kinds("- a\n  - Run it\n       + x\n"), ["item", "item", "item"])
+
+    def test_a_line_left_of_a_nested_item_is_measured_against_the_item_around_it(self):
+        """"    + Then ship it" is outside "- Then test it" but inside "10. Run it", whose text
+        starts at column 4: no columns past it, so it is a new item, not indented text."""
+        self.assertEqual(self._kinds("10. Run it\n\n       - Then test it\n    + Then ship it\n"),
+                         ["item", "item", "item"])
+
+    def test_a_wide_ordered_marker(self):
+        self.assertEqual(self._kinds("10. Run it\n    2. x\n"), ["item"])
+        self.assertEqual(self._kinds("10. Run it\n   2. x\n"), ["item", "item"])
+        self.assertEqual(self._kinds("1. Run it\n  2. Then test.\n"), ["item", "item"])
+
+    def test_a_line_left_of_a_wide_items_text_is_measured_from_the_page(self):
+        """Four columns in is indented code to the page, and so text, even where it is short
+        of the item's own column."""
+        self.assertEqual(self._kinds("100. Never skip the build\n    2. Then test it.\n"), ["item"])
+        self.assertEqual(self._kinds("-    Never skip the build\n    + Then test it.\n"), ["item"])
+        # An item three columns in is still an item to CommonMark, so the page is what a line
+        # left of its text is measured from - not the item's marker.
+        self.assertEqual(self._kinds("   - You must run\n    1) the tests.\n"), ["item"])
+
+    def test_a_tick_box_paragraph_in_an_item_sets_its_column(self):
+        self.assertEqual(self._kinds("- a\n\n  [ ] box\n     + y\n"), ["item", "item", "item"])
+        # The box is the reader's own block (a tick-box with no marker); "2." at the margin is
+        # outside the item that holds it, so it is the next item, not more of the box.
+        blocks = [p for k, p, _ in audit.read_blocks("- a\n\n  [ ] box\n2. Then run it.\n".split("\n"))
+                  if k == "item"]
+        self.assertEqual([p[0][1].strip() for p in blocks], ["- a", "[ ] box", "2. Then run it."])
+
+    def test_a_file_indented_four_columns_throughout_keeps_its_list(self):
+        """To CommonMark such a file is one block of code; the reader has always read its
+        bullets as a list, and an agent reading it does too. A revision of this round measured
+        each bullet against the page and folded it into the one before - 19 instructions in
+        one surveyed agent file became 2. The next bullet beside an item is the next item."""
+        self.assertEqual(self._kinds("    - Run it\n    - Then test it.\n"), ["item", "item"])
+        self.assertEqual(self._kinds("    - Run it\n\n    ## Approach\n    - Define it\n"),
+                         ["item", "para", "item"])
+
+    def test_known_limit_a_paragraph_no_item_holds_leaves_the_list_open(self):
+        """NOT CommonMark, and unchanged from 0.11.0: indented less than its item's text after a
+        blank line, "  Then read the log" closes the list there, and "2. Ship it" is more of that
+        paragraph. The reader keeps the list open and counts the step, as an agent reading the
+        file would. CORRECTIONS 2026-10-14 lists it among what the 0.12.0 round leaves."""
+        self.assertEqual(self._kinds("1. Run it\n\n  Then read the log\n2. Ship it\n"),
+                         ["item", "para", "item"])
+
+    def test_a_line_leaving_a_quote_is_measured_against_the_page(self):
+        self.assertEqual(audit.analyse("> -    x\n     ~~~see step\n")["fences"], 0)
+
+    def test_a_tab_is_as_wide_as_the_column_it_starts_at(self):
+        self.assertEqual(self._kinds("-\tAlways\n  9. foo\n"), ["item", "item"])
+        self.assertEqual(self._kinds("-\tNever reuse the schema from\n\t2024. Then update the docs.\n"),
+                         ["item"])
+        self.assertEqual(self._kinds("1.\tNever reuse the schema from\n\t2024. Then update the docs.\n"),
+                         ["item"])
+        self.assertEqual(self._kinds("> 2. x\n> \t2. x\n"), ["item", "item"])
+
+    def test_a_pipe_line_over_a_bare_dash_row_is_not_a_table(self):
+        self.assertEqual(self._kinds("| Never skip this step\n---\n"), ["para", "rule"])
+
+    def test_after_an_item_that_opens_no_paragraph_a_number_opens_an_item(self):
+        """A quote, a heading, another list or indented code, as the item's text or under it."""
+        for doc in ("- > Note it\n  2. Then run it.\n",
+                    "- # Setup\n  2. Then run it.\n",
+                    "- 1. Install it\n  2. Then run it.\n",
+                    "-     make build\n  2. Then run it.\n",
+                    "- Setup\n\n    > Note it\n  2. Then run it.\n",
+                    "- Setup\n\n      make build\n  2. Then run it.\n",
+                    "- Setup\n    ***\n  2. Then run it.\n",
+                    "* Setup\n    # Note\n  10. Then run it.\n"):
+            with self.subTest(doc=doc):
+                self.assertEqual(self._kinds(doc)[-1], "item")
+                self.assertEqual(audit.analyse(doc)["steps"], 1)
+
+    def test_negative_control_under_an_open_paragraph_a_number_continues_it(self):
+        """Two more numbers, neither 1, two columns into the item's text: both are text. The
+        first must not make the reader forget the paragraph is still open."""
+        self.assertEqual(self._kinds("- Run it\n    2. Then test.\n    3. Then ship.\n"), ["item"])
+        self.assertEqual(self._kinds("- <div>\n  2. Then run it.\n"), ["item"])
 
 
 class MandateSentenceTests(unittest.TestCase):

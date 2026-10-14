@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+- **Scorer 0.12.0: five places a soft line break still moved a count** (#113, CORRECTIONS
+  2026-10-14). The 0.10.0 entry below says "Where a soft line break falls no longer
+  changes a number." In five places that was false. In each, the reader took a
+  continuation line for the start of a block where CommonMark does not:
+  - a number inside a list item;
+  - an escaped backslash at a line end;
+  - a bullet four columns past an item's text;
+  - a `|`-led line with no delimiter row;
+  - a list after a quote inside an item.
+  The property test had refused the wraps that showed the first; it now refuses only what
+  CommonMark refuses. An adversarial review against three CommonMark parsers then caught
+  the first draft swallowing the next numbered item. That happened after an item that
+  opens with a quote, a heading or code, and after a tab following a quote marker. Both
+  are fixed, and the review's tests are in the suite.
+  **Re-measured at the pinned SHAs: no published figure moves.** 14 of the 6,490 Markdown
+  files in the ten pinned repositories read differently. None is a surveyed unit, and
+  none changes an instruction count. `evidence/` changes only its scorer version.
+  `report`'s public median stays 7.6, now labelled scorer 0.12.0. The private origin
+  workspace of the pre-registration still has to be re-measured before release
+  (PREREGISTRATION, 2026-10-14 note).
+  **Observable to consumers:** `audit --json` reports version 0.12.0. For a file written
+  in one of the five shapes, `steps`, `logical_lines` and the detected genre can change.
+
 ## 0.10.0 - 2026-10-11
 
 The sentence round (CORRECTIONS 2026-10-11), and the command that found it. This package
