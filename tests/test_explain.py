@@ -238,9 +238,12 @@ class ExplainTests(unittest.TestCase):
 
     def test_it_looks_where_report_looks(self):
         """Identity, not equality: the percentage being explained is report's, so the
-        instruction directory has to be found by report's own code."""
-        self.assertIs(explain.find_skills_dir, report.find_skills_dir)
-        self.assertIs(explain.root_instruction_files, report.root_instruction_files)
+        instruction directory has to be found - and the scorer run, and its failures read - by
+        report's own code. Since #112 that is one resolver (an explicit --skills, then the
+        directory search, then the root-file fallback) and one scorer call, and explain holds no
+        copy of either: a local definition here would fail this test."""
+        self.assertIs(explain.resolve_skills, report.resolve_skills)
+        self.assertIs(explain.run_scorer, report.run_scorer)
 
 
 class ScorerUnmovedTests(unittest.TestCase):

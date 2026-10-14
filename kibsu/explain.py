@@ -37,12 +37,12 @@ EXIT CODES
 import argparse
 import json
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from . import config
-from .report import CANNOT_RUN, find_skills_dir, root_instruction_files
+from .report import (CANNOT_RUN, describe_unmeasured, print_unread, resolve_skills,
+                     run_scorer, unread_in_repo)
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -52,17 +52,6 @@ UNITS_SHOWN = 12            # human output only; --full lifts both caps, --json 
 LINES_PER_UNIT = 10
 TEXT_WIDTH = 100
 NOT_FAIR_GENRES = ("doctrine", "persona", "reference", "mixed")
-
-
-def audit_lines(path):
-    """The scorer's own per-line verdicts for the instruction set at `path`, or None."""
-    audit_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audit.py")
-    try:
-        p = subprocess.run([sys.executable, audit_py, path, "--json", "--lines"],
-                           capture_output=True, text=True, encoding="utf-8", errors="replace")
-        return json.loads(p.stdout) if p.returncode == 0 and p.stdout else None
-    except Exception:
-        return None
 
 
 def build(root, skills, measured):
@@ -165,6 +154,7 @@ def render(result, all_genres, full, unit_filter):
             if genre in held:
                 print("  %d %s unit(s) not listed - checkability is not a fair test of them "
                       "(--all-genres lists them)." % (held[genre], genre))
+    print_unread(result.get("unread_files"))
     # Kept last, as in `report`: a guarantee, not a softener for something that follows.
     print("  Nothing was written to this repo - run `git status` to confirm.\n")
 
@@ -187,22 +177,30 @@ def main():
     root = os.path.abspath(a.repo)
     cfg = config.load(root)
 
-    skills = a.skills or find_skills_dir(root, cfg)
-    if not skills and root_instruction_files(root, cfg):
-        skills = root            # the root-file layout: same fallback, same order, as report
-    measured = audit_lines(os.path.abspath(skills)) if skills else None
+    # The same resolution as report's, the same fallback, in the same order (#112: a mistyped
+    # --skills names itself here too, instead of reading as an empty repository).
+    skills, unmeasured = resolve_skills(root, cfg, a.skills)
+    measured, failure, unread = (run_scorer(os.path.abspath(skills), ["--lines"]) if skills
+                                 else (None, None, []))
+    unread = unread_in_repo(root, skills, unread) if skills else unread
+    if failure:
+        unmeasured = "%s%s" % describe_unmeasured(skills, failure)
     if not measured:
-        reason = ("the scorer returned nothing for %s" % skills if skills else
-                  "no agent-instruction directory or root instruction file found")
+        # "Nothing here tells agents how to work" only where that is what was found. A typo or
+        # a scorer that failed is not evidence about the repository.
+        reason = unmeasured or "no agent-instruction directory or root instruction file found"
         if a.json:
             print(json.dumps({"version": VERSION, "repo": root, "complete": False,
-                              "reason": reason}, indent=2))
+                              "reason": reason, "unread_files": unread}, indent=2))
         else:
-            print("\n  COULD NOT EXPLAIN - %s. Nothing here tells agents how to work, so there "
-                  "is nothing to list.\n" % reason)
+            print("\n  COULD NOT EXPLAIN - %s.%s\n"
+                  % (reason, "" if unmeasured else " Nothing here tells agents how to work, so "
+                                                   "there is nothing to list."))
+            print_unread(unread, figures=False)
         return CANNOT_RUN
 
     result = build(root, os.path.abspath(skills), measured)
+    result["unread_files"] = unread
     if a.json:
         print(json.dumps(result, indent=2))
         return 0

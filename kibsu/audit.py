@@ -132,6 +132,10 @@ import sys
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
+# stderr too: it names skipped files, and report/explain read it back as UTF-8 (#112). Left at a
+# Windows code page, "café.md" reached them as "caf\ufffd.md".
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 VERSION = "0.11.0"
 
@@ -1098,6 +1102,31 @@ def escapes_root(root, full):
     return not (target == root_r or target.startswith(root_r + os.sep))
 
 
+# Longest first: a UTF-32 little-endian mark begins with the UTF-16 one.
+_WIDE_BOMS = ((b"\xff\xfe\x00\x00", "a UTF-32 byte-order mark"),
+              (b"\x00\x00\xfe\xff", "a UTF-32 byte-order mark"),
+              (b"\xff\xfe", "a UTF-16 byte-order mark"),
+              (b"\xfe\xff", "a UTF-16 byte-order mark"))
+
+
+def not_utf8_text(data):
+    """Why these bytes cannot be read as UTF-8 text, or None when they can.
+
+    Files are decoded as UTF-8 with replacement, so a Latin-1 accent costs one character and
+    nothing else. A UTF-16 file - what PowerShell's `>` writes - costs everything: every other
+    byte is NUL, nothing reads as an instruction, and the file was scored as a `mixed` unit of
+    zero instructions, which `explain` then presented as a genre decision (#112). A byte-order
+    mark names the encoding; without one, wide text shows as NUL bytes throughout - one in two
+    for ASCII in UTF-16. A stray NUL in a text file is not that: such a file read before and
+    reads the same now, so the line is drawn at one byte in twenty."""
+    for bom, name in _WIDE_BOMS:
+        if data.startswith(bom):
+            return name
+    if data and data.count(b"\x00") * 20 >= len(data):
+        return "NUL bytes throughout - UTF-16 or UTF-32 with no byte-order mark"
+    return None
+
+
 def _walk(root):
     for dp, dn, fn in os.walk(root):
         dn[:] = [d for d in dn if d not in (".git", "node_modules", "__pycache__", ".venv", "dist", "build")
@@ -1405,19 +1434,32 @@ def main():
         print("no .md found under " + root)
         return 1
     rows = []
+    # Every file left out says so on stderr, in one shape - "kibsu audit: skipping <path>
+    # (<why>)" - which `report` and `explain` read back and print (#112). A file that vanished
+    # without a word (an unreadable one did) changed the figures with nothing to show for it.
     for p in sorted(files):
+        shown = os.path.relpath(p, root).replace("\\", "/")
         if escapes_root(root, p):
-            sys.stderr.write("kibsu audit: skipping %s (resolves outside the repo)\n"
-                             % os.path.relpath(p, root).replace("\\", "/"))
+            sys.stderr.write("kibsu audit: skipping %s (resolves outside the repo)\n" % shown)
             continue
         try:
-            if os.path.getsize(p) > MAX_READ_BYTES:
+            size = os.path.getsize(p)
+            if size > MAX_READ_BYTES:
                 sys.stderr.write("kibsu audit: skipping %s (%d bytes > %d byte ceiling)\n"
-                                 % (p, os.path.getsize(p), MAX_READ_BYTES))
+                                 % (shown, size, MAX_READ_BYTES))
                 continue
-            t = io.open(p, encoding="utf-8", errors="replace").read()
-        except Exception:
+            with io.open(p, "rb") as fh:
+                data = fh.read()
+        except Exception as exc:
+            sys.stderr.write("kibsu audit: skipping %s (could not read: %s)\n" % (shown, exc))
             continue
+        why = not_utf8_text(data)
+        if why:
+            sys.stderr.write("kibsu audit: skipping %s (not UTF-8 text: %s)\n" % (shown, why))
+            continue
+        # Decoded exactly as io.open(p, encoding="utf-8", errors="replace") decoded it,
+        # universal newlines included - only the bytes are read once, to be looked at first.
+        t = io.TextIOWrapper(io.BytesIO(data), encoding="utf-8", errors="replace").read()
         r = analyse(t, keep_lines=a.lines)
         rel = os.path.relpath(p, root).replace("\\", "/")
         r["skill"] = (os.path.dirname(rel) or rel) if mode == "SKILL.md" else rel
