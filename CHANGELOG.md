@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- **One file could cost `audit`, `report` and `explain` the whole repository.** A paragraph
+  line followed directly by a blockquote whose text sits four or more columns in
+  (`Intro\n>     code`) raised `TypeError` in the block reader: whether a paragraph was open
+  above the line was decided before the quote opened and closed it, and the quoted line was
+  appended to a paragraph that no longer existed. `audit` exited 1; `report` and `explain`
+  said there was nothing to measure ("no agent-instruction directory found", "the scorer
+  returned nothing"). The question is now asked after the quote opens or closes, and the
+  quoted line reads exactly as it does with no paragraph above it. Introduced with scorer
+  0.11.0 (package 0.10.0); scorer 0.10.0 read the same input without error. Found by an
+  adversarial review's fuzzer; a seeded fuzz of the 0.10.0 reader crashes on 1,438 of 40,000
+  generated documents (3.6%), and on none of the surveyed files.
+  **No figure moves**, so the scorer stays 0.11.0: on 77,118 generated documents that 0.10.0
+  could read, its output and this one's are identical record for record, and `evidence/`
+  regenerates byte-identical at all ten pinned SHAs. `tests/test_sentences.py` gains the
+  regression and a grid over every change of container (7 openers x 5 quote depths x indents
+  0-6 x 6 kinds of next line, 1,470 documents): against 0.10.0's reader 75 of them raise.
+
 ## 0.10.0 - 2026-10-11
 
 The sentence round (CORRECTIONS 2026-10-11), and the command that found it. This package
