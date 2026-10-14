@@ -350,8 +350,13 @@ class SkipReasonTests(unittest.TestCase):
         _, stdout, _ = run_tool("report", self.repo, "--json")
         unread = json.loads(stdout)["unread_files"]
         self.assertIn(".claude/skills/out.md (resolves outside the repo)", unread)
-        self.assertTrue(any(u.startswith(".claude/skills/ghost.md (could not read:")
-                            for u in unread), unread)
+        ghost = [u for u in unread if u.startswith(".claude/skills/ghost.md (")]
+        self.assertEqual(len(ghost), 1, "a dangling link must be named, not dropped: %r" % unread)
+        if os.name != "nt":
+            # On windows-latest the escape check reads a dangling link as "resolves outside the
+            # repo" before any open is tried - named all the same. Elsewhere it resolves in
+            # place and the open fails, which is the path that used to skip without a word.
+            self.assertTrue(ghost[0].startswith(".claude/skills/ghost.md (could not read:"), ghost)
 
 
 class ReproductionHintTests(unittest.TestCase):
