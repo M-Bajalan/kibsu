@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+- **Question 5 asks whether the index is tracked now, not whether it ever was** (#109). An
+  index committed once and untracked since (`git rm --cached` plus `.gitignore`, to build it on
+  demand) passed the "ever committed" test from #95, and the replay then convicted every later
+  commit that touched a doc for not updating a file git no longer tracks. `report` now asks
+  whether the index is in the current commit, and answers `?` - "not tracked in the current
+  commit (committed before, untracked since)" - with the read-only `git log` that shows when.
+  An index that was never committed reads exactly as before.
+- **A shallow clone no longer gets a verdict on part of its history** (#110). Question 4
+  already refused a shallow clone; question 5 replayed whatever the clone held and scored it,
+  so a depth-1 checkout - what CI checks out by default - read "+ 0 of your last 1 commits" and
+  earned a point on a repository whose full history convicts. It answers `?` now when the clone
+  is shallow and holds no more commits than the replay walks (200). A shallow clone deeper
+  than that holds every commit the walk needs and is judged as usual.
+- "of your last 1 commits" reads "of your last 1 commit".
+
+**Observable to consumers:** question 5's mark, and with it the score and the exit code (3 for
+a check that could not run), change for a repository whose index is untracked at HEAD, and for
+a shallow clone of fewer than 201 commits. No survey figure moves: question 5 is not in the
+survey.
+
 ## 0.10.0 - 2026-10-11
 
 The sentence round (CORRECTIONS 2026-10-11), and the command that found it. This package

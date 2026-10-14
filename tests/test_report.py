@@ -20,13 +20,18 @@ file (satisfies VERIFIABILITY/CONTINUITY) - so every check runs and report.py mu
 """
 import json
 import os
+import pathlib
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from support import make_repo, run_git, run_tool, assert_repo_untouched
+from support import PACKAGE_ROOT, make_repo, run_git, run_tool, assert_repo_untouched
+
+sys.path.insert(0, PACKAGE_ROOT)
+from kibsu import report  # noqa: E402 -- must follow the sys.path.insert above
 
 
 class RootInstructionFileReportTests(unittest.TestCase):
@@ -217,6 +222,88 @@ class HistoryReplayTests(unittest.TestCase):
         self.assertEqual(history["mark"], "x", history)
         self.assertIn("1 of your last 2 commits", history["detail"])
         assert_repo_untouched(repo)
+
+    def test_an_index_committed_once_and_untracked_since_is_not_replayed(self):
+        """#109: the layout two tests up, reached by another history. The index WAS committed,
+        then untracked (`git rm --cached` + .gitignore) to be built on demand. No commit after
+        that can update a file git no longer tracks, so the replay convicted every one that
+        touched a doc. "Ever committed" was the wrong question: what matters is whether the
+        index is in the commit being judged."""
+        repo = make_repo(self.tmpdir, {
+            "docs/index.json": '{"generated": true}\n',
+            "docs/one.md": "---\ntype: doc\n---\n# One\n",
+        })
+        rc, out, err = run_git(repo, "rm", "-q", "--cached", "docs/index.json")
+        self.assertEqual(rc, 0, err or out)
+        _write(repo, ".gitignore", "docs/index.json\n")
+        _commit_all(repo, "stop tracking the index")
+        _write(repo, "docs/two.md", "---\ntype: doc\n---\n# Two\n")
+        _commit_all(repo, "add docs/two.md")
+
+        exit_code, history = self._history(repo)
+
+        self.assertEqual(history["mark"], "?", history)
+        self.assertIn("not tracked in the current commit", history["detail"])
+        self.assertEqual(exit_code, 3, "a check that could not run must exit CANNOT_RUN")
+        assert_repo_untouched(repo)
+
+    def test_a_shallow_clone_shorter_than_the_replay_is_not_judged(self):
+        """#110: question 4 already refuses a shallow clone; question 5 replayed whatever the
+        clone held and scored it. A depth-1 clone of a repository whose last commit is convicted
+        read "+ 0 of your last 1 commits" and earned a point - and depth 1 is what CI checks
+        out by default. The control is the same repository at full depth: still convicted."""
+        origin = make_repo(os.path.join(self.tmpdir, "origin"), {
+            "docs/index.json": '{"generated": true}\n',
+            "docs/one.md": "---\ntype: doc\n---\n# One\n",
+        })
+        _write(origin, "docs/two.md", "---\ntype: doc\n---\n# Two\n")
+        _commit_all(origin, "add docs/two.md without touching the index")
+        shallow = _shallow_clone(origin, os.path.join(self.tmpdir, "shallow"), 1)
+
+        _, full_history = self._history(origin)
+        exit_code, history = self._history(shallow)
+
+        self.assertEqual(full_history["mark"], "x", full_history)
+        self.assertEqual(history["mark"], "?", history)
+        self.assertIn("shallow clone", history["detail"])
+        self.assertEqual(exit_code, 3, "a check that could not run must exit CANNOT_RUN")
+        assert_repo_untouched(shallow)
+
+    def test_negative_control_a_shallow_clone_deeper_than_the_replay_is_still_judged(self):
+        """The threshold, not just the flag: a shallow clone holding more commits than the
+        replay walks has every commit the walk needs, parents included, so refusing it would
+        throw away a verdict it can give. Asked of the helper directly - running the full
+        200-commit replay here would cost a minute on a Windows runner and prove nothing more."""
+        origin = make_repo(os.path.join(self.tmpdir, "origin"), {"docs/one.md": "# One\n"})
+        _empty_commits(origin, report.BACKTEST_N + 4)
+        deep = _shallow_clone(origin, os.path.join(self.tmpdir, "deep"), report.BACKTEST_N + 2)
+        cut = _shallow_clone(origin, os.path.join(self.tmpdir, "cut"), report.BACKTEST_N)
+
+        self.assertEqual(run_git(deep, "rev-parse", "--is-shallow-repository")[1].strip(), "true")
+        self.assertIs(report.history_cut_short(deep), False)
+        self.assertIs(report.history_cut_short(cut), True)
+        self.assertIs(report.history_cut_short(origin), False)
+
+
+def _shallow_clone(origin, dest, depth):
+    """A real shallow clone. --depth is ignored for a plain local path, so go through file://."""
+    uri = pathlib.Path(os.path.abspath(origin)).as_uri()
+    rc, out, err = run_git(os.path.dirname(dest), "clone", "-q", "--depth", str(depth), uri, dest)
+    assert rc == 0, "git clone --depth %d failed: %s" % (depth, err or out)
+    return dest
+
+
+def _empty_commits(repo, n):
+    """n empty commits on the current branch in ONE process. `git commit` run n times costs
+    seconds on a Windows runner; only the count of commits matters to the tests that use this."""
+    ref = run_git(repo, "symbolic-ref", "HEAD")[1].strip()
+    head = run_git(repo, "rev-parse", "HEAD")[1].strip()
+    stream = "".join(
+        "commit %s\ncommitter Kibsu Tests <kibsu-tests@example.com> %d +0000\ndata 1\n.\n%s\n"
+        % (ref, 1700000000 + i, "from %s\n" % head if i == 0 else "") for i in range(n))
+    p = subprocess.run(["git", "fast-import", "--quiet"], cwd=repo, input=stream,
+                       capture_output=True, text=True)
+    assert p.returncode == 0, "git fast-import failed: %s" % p.stderr
 
 
 if __name__ == "__main__":

@@ -164,6 +164,33 @@ def index_ever_committed(root, rel):
     return None if out is None else bool(out.strip())
 
 
+def index_in_head(root, rel):
+    """Is this index file in the commit being judged? "Ever committed" was the wrong question
+    (#109): an index committed once and untracked since passed it, and the replay convicted
+    every later commit for not updating a file git no longer tracks. None when git could not
+    answer (not a repository, or no commit yet) - the caller falls through as before."""
+    out = run(["git", "ls-tree", "--name-only", "HEAD", "--", rel.replace("\\", "/")], root)
+    return None if out is None else bool(out.strip())
+
+
+def history_cut_short(root):
+    """Is this a shallow clone holding no more commits than the replay walks (#110)? Then the
+    replay judges only what the clone happens to hold: a depth-1 checkout - CI's default -
+    read "0 of your last 1" and earned a point. A shallow clone deeper than the walk holds
+    every commit it needs, parents included, so it is judged as usual. None when git could not
+    answer (not a repository, or a git older than 2.15)."""
+    out = run(["git", "rev-parse", "--is-shallow-repository"], root)
+    if out is None or out.strip() not in ("true", "false"):
+        return None
+    if out.strip() == "false":
+        return False
+    held = run(["git", "rev-list", "--count", "--max-count=%d" % (BACKTEST_N + 1), "HEAD"], root)
+    try:
+        return int(held.strip()) <= BACKTEST_N
+    except (AttributeError, ValueError):
+        return None
+
+
 def commits_replayed(root):
     """How many commits the replay actually walked: the history, capped at BACKTEST_N."""
     out = run(["git", "rev-list", "--count", "--max-count=%d" % BACKTEST_N, "HEAD"], root)
@@ -324,17 +351,31 @@ def main():
         if os.path.isfile(os.path.join(root, c.replace("/", os.sep))):
             cat = c
             break
-    if cat and index_ever_committed(root, cat) is False:
-        # An index that was never committed has no history, so every commit that added a doc
-        # "failed to update it" and the replay convicts 100% of the eligible commits - a number
-        # check.py's own backtest docstring calls meaningless. `kibsu index` writes exactly
-        # such a file, and gitignoring it to build on demand is a legitimate layout: following
-        # this tool's own quickstart must not turn "could not check" into an accusation.
+    if cat and index_in_head(root, cat) is False:
+        # An index git does not track in the commit being judged has no history to replay
+        # against, so every commit that added a doc "failed to update it" and the replay
+        # convicts 100% of the eligible commits - a number check.py's own backtest docstring
+        # calls meaningless. `kibsu index` writes exactly such a file, and gitignoring it to
+        # build on demand is a legitimate layout, whether it was never committed or was
+        # committed once and untracked since (#109): following this tool's own quickstart must
+        # not turn "could not check" into an accusation.
+        why = ("is not tracked in the current commit (committed before, untracked since)"
+               if index_ever_committed(root, cat) else
+               "has never been committed (built locally, or gitignored)")
         findings.append((SKIP, "Follow your own rules",
-                         "COULD NOT CHECK - %s has never been committed (built locally, or "
-                         "gitignored), so there is no index history to replay." % cat,
+                         "COULD NOT CHECK - %s %s, so there is no index history to replay."
+                         % (cat, why),
                          "git -C %s log --oneline -- %s"
                          % (q(root), q(cat.replace("\\", "/")))))
+    elif cat and history_cut_short(root):
+        # Question 4 refuses a shallow clone; this one replayed whatever the clone held and
+        # scored it (#110). A verdict on the part of the history a clone happens to hold would
+        # read as a verdict on all of it - including a pass.
+        findings.append((SKIP, "Follow your own rules",
+                         "COULD NOT CHECK - this is a shallow clone holding %d of the %d commits "
+                         "the replay walks, so the history it would judge is cut off."
+                         % (commits_replayed(root), BACKTEST_N),
+                         "git -C %s rev-parse --is-shallow-repository" % q(root)))
     elif cat:
         # ns_check needs an index in ITS format; the repo's own catalog is a different
         # shape, and passing it made ns_check exit 3 (cannot run) so the backtest never ran
@@ -368,9 +409,11 @@ def main():
             mark = OK if n == 0 else BAD
             # The denominator is the commits actually walked. It used to print the cap, so a
             # repository with twenty commits was told about its "last 200".
+            walked = commits_replayed(root)
             findings.append((mark, "Follow your own rules",
-                             "%d of your last %d commits changed a doc without updating "
-                             "the index they claim to keep." % (n, commits_replayed(root))))
+                             "%d of your last %d %s changed a doc without updating "
+                             "the index they claim to keep."
+                             % (n, walked, "commit" if walked == 1 else "commits")))
             if n == 0:
                 score += 1
         else:
