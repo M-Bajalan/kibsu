@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased
+
+- **A failure is no longer reported as an absence** (#112). `report` and `explain` ran the
+  scorer and kept only its stdout, so every way it could fail read as "no agent-instruction
+  directory found. Nothing here tells agents how to work" - a statement about the repository.
+  Each cause now names itself:
+  - **The scorer failed:** "the scorer could not measure <dir>: <its last line of stderr>",
+    with the read-only scorer command that reproduces it - the exact run that failed,
+    `--artifacts` included (`report`). A run that found instruction files and could read none
+    of them is a failure too: it no longer reads as "your instructions promise no artifacts at
+    all". A directory holding no `.md` at all says that, not that the scorer failed.
+  - **A mistyped `--skills`:** "--skills <dir> is not a directory". Exit 3, as for any check
+    that could not run.
+  - **Files the scorer left out** - over the 5 MiB ceiling, a link out of the repository, or
+    one it could not open (which used to vanish without even a stderr line) - are listed under
+    the findings, "The scorer did not read N files; the figures above leave them out", and in
+    `--json` as `unread_files`, each path relative to the repository like every other path on
+    the page. The scorer's stderr is UTF-8 now, as its stdout already was, so `café.md`
+    survives a Windows console.
+  - **A UTF-16 file** (what PowerShell's `>` writes) was decoded as UTF-8 into NULs and scored
+    as a `mixed` unit of zero instructions, which `explain` then counted among the units
+    "checkability is not a fair test" of. The scorer now refuses bytes that were never UTF-8
+    text - a UTF-16 or UTF-32 byte-order mark, or NUL bytes throughout (one in twenty or more)
+    - and names the file and why. A UTF-8 byte-order mark, a stray Latin-1 byte, a stray NUL
+    and Arabic read exactly as before.
+  - **A wrongly typed `.kibsu.json` key** (`{"skills_dir": 5}`) was an `AttributeError`
+    traceback from `report` and `explain`. It is a warning now (once per run), and that key
+    alone falls back to its default - the contract `config.load()` already kept for malformed
+    JSON. `null` is left alone where the callers read it as "not set" (`skills_dir`,
+    `instruction_files`), and `gates` is left to `gate`, which judges its own shapes.
+  **No published figure moves:** `evidence/` regenerates byte-identical at all ten pinned SHAs,
+  and no surveyed file is refused. The scorer stays 0.11.0: what it counts is unchanged; what
+  changed is which bytes are allowed to reach it, beside the size ceiling and the link check.
+  Whether one file the scorer cannot read should cost the whole run is a separate decision
+  and is left as it was; so is whether a run that left some files out is `complete` - it
+  says which, under `unread_files`, and keeps its exit code.
+
 ## 0.10.0 - 2026-10-11
 
 The sentence round (CORRECTIONS 2026-10-11), and the command that found it. This package

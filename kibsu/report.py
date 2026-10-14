@@ -88,12 +88,60 @@ def tool(name):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
 
 
-def audit_json(path, extra=None):
-    out = run([sys.executable, tool("audit.py"), path, "--json"] + (extra or []))
+SCORER_SKIP = "kibsu audit: skipping "
+
+
+def run_scorer(path, extra=None):
+    """Run the scorer on `path` and keep what it says on stderr, not only its JSON (#112).
+
+    Returns (result, failure, unread). `result` is the parsed JSON, or None. `failure` is why
+    there is none, in the scorer's own words - its last line of stderr, or of stdout when it
+    explains itself there ("no .md found under ...") - and None when there is a result.
+    `unread` lists the files it left out, each with its reason, from its `skipping` lines.
+    Keeping only stdout is how a crash, a file over the size ceiling and a link out of the repo
+    all used to read as "nothing here tells agents how to work"."""
     try:
-        return json.loads(out) if out else None
-    except Exception:
-        return None
+        p = subprocess.run([sys.executable, tool("audit.py"), path, "--json"] + (extra or []),
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+    except Exception as exc:
+        return None, "it could not be started (%s)" % exc, []
+    said = [ln.strip() for ln in (p.stderr or "").splitlines() if ln.strip()]
+    unread = [ln[len(SCORER_SKIP):] for ln in said if ln.startswith(SCORER_SKIP)]
+    if p.returncode == 0 and p.stdout:
+        try:
+            result = json.loads(p.stdout)
+        except ValueError:
+            result = None
+        if result is not None and unread and not result.get("skills"):
+            # It found files and could read none of them. An empty measurement here would print
+            # "your instructions promise no artifacts at all" about instructions never read.
+            return None, ("it could read none of the %d instruction file(s) it found"
+                          % len(unread)), unread
+        if result is not None:
+            return result, None, unread
+    why = ([ln for ln in said if not ln.startswith(SCORER_SKIP)]
+           or [ln.strip() for ln in (p.stdout or "").splitlines() if ln.strip()])
+    return None, (why[-1].rstrip(".") if why else
+                  "it exited %d and said nothing" % p.returncode), unread
+
+
+def describe_unmeasured(skills, failure):
+    """(what could not be measured, the scorer's reason) for a run that produced no result -
+    shared by report and explain so the two say the same thing. A directory holding no .md at
+    all is said as that, not as a scorer that failed."""
+    if failure.startswith("no .md found"):
+        return "%s holds no .md files to measure" % skills, ""
+    return "the scorer could not measure %s" % skills, ": " + failure
+
+
+def unread_in_repo(root, skills, unread):
+    """The scorer names a skipped file relative to the directory it was pointed at; on the page
+    every other path is relative to the repository, so these are too."""
+    try:
+        prefix = os.path.relpath(os.path.abspath(skills), root).replace("\\", "/")
+    except ValueError:                          # Windows: another drive, nothing to be relative to
+        return unread
+    return unread if prefix == "." else ["%s/%s" % (prefix, u) for u in unread]
 
 
 def index_json(root):
@@ -120,6 +168,27 @@ def find_skills_dir(root, cfg=None):
         if os.path.isdir(p):
             return p
     return None
+
+
+def resolve_skills(root, cfg, given=None):
+    """The instruction set to measure, and - when there is none to measure - why, in words true
+    of the repository. Returns (path or None, reason or None). The reason is None when nothing
+    was named and nothing was found: the genuine "nothing here tells agents how to work" case.
+
+    Shared by report and explain, so a mistyped --skills reads the same in both (#112). It used
+    to fall straight through to "no agent-instruction directory found. Nothing here tells
+    agents how to work" - a statement about the repository, made about a typo."""
+    if given:
+        return (given, None) if os.path.isdir(given) else (
+            None, "--skills %s is not a directory" % given)
+    skills = find_skills_dir(root, cfg)
+    if not skills and root_instruction_files(root, cfg):
+        # No instruction DIRECTORY, but the repo does carry the root-file layout. Hand audit the
+        # repo root: find_skills()'s instruction-files mode picks up exactly those files and
+        # nothing else, so Q3/Q4 get measured instead of printing "COULD NOT CHECK" at a repo
+        # that plainly does tell agents how to work.
+        skills = root
+    return skills, None
 
 
 def root_instruction_files(root, cfg=None):
@@ -196,6 +265,20 @@ def line(mark, title, detail, see=None):
         print("  %s  %-26s reads only, writes nothing:  %s" % (" ", "", see))
 
 
+def print_unread(unread, figures=True):
+    """The files the scorer left out, each with its reason. Every figure above was measured
+    without them, so they are named rather than dropped (#112). `figures=False` where nothing
+    was measured at all, and there are no figures to leave anything out of."""
+    if unread:
+        many = len(unread) != 1
+        print("  The scorer did not read %s%s:"
+              % ("%d files" % len(unread) if many else "1 file",
+                 "; the figures above leave %s out" % ("them" if many else "it") if figures
+                 else ""))
+        for u in unread:
+            print("    %s" % u)
+
+
 def main():
     ap = argparse.ArgumentParser(prog="python -m kibsu report", description="What can an agent not do in this repo yet?")
     ap.add_argument("repo", nargs="?", default=".")
@@ -207,14 +290,13 @@ def main():
     cfg = config.load(root)
 
     idx = index_json(root)
-    skills = a.skills or find_skills_dir(root, cfg)
-    if not skills and root_instruction_files(root, cfg):
-        # No instruction DIRECTORY, but the repo does carry the root-file layout. Hand audit the
-        # repo root: find_skills()'s instruction-files mode picks up exactly those files and
-        # nothing else, so Q3/Q4 get measured instead of printing "COULD NOT CHECK" at a repo
-        # that plainly does tell agents how to work.
-        skills = root
-    sk = audit_json(skills, ["--artifacts"]) if skills else None
+    skills, unmeasured = resolve_skills(root, cfg, a.skills)
+    scorer_args = ["--artifacts"]
+    sk, failure, unread = run_scorer(skills, scorer_args) if skills else (None, None, [])
+    unread = unread_in_repo(root, skills, unread) if skills else unread
+    because = ""
+    if failure:
+        unmeasured, because = describe_unmeasured(skills, failure)
 
     findings, score = [], 0
 
@@ -268,6 +350,17 @@ def main():
             findings.append((WARN, "Prove they followed",
                              "only %d procedural instructions found - too few to judge."
                              % p["instructions"]))
+    elif unmeasured:
+        # A directory was named or found, and could not be measured. Saying "nothing here tells
+        # agents how to work" then is a claim about the repository made about a typo or a crash
+        # (#112). The scorer's own command is the read-only way to see the failure.
+        findings.append((SKIP, "Prove they followed",
+                         "COULD NOT CHECK - %s%s." % (unmeasured, because),
+                         # The exact run that failed: a crash in the artifact walk does not
+                         # happen without --artifacts, and a hint that succeeds misleads.
+                         ("%s %s %s --json %s" % (q(sys.executable), q(tool("audit.py")),
+                                                  q(skills), " ".join(scorer_args)))
+                         if skills else None))
     else:
         # SKIP, not WARN. Identical root cause to the SKIP under "Resume after a break" below,
         # and marking the same condition two different ways is how the tail lost a count.
@@ -310,6 +403,10 @@ def main():
                              "all %d promised artifacts exist." % len(arts)))
             score += 1
 
+    elif unmeasured:
+        findings.append((SKIP, "Resume after a break",
+                         "COULD NOT CHECK - %s, so no promised artifacts could be read."
+                         % unmeasured))
     else:
         findings.append((SKIP, "Resume after a break",
                          "COULD NOT CHECK - no agent-instruction directory found, so there is "
@@ -403,7 +500,8 @@ def main():
                           "of": len(findings), "skipped": skipped,
                           "complete": skipped == 0,
                           "findings": [{"mark": f[0], "title": f[1], "detail": f[2]}
-                                       for f in findings]}, indent=2))
+                                       for f in findings],
+                          "unread_files": unread}, indent=2))
         return CANNOT_RUN if skipped else 0
 
     print("\n  WHAT YOUR AGENTS CANNOT DO HERE YET")
@@ -414,6 +512,7 @@ def main():
     print("  " + "-" * 74)
     tail = "" if not skipped else "  %d could NOT be checked - that is not a pass." % skipped
     print("  %d of %d ready.%s" % (score, len(findings), tail))
+    print_unread(unread)
     # The no-write assurance stays the LAST thing on screen. Nothing is appended after it, so it
     # remains a guarantee rather than a softener for a request that follows.
     print("  Nothing was written to this repo - run `git status` to confirm.\n")

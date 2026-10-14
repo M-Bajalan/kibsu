@@ -69,6 +69,55 @@ class ConfigLoadTests(unittest.TestCase):
         self.assertEqual(result, config.DEFAULTS)
         self.assertIn("does not contain a JSON object", err)
 
+    def test_a_wrongly_typed_key_warns_and_keeps_only_that_key_at_its_default(self):
+        """#112: the callers trust the types, so {"skills_dir": 5} reached `.replace()` in
+        report and was a traceback. Same contract as malformed JSON, scoped to the one key:
+        warned about, left at its default - and the well-typed keys beside it still apply."""
+        self._write('{"skills_dir": 5, "instruction_files": "AGENTS.md", '
+                    '"docs_root": "handbook"}\n')
+        result, err = self._load()
+        self.assertEqual(result["skills_dir"], config.DEFAULTS["skills_dir"])
+        self.assertEqual(result["instruction_files"], config.DEFAULTS["instruction_files"])
+        self.assertEqual(result["docs_root"], "handbook")
+        self.assertIn('"skills_dir" must be a string, not 5', err)
+        self.assertIn('"instruction_files" must be a list, not "AGENTS.md"', err)
+
+    def test_a_list_holding_a_non_string_is_refused_and_unknown_keys_pass_through(self):
+        self._write('{"instruction_files": ["AGENTS.md", 7], "my_extension": {"x": 1}}\n')
+        result, err = self._load()
+        self.assertEqual(result["instruction_files"], config.DEFAULTS["instruction_files"])
+        self.assertIn('"instruction_files" must be a list of strings', err)
+        self.assertEqual(result["my_extension"], {"x": 1})
+
+    def test_null_stays_null_where_the_callers_read_it_as_not_set(self):
+        """skills_dir and instruction_files are read null-safely (`cfg.get(..) and`, `or
+        DEFAULTS`), and check.py drops a null skills_dir from its existence scope: replacing null
+        with the default changed a question-5 verdict. gates is gate.py's to judge, a dict of
+        gates included - it says what is wrong with them better than a type check."""
+        self._write('{"skills_dir": null, "instruction_files": null, '
+                    '"gates": {"lint": {"cmd": ""}}}\n')
+        result, err = self._load()
+        self.assertIsNone(result["skills_dir"])
+        self.assertIsNone(result["instruction_files"])
+        self.assertEqual(result["gates"], {"lint": {"cmd": ""}})
+        self.assertEqual(err, "")
+
+    def test_null_where_it_was_a_traceback_is_a_warning_and_a_key_warns_once(self):
+        self._write('{"docs_root": null}\n')
+        result, err = self._load()
+        self.assertEqual(result["docs_root"], config.DEFAULTS["docs_root"])
+        self.assertIn('"docs_root" must be a string, not null', err)
+        _, again = self._load()                    # gate.py loads the config twice per run
+        self.assertEqual(again, "", "the same key in the same file warns once per run")
+
+    def test_negative_control_well_typed_values_are_kept_and_nothing_is_warned(self):
+        self._write('{"skills_dir": "agents", "instruction_files": ["AGENTS.md"], '
+                    '"gates": [{"name": "g"}]}\n')
+        result, err = self._load()
+        self.assertEqual((result["skills_dir"], result["instruction_files"], result["gates"]),
+                         ("agents", ["AGENTS.md"], [{"name": "g"}]))
+        self.assertEqual(err, "")
+
     def test_merge_is_shallow_and_wholesale(self):
         """The documented contract, verbatim: "lists are not concatenated, nested dicts are
         not deep-merged". A one-item instruction_files list REPLACES the three-item default
