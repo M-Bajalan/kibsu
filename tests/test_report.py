@@ -301,9 +301,11 @@ def _empty_commits(repo, n):
     stream = "".join(
         "commit %s\ncommitter Kibsu Tests <kibsu-tests@example.com> %d +0000\ndata 1\n.\n%s\n"
         % (ref, 1700000000 + i, "from %s\n" % head if i == 0 else "") for i in range(n))
-    p = subprocess.run(["git", "fast-import", "--quiet"], cwd=repo, input=stream,
-                       capture_output=True, text=True)
-    assert p.returncode == 0, "git fast-import failed: %s" % p.stderr
+    # Bytes, not text=True: a text-mode pipe on Windows writes every "\n" as "\r\n", and
+    # fast-import then reads the ref as "refs/heads/master\r" and refuses it.
+    p = subprocess.run(["git", "fast-import", "--quiet"], cwd=repo,
+                       input=stream.encode("utf-8"), capture_output=True)
+    assert p.returncode == 0, "git fast-import failed: %s" % p.stderr.decode("utf-8", "replace")
 
 
 if __name__ == "__main__":

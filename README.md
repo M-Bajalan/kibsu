@@ -398,7 +398,7 @@ to work in PowerShell too — a "verify it yourself" section that only verifies 
 is half a claim.
 
 **It is small enough to actually read.** 6,687 lines across 15 files in `kibsu/`, plus
-7,304 lines of tests running 319 cases. That is an evening, not a quarter. Count it
+7,306 lines of tests running 319 cases. That is an evening, not a quarter. Count it
 yourself rather than believing this paragraph — this is the third revision of these
 numbers to ship after the code had already grown past them ([#29](https://github.com/M-Bajalan/kibsu/issues/29)
 indexes the incident), so the commands below outrank the prose above them - and as of #29's fix the test
