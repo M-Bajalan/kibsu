@@ -523,10 +523,18 @@ Read these before quoting anything above.
     from all subagents, combine them and write to <planning_dir>/claude-research.md` is not
     seen as an instruction, because it does not open with its verb. Named one by one in
     [CORRECTIONS.md](CORRECTIONS.md), 2026-10-11.
-  - **Where a soft line break falls inside a block changes no number.** Held by a property
-    test in the suite, after a fuzz that re-wrapped all 1,477 surveyed files against an
-    independent CommonMark parser: no instruction count, checkable count or sentence moved;
-    in the two reader-over-renderer places above, 4 files can still change a genre signal.
+  - **Where a soft line break falls inside a block changes almost nothing, and the places
+    where it still does are named.** Scorer 0.11.0 said "no number" and was wrong in five
+    places. Its own property test refused the wraps that showed the first. Scorer 0.12.0
+    closes them (issue #113). Measured since: every paragraph of the 6,573 surveyed Markdown
+    files was re-wrapped 48 ways, and only the 201,651 re-wraps that markdown-it and
+    cmark-gfm call the same document were kept.
+    - Scorer 0.11.0 changes its result on 11,259 of them.
+    - Scorer 0.12.0 changes it on 606, in 35 files, and 0.11.0 changes every one of those
+      too. 227 are in the two reader-over-renderer places above.
+    - 51 of the 606, in 6 files, move an instruction count. They come from fences indented
+      four columns or left open in a list item, quotes inside list items, and tag-like lines.
+    Each cause is named in [CORRECTIONS.md](CORRECTIONS.md), 2026-10-14.
   A smaller sibling from `explain`'s first listing: a templated path written with angle
   brackets (`docs/plans/<date>-<slug>.md`) is not read as naming a file.
 - **Persona collections are not badly written**, they are a different genre. Scoring them on

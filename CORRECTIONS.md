@@ -91,6 +91,29 @@ beside an item is the next item now, and a test holds it.
 Across the 6,490 corpus files, the reviewed reader and the first draft give identical
 results, record for record. The figures below are the reviewed reader's.
 
+**The re-wrap property, measured across the corpus.** Every paragraph of the 6,573
+Markdown files in the ten pinned repositories was re-wrapped 48 ways. Widths and hanging
+indents were varied, and breaks were added, removed and moved, never at a hard break. Only
+re-wraps that markdown-it and cmark-gfm render as the same document were kept: 201,651 of
+them.
+
+| result changes on a kept re-wrap | scorer 0.11.0 | scorer 0.12.0 |
+|---|---|---|
+| any field `analyse` returns | 11,259 | **606**, in 35 files |
+| ...of those, in the two declared places | | 227 |
+| ...of those, an instruction count | | 51, in 6 files |
+| ...where 0.11.0 reads it right and 0.12.0 does not | | **0** |
+
+The 606 come from causes that predate this round, listed below. A second check compared
+where each reader starts a list item with where markdown-it does. Items only the reader
+starts fall from 295 in 33 files to 274 in 20, and the 132 it misses are unchanged. 0.12.0
+starts or misses none that 0.11.0 did not.
+
+This corrects a sentence of the 2026-10-11 entry and the README. That round's fuzz kept 973
+re-wraps and found no instruction count, checkable count or sentence that moved. It was true
+of the re-wraps it tried, not of re-wrapping: the wider fuzz finds the 51 above, and 0.11.0
+moves on every one of them.
+
 **Direction of the bias: none that a published figure shows.** Re-measured at the same
 pinned SHAs, every `evidence/` file changes in one field, the scorer version. The survey
 table, the median, the phantom line and every row are unmoved, and so is `report`'s public
