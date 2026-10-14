@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.10.1 - 2026-10-14
+
+A crash fix and nothing else. This package still carries **scorer 0.11.0**. Patch, not minor:
+for every file 0.10.0 could read, every figure `audit`, `report` and `explain` print is the
+same, and `evidence/` regenerates byte-identical; what changes is that a file 0.10.0 crashed on
+is now read.
 
 - **One file could cost `audit`, `report` and `explain` the whole repository.** A paragraph
   line followed directly by a blockquote whose text sits four or more columns in
