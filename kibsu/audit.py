@@ -156,7 +156,12 @@ CHECKBOX = re.compile(r"^\s*(?:[-*+]\s*)?(?:\[[ xX]\](?![(\[])|[□☐☑☒])")
 # A fence-looking line: a run of 3+ backticks OR 3+ tildes (CommonMark section 4.5), plus
 # whatever follows on the line (the candidate info string / closer test happens in analyse()).
 FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
-PATHY = re.compile(r"[`\"']?[\w./\\*-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv|lock)\b", re.I)
+# Does the sentence name a file? Only ever asked yes or no, so this is the shortest form of
+# the question: a path character, the dot, an extension. Its first form put an optional quote
+# and a run of path characters in front - true on exactly the same text, since any run ends
+# in one path character, but every start position re-scanned the run, and 200 KB of "a*a*"
+# took two minutes (issue #114). tests/test_sentences.py holds the two forms equal.
+PATHY = re.compile(r"[\w./\\*-]\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv|lock)\b", re.I)
 EXITY = re.compile(r"\b(exit code|exit 0|exit 1|non-zero|returns? 0|must pass|passes|green|fails? loud|"
                    r"assert|verify that|diff|git status|git log|numstat)\b", re.I)
 MODALS = re.compile(r"\b(MUST|SHOULD|ALWAYS|NEVER|REQUIRED|DO NOT|DON'T|MANDATORY|"
@@ -261,12 +266,21 @@ ARTIFACT_VERB = re.compile(
 # (file_tokens() below): "see https://x.io/guide.md" mentions a page, not a mandate. tsx/jsx
 # and re.I both carried from earlier rounds; `NOTES.MD` is still the same mandate as
 # `notes.md`, deliberately (the existence check's case posture is issue #78, not this one).
-_FT_CORE = r"[\w./\\*\[\]{}-]*[\w*\[\]{}-]+\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv)"
+_FT_EXT = r"\.(?:md|json|ya?ml|py|ps1|sh|js|ts|tsx|jsx|sql|toml|ini|cfg|txt|csv)"
+_FT_CORE = r"[\w./\\*\[\]{}-]*[\w*\[\]{}-]+" + _FT_EXT
+# FILE_TOKEN is the DEFINITION of a file mention, and file_tokens() below computes exactly
+# what FILE_TOKEN.findall() would - in linear time, which the pattern itself cannot promise:
+# on one long run of path characters with no extension in it ("a*a*a*..."), every start
+# position re-scans the run and every split between its two classes is tried, so 3 KB took
+# ten seconds (issue #114). SameAnswerTests in tests/test_sentences.py holds the two equal.
 FILE_TOKEN = re.compile(
     r"`(" + _FT_CORE + r")`"
     r"|\"(" + _FT_CORE + r")\""
     r"|'(" + _FT_CORE + r")'"
     r"|(?<![\w./\\-])(" + _FT_CORE + r")(?![\w-])", re.I)
+_FT_RUN = re.compile(r"[\w./\\*\[\]{}-]+")         # what a token is made of; one run holds at most one
+_FT_STEM_END = re.compile(r"[\w*\[\]{}-]")           # what may stand right before the extension's dot
+_FT_TAIL = re.compile(_FT_EXT + r"(?![\w-])", re.I)
 _URLISH = re.compile(r"(?:https?://|www\.)\S+", re.I)
 # A markdown link is ONE mention wearing two coats: "[README.md](./README.md)" used to yield
 # a bracket-corrupted `[README.md` token (a path that can never exist -> a fabricated
@@ -274,7 +288,65 @@ _URLISH = re.compile(r"(?:https?://|www\.)\S+", re.I)
 # so both coats resolve to the same token and dedup to one record. `pages/[id].md`-style
 # template brackets are untouched - this only fires on the full ](... link shape. Both
 # repros from the round's adversarial pass, pinned in Scorer070Tests.
+#
+# _MDLINK is the definition; strip_links() is how it is computed. Applied as a pattern, a
+# "[a](b" with no ")" after it scans to the end of the text, and the next "[" scans again:
+# quadratic, and since 0.11.0 the text is a whole joined sentence, not one line - 20,000
+# lines of "[a](b" under "Create the file" took nine seconds (issue #114).
 _MDLINK = re.compile(r"\[([^\]]*)\]\(([^)]*)\)")
+
+
+def strip_links(text):
+    """`_MDLINK.sub(" text target ", text)`, in one pass. Two facts make it linear: every "["
+    before the next "]" meets that same "]" and needs the same "(" after it, so when one
+    fails they all do; and when no "]" - or no ")" - is left after a start, none is left
+    after any later start either, so the scan can stop."""
+    out, last = [], 0
+    i = text.find("[")
+    while i != -1:
+        close = text.find("]", i + 1)
+        if close == -1:
+            break
+        if not text.startswith("(", close + 1):
+            i = text.find("[", close + 1)
+            continue
+        end = text.find(")", close + 2)
+        if end == -1:
+            break
+        out.append(text[last:i])
+        out.append(" %s %s " % (text[i + 1:close], text[close + 2:end]))
+        last = end + 1
+        i = text.find("[", last)
+    out.append(text[last:])
+    return "".join(out)
+
+
+def _scan_file_tokens(text):
+    """The tokens FILE_TOKEN.findall(text) returns, in linear time.
+
+    A token lies inside one maximal run of path characters, so the text is taken run by run,
+    and each run gives at most one token:
+    - It starts at the run's start. The lookbehind also allows a start after `*`, `[`, `]`,
+      `{` or `}` inside the run, but a later start can only end at the same dots or fewer,
+      so if the run's start fails, every later start fails too.
+    - It ends at the LAST dot in the run that a stem character precedes and an extension
+      completes. Greedy, the pattern backs off from the right, so this is the first end it
+      tries that works, and nothing after it in the run can be a token.
+    - The quoted alternatives never change what is returned. A quote is not a path character,
+      so a quoted token is also a bare one: the same run, the same last dot, and the closing
+      quote passes the bare form's lookahead."""
+    out = []
+    for run in _FT_RUN.finditer(text):
+        start, stop = run.span()
+        dot = text.rfind(".", start, stop)
+        while dot > start:
+            if _FT_STEM_END.match(text, dot - 1):
+                m = _FT_TAIL.match(text, dot)
+                if m:
+                    out.append(text[start:m.end()])
+                    break
+            dot = text.rfind(".", start, dot)
+    return out
 
 
 def file_tokens(line):
@@ -286,13 +358,7 @@ def file_tokens(line):
     Scheme-prefixed and www. references are stripped; the naked-domain residue is accepted
     and counted like any other mandate rather than special-cased by a guessing heuristic.
     """
-    out = []
-    line = _MDLINK.sub(lambda m: " %s %s " % (m.group(1), m.group(2)), line)
-    for groups in FILE_TOKEN.findall(_URLISH.sub(" ", line)):
-        tok = next((g for g in groups if g), "")
-        if tok:
-            out.append(tok)
-    return out
+    return _scan_file_tokens(_URLISH.sub(" ", strip_links(line)))
 
 
 # --- phantom-scope filters (fix for the false-positive class) --------------------------------
