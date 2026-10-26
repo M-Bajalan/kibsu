@@ -25,7 +25,7 @@ jobs:
     steps:
       # Pinned to SHAs, kept current by dependabot.yml.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
       # A release that skips its own tests is a claim without evidence.
@@ -42,7 +42,7 @@ jobs:
       # a real sdist + wheel survive the cross-job round trip byte-identical, with the
       # assertion itself unit-tested in tests/test_assert_dist_roundtrip.py. Change these
       # two lines and change them there, or the publish path goes untested again.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist/
@@ -55,7 +55,7 @@ jobs:
       id-token: write
     steps:
       # >>> MUST MATCH roundtrip.yml <<< (see the note on upload above)
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
@@ -63,7 +63,7 @@ jobs:
       # which upstream can move at any moment, on the one step that publishes the
       # package to PyPI. A mutable ref on the publish step is a supply-chain hole in
       # the exact place a project about verifiable claims can least afford one.
-      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
 
   github-release:
     # Attach the exact artifacts PyPI received to the GitHub release, plus a
@@ -84,7 +84,7 @@ jobs:
       attestations: write  # store the attestation in the repo's attestation log
     steps:
       # >>> MUST MATCH roundtrip.yml <<< (see the note on upload in build above)
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
